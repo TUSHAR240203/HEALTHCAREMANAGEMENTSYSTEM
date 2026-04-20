@@ -1,0 +1,86 @@
+@using Frontend.Models.Api
+@model CreateAppointmentRequestDto
+
+@{
+    ViewData["Title"] = "Create Appointment";
+}
+
+<h1>Create Appointment</h1>
+
+<div class="card">
+    <form asp-action="Create" method="post" class="grid-form">
+        <div asp-validation-summary="ModelOnly" class="alert error"></div>
+
+        <div>
+            <label asp-for="PatientId"></label>
+            <input asp-for="PatientId" />
+            <span asp-validation-for="PatientId" class="field-validation"></span>
+        </div>
+        <div>
+            <label asp-for="UHID"></label>
+            <input asp-for="UHID" />
+            <span asp-validation-for="UHID" class="field-validation"></span>
+        </div>
+        <div>
+            <label asp-for="DoctorId"></label>
+            <input asp-for="DoctorId" />
+            <span asp-validation-for="DoctorId" class="field-validation"></span>
+        </div>
+        <div>
+            <label asp-for="DoctorName"></label>
+            <input asp-for="DoctorName" />
+        </div>
+        <div>
+            <label asp-for="DepartmentId"></label>
+            <input asp-for="DepartmentId" />
+            <span asp-validation-for="DepartmentId" class="field-validation"></span>
+        </div>
+        <div>
+            <label asp-for="DepartmentName"></label>
+            <input asp-for="DepartmentName" />
+        </div>
+
+        <!-- FIXED (null-safe) -->
+        <div>
+            <label asp-for="AppointmentDate"></label>
+            <input asp-for="AppointmentDate" type="date"
+                   value="@(Model?.AppointmentDate.ToString("yyyy-MM-dd"))" />
+        </div>
+
+        <!-- FIXED (null-safe) -->
+        <div>
+            <label asp-for="SlotStartTime"></label>
+            <input asp-for="SlotStartTime" type="time"
+                   value="@(Model?.SlotStartTime.ToString("HH\\:mm"))" />
+        </div>
+
+        <!-- FIXED (null-safe) -->
+        <div>
+            <label asp-for="SlotEndTime"></label>
+            <input asp-for="SlotEndTime" type="time"
+                   value="@(Model?.SlotEndTime.ToString("HH\\:mm"))" />
+        </div>
+
+        <div>
+            <label asp-for="VisitType"></label>
+            <input asp-for="VisitType" placeholder="OPD / Follow-up / New Visit" />
+            <span asp-validation-for="VisitType" class="field-validation"></span>
+        </div>
+        <div class="full-width">
+            <label asp-for="ReasonForVisit"></label>
+            <textarea asp-for="ReasonForVisit"></textarea>
+        </div>
+        <div class="checkbox-row">
+            <input asp-for="IsTeleConsultation" />
+            <label asp-for="IsTeleConsultation"></label>
+        </div>
+        <div class="form-actions full-width">
+            <button type="submit" class="btn">Save</button>
+            <a asp-action="Index" class="btn secondary">Back</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
