@@ -1,10 +1,11 @@
+using FluentValidation;
 using Hms.ReceptionApi.DTOs;
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Entities;
 using Hms.ReceptionApi.Interfaces.Clients;
 using Hms.ReceptionApi.Interfaces.Repository;
 using Hms.ReceptionApi.Interfaces.Services;
-
+using Hms.ReceptionApi.Validators;
 namespace Hms.ReceptionApi.Services;
 
 public class ReceptionService : IReceptionService
@@ -176,9 +177,17 @@ public class ReceptionService : IReceptionService
         if (patient == null)
             throw new ArgumentException("Patient not found.");
 
+
+        //IValidator<BookAppointmentRequestDto> validator1 = new BookAppointmentRequestDtoValidator();
+        /////BookAppointmentRequestDtoValidator validator = new BookAppointmentRequestDtoValidator();
+        ///var res = await validator1.ValidateAsync(request);
+        //if (!res.IsValid)
+        //{
+        //   throw new ValidationException(res.Errors);
+        //}
         var appointmentRequest = new AppointmentCreateRequestDto
         {
-            PatientId = patient.PatientId,
+            PatientId = patient.PatientId,   
             UHID = patient.UHID,
             DoctorId = request.DoctorId,
             DoctorName = $"Doctor {request.DoctorId}",
