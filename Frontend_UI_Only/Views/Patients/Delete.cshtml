@@ -1,0 +1,51 @@
+@model Hms.Web.Models.Patients.PatientResponseDto
+
+@{
+    ViewData["Title"] = "Delete Patient";
+}
+
+<div class="container py-4">
+    <div class="mb-4">
+        <h2 class="mb-1 text-danger">Delete Patient</h2>
+        <p class="text-muted mb-0">Confirm before removing this patient record</p>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4">
+            <div class="alert alert-warning">
+                Are you sure you want to delete this patient? This action cannot be easily undone.
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <strong>ID:</strong> @Model.Id
+                </div>
+                <div class="col-md-4">
+                    <strong>UHID:</strong> @Model.Uhid
+                </div>
+                <div class="col-md-4">
+                    <strong>Name:</strong> @Model.FullName
+                </div>
+                <div class="col-md-4">
+                    <strong>Mobile:</strong> @Model.MobileNumber
+                </div>
+                <div class="col-md-4">
+                    <strong>Email:</strong> @Model.Email
+                </div>
+                <div class="col-md-4">
+                    <strong>Status:</strong> @Model.StatusText
+                </div>
+            </div>
+
+            <form asp-action="Delete" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

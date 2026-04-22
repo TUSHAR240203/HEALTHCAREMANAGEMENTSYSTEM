@@ -1,0 +1,33 @@
+@model Frontend.Models.Reception.CheckInRequestDto
+@{
+    ViewData["Title"] = "Patient Check-In";
+}
+
+<div class="page-header">
+    <div>
+        <h1>Patient Check-In</h1>
+        <p class="page-subtitle">Confirm arrival and move the patient smoothly into the department workflow.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0">
+            <div class="card-body p-4">
+                <form asp-action="CheckIn" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-6"><label asp-for="AppointmentId" class="form-label"></label><input asp-for="AppointmentId" class="form-control" /></div>
+                        <div class="col-md-6"><label asp-for="PatientId" class="form-label"></label><input asp-for="PatientId" class="form-control" /></div>
+                        <div class="col-md-6"><label asp-for="DoctorId" class="form-label"></label><input asp-for="DoctorId" class="form-control" /></div>
+                        <div class="col-md-6"><label asp-for="DepartmentId" class="form-label"></label><input asp-for="DepartmentId" class="form-control" /></div>
+                    </div>
+                    <div class="mt-4 d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-success">Check In Patient</button>
+                        <a asp-action="SearchPatients" class="btn btn-outline-secondary">Back</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
