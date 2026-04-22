@@ -1,13 +1,12 @@
 using FluentValidation;
-using Hms.AuthApi.DTOs;
 using Hms.AuthApi.DTOs.Auth;
 
 namespace Hms.AuthApi.Validators;
 
-public class LoginRequestValidator
-    : AbstractValidator<LoginRequestDto>
+public class SendPortalActivationRequestValidator
+    : AbstractValidator<SendPatientPortalActivationRequestDto>
 {
-    public LoginRequestValidator()
+    public SendPortalActivationRequestValidator()
     {
         RuleFor(x => x.PatientId)
             .GreaterThan(0)
@@ -18,11 +17,5 @@ public class LoginRequestValidator
             .WithMessage("Mobile number is required")
             .Matches(@"^[0-9]{10}$")
             .WithMessage("Mobile number must be exactly 10 digits");
-
-        RuleFor(x => x.OtpCode)
-            .NotEmpty()
-            .WithMessage("OTP is required")
-            .Matches(@"^[0-9]{6}$")
-            .WithMessage("OTP must be exactly 6 digits");
     }
 }

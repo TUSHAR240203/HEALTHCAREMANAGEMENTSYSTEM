@@ -1,10 +1,11 @@
-﻿using Hms.PatientsApi.Enums;
+using Hms.PatientsApi.Enums;
 
 namespace Hms.PatientsApi.DTOs.Patients;
 
 public class PatientResponseDto
 {
     public int Id { get; set; }
+    public string PatientIdentifier { get; set; } = default!;
     public string UHID { get; set; } = default!;
     public string FullName { get; set; } = default!;
     public DateOnly DateOfBirth { get; set; }

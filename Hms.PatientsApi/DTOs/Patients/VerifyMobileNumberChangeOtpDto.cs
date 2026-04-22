@@ -1,8 +1,7 @@
-namespace Hms.AuthApi.DTOs.Auth;
+namespace Hms.PatientsApi.DTOs.Patients;
 
-public class LoginRequestDto
+public class VerifyMobileNumberChangeOtpDto
 {
-    public int PatientId { get; set; }
     public string MobileNumber { get; set; } = default!;
     public string OtpCode { get; set; } = default!;
 }

@@ -1,4 +1,4 @@
-﻿using Hms.PatientsApi.Data;
+using Hms.PatientsApi.Data;
 using Hms.PatientsApi.DTOs.Patients;
 using Hms.PatientsApi.Entities;
 using Hms.PatientsApi.Interfaces.Repository;
@@ -16,14 +16,10 @@ public class PatientRepository : IPatientRepository
     }
 
     public async Task<Patient?> GetByIdAsync(int id)
-    {
-        return await _context.Patients.FirstOrDefaultAsync(x => x.Id == id);
-    }
+        => await _context.Patients.FirstOrDefaultAsync(x => x.Id == id);
 
     public async Task<Patient?> GetByUhidAsync(string uhid)
-    {
-        return await _context.Patients.FirstOrDefaultAsync(x => x.UHID == uhid);
-    }
+        => await _context.Patients.FirstOrDefaultAsync(x => x.UHID == uhid);
 
     public async Task<bool> ExistsByMobileAsync(string mobileNumber, int? excludePatientId = null)
     {
@@ -37,15 +33,41 @@ public class PatientRepository : IPatientRepository
         return await query.AnyAsync();
     }
 
-    public async Task AddAsync(Patient patient)
+    public async Task<Patient?> GetByMobileAsync(string mobileNumber, int? excludePatientId = null)
     {
-        await _context.Patients.AddAsync(patient);
+        var query = _context.Patients.Where(x => x.MobileNumber == mobileNumber);
+
+        if (excludePatientId.HasValue)
+        {
+            query = query.Where(x => x.Id != excludePatientId.Value);
+        }
+
+        return await query.FirstOrDefaultAsync();
     }
+
+    public async Task AddAsync(Patient patient)
+        => await _context.Patients.AddAsync(patient);
 
     public Task UpdateAsync(Patient patient)
     {
         _context.Patients.Update(patient);
         return Task.CompletedTask;
+    }
+
+    public async Task AddMobileNumberChangeRequestAsync(MobileNumberChangeRequest request)
+        => await _context.MobileNumberChangeRequests.AddAsync(request);
+
+    public async Task<MobileNumberChangeRequest?> GetLatestPendingMobileChangeRequestAsync(int patientId, string mobileNumber)
+    {
+        var now = DateTime.UtcNow;
+
+        return await _context.MobileNumberChangeRequests
+            .Where(x => x.PatientId == patientId
+                        && x.NewMobileNumber == mobileNumber
+                        && !x.IsConsumed
+                        && x.ExpiresAtUtc > now)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<PatientSearchResponseDto> SearchAsync(PatientSearchRequestDto request)
@@ -59,7 +81,9 @@ public class PatientRepository : IPatientRepository
             query = query.Where(x => x.MobileNumber == request.MobileNumber);
 
         if (!string.IsNullOrWhiteSpace(request.Name))
-            query = query.Where(x => x.FullName.Contains(request.Name));
+        {
+            query = query.Where(x => ((x.FirstName ?? string.Empty) + " " + (x.MiddleName ?? string.Empty) + " " + (x.LastName ?? string.Empty)).Contains(request.Name));
+        }
 
         if (request.DateOfBirth.HasValue)
             query = query.Where(x => x.DateOfBirth == request.DateOfBirth.Value);
@@ -70,11 +94,15 @@ public class PatientRepository : IPatientRepository
             .OrderByDescending(x => x.CreatedAtUtc)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
+            .ToListAsync();
+
+        var patientDtos = patients
             .Select(x => new PatientResponseDto
             {
                 Id = x.Id,
+                PatientIdentifier = x.PatientIdentifier,
                 UHID = x.UHID,
-                FullName = x.FullName,
+                FullName = string.Join(" ", new[] { x.FirstName, x.MiddleName, x.LastName }.Where(y => !string.IsNullOrWhiteSpace(y))),
                 DateOfBirth = x.DateOfBirth,
                 Gender = x.Gender,
                 MobileNumber = x.MobileNumber,
@@ -85,17 +113,15 @@ public class PatientRepository : IPatientRepository
                 Status = x.Status,
                 CreatedAtUtc = x.CreatedAtUtc
             })
-            .ToListAsync();
+            .ToList();
 
         return new PatientSearchResponseDto
         {
             TotalCount = totalCount,
-            Patients = patients
+            Patients = patientDtos
         };
     }
 
     public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
+        => await _context.SaveChangesAsync();
 }

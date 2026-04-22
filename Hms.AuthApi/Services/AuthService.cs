@@ -1,15 +1,17 @@
+using Hms.AuthApi.Common;
 using Hms.AuthApi.DTOs.Auth;
 using Hms.AuthApi.Entities;
 using Hms.AuthApi.Interfaces.Clients;
 using Hms.AuthApi.Interfaces.Repository;
 using Hms.AuthApi.Interfaces.Services;
-using Hms.AuthApi.Common;
+
 namespace Hms.AuthApi.Services;
 
 public class AuthService : IAuthService
 {
     private readonly IPatientsApiClient _patientsApiClient;
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
     private readonly IOtpRepository _otpRepository;
     private readonly IPatientUserLinkRepository _patientUserLinkRepository;
     private readonly IOtpService _otpService;
@@ -18,6 +20,7 @@ public class AuthService : IAuthService
     public AuthService(
         IPatientsApiClient patientsApiClient,
         IUserRepository userRepository,
+        IRoleRepository roleRepository,
         IOtpRepository otpRepository,
         IPatientUserLinkRepository patientUserLinkRepository,
         IOtpService otpService,
@@ -25,43 +28,60 @@ public class AuthService : IAuthService
     {
         _patientsApiClient = patientsApiClient;
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
         _otpRepository = otpRepository;
         _patientUserLinkRepository = patientUserLinkRepository;
         _otpService = otpService;
         _jwtService = jwtService;
     }
 
-    public async Task SendPortalActivationAsync(SendPatientPortalActivationRequestDto request)
+    public async Task SendPortalActivationAsync(
+        SendPatientPortalActivationRequestDto request)
     {
-        if (request.PatientId <= 0)
-            throw new ArgumentException("Invalid patient id.");
-
         var patient = await _patientsApiClient.GetPatientByIdAsync(request.PatientId);
+
         if (patient == null)
             throw new ArgumentException("Patient not found.");
+
+        var normalizedMobile = NormalizeMobile(request.MobileNumber);
+
+        if (NormalizeMobile(patient.MobileNumber) != normalizedMobile)
+            throw new ArgumentException("Mobile number does not match patient record.");
 
         if (!patient.PortalAccessEnabled)
             throw new InvalidOperationException("Portal access is not enabled for this patient.");
 
-        var otp = _otpService.CreateOtp(patient.Id, patient.MobileNumber, "PortalActivation");
+        var otp = _otpService.CreateOtp(
+            patient.Id,
+            normalizedMobile,
+            "PortalActivation");
 
         await _otpRepository.AddAsync(otp);
         await _otpRepository.SaveChangesAsync();
 
-        Console.WriteLine($"[OTP SENT] PatientId={patient.Id}, Mobile={patient.MobileNumber}, OTP={otp.OtpCode}");
+        Console.WriteLine($"[PORTAL ACTIVATION OTP GENERATED] PatientId={patient.Id}");
+        Console.WriteLine($"Mobile={normalizedMobile}");
+        Console.WriteLine($"OTP={otp.OtpCode}");
+        Console.WriteLine("Purpose=PortalActivation");
+        Console.WriteLine("[OTP SAVED] Portal activation OTP saved successfully.");
     }
 
-    public async Task<AuthResponseDto> VerifyOtpAndActivateAsync(VerifyOtpRequestDto request)
+    public async Task<AuthResponseDto> VerifyOtpAndActivateAsync(
+        VerifyOtpRequestDto request)
     {
-        ValidateVerifyOtpRequest(request);
-
         var patient = await _patientsApiClient.GetPatientByIdAsync(request.PatientId);
+
         if (patient == null)
             throw new ArgumentException("Patient not found.");
 
+        var normalizedMobile = NormalizeMobile(request.MobileNumber);
+
+        if (NormalizeMobile(patient.MobileNumber) != normalizedMobile)
+            throw new ArgumentException("Mobile number does not match patient record.");
+
         var otp = await _otpRepository.GetValidOtpAsync(
             request.PatientId,
-            request.MobileNumber.Trim(),
+            normalizedMobile,
             request.OtpCode.Trim(),
             request.Purpose.Trim());
 
@@ -72,22 +92,40 @@ public class AuthService : IAuthService
         otp.UpdatedAtUtc = DateTime.UtcNow;
         await _otpRepository.SaveChangesAsync();
 
-        var user = await _userRepository.GetByMobileAsync(request.MobileNumber.Trim());
+        var link = await _patientUserLinkRepository.GetByPatientIdAsync(request.PatientId);
+        User? user = null;
+
+        if (link != null)
+        {
+            user = await _userRepository.GetByIdWithRolesAsync(link.UserId);
+        }
+
         if (user == null)
         {
             user = new User
             {
-                MobileNumber = request.MobileNumber.Trim(),
+                MobileNumber = normalizedMobile,
                 Email = patient.Email,
-                Role = AppRoles.Patient,
                 IsActive = true
             };
 
+            var patientRole = await _roleRepository.GetByNameAsync(AppRoles.Patient);
+
+            if (patientRole == null)
+                throw new InvalidOperationException("Patient role not found.");
+
+            user.UserRoles.Add(new UserRole
+            {
+                RoleId = patientRole.Id
+            });
+
             await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
+
+            user = await _userRepository.GetByIdWithRolesAsync(user.Id)
+                ?? throw new InvalidOperationException("User could not be loaded after creation.");
         }
 
-        var link = await _patientUserLinkRepository.GetByPatientIdAsync(request.PatientId);
         if (link == null)
         {
             link = new PatientUserLink
@@ -104,47 +142,55 @@ public class AuthService : IAuthService
         }
         else
         {
+            link.UserId = user.Id;
+            link.UHID = patient.UHID;
             link.PortalActivated = true;
             link.ActivatedAtUtc = DateTime.UtcNow;
+
             await _patientUserLinkRepository.SaveChangesAsync();
         }
 
-        var tokenResult = _jwtService.GenerateToken(user, link);
+        var roles = user.UserRoles
+            .Select(x => x.Role.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var tokenResult = _jwtService.GenerateToken(user, link, roles);
 
         return new AuthResponseDto
         {
             UserId = user.Id,
             PatientId = patient.Id,
             UHID = patient.UHID,
+            FullName = patient.FullName,
             MobileNumber = user.MobileNumber,
-            Role = user.Role,
+            Roles = roles,
             AccessToken = tokenResult.Token,
             ExpiresAtUtc = tokenResult.ExpiresAtUtc
         };
     }
 
-    public async Task<AuthResponseDto> PatientLoginAsync(PatientLoginRequestDto request)
+    public async Task<AuthResponseDto> PatientLoginAsync(
+        LoginRequestDto request)
     {
-        if (request.PatientId <= 0)
-            throw new ArgumentException("Invalid patient id.");
-
-        if (string.IsNullOrWhiteSpace(request.MobileNumber))
-            throw new ArgumentException("Mobile number is required.");
-
-        if (string.IsNullOrWhiteSpace(request.OtpCode))
-            throw new ArgumentException("OTP is required.");
-
         var patient = await _patientsApiClient.GetPatientByIdAsync(request.PatientId);
+
         if (patient == null)
             throw new ArgumentException("Patient not found.");
 
+        var normalizedMobile = NormalizeMobile(request.MobileNumber);
+
+        if (NormalizeMobile(patient.MobileNumber) != normalizedMobile)
+            throw new ArgumentException("Mobile number does not match patient record.");
+
         var link = await _patientUserLinkRepository.GetByPatientIdAsync(request.PatientId);
+
         if (link == null || !link.PortalActivated)
             throw new InvalidOperationException("Patient portal is not activated.");
 
         var otp = await _otpRepository.GetValidOtpAsync(
             request.PatientId,
-            request.MobileNumber.Trim(),
+            normalizedMobile,
             request.OtpCode.Trim(),
             "Login");
 
@@ -153,21 +199,29 @@ public class AuthService : IAuthService
 
         otp.IsUsed = true;
         otp.UpdatedAtUtc = DateTime.UtcNow;
+
         await _otpRepository.SaveChangesAsync();
 
-        var user = await _userRepository.GetByIdAsync(link.UserId);
+        var user = await _userRepository.GetByIdWithRolesAsync(link.UserId);
+
         if (user == null)
             throw new InvalidOperationException("Linked user not found.");
 
-        var tokenResult = _jwtService.GenerateToken(user, link);
+        var roles = user.UserRoles
+            .Select(x => x.Role.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var tokenResult = _jwtService.GenerateToken(user, link, roles);
 
         return new AuthResponseDto
         {
             UserId = user.Id,
             PatientId = patient.Id,
             UHID = patient.UHID,
+            FullName = patient.FullName,
             MobileNumber = user.MobileNumber,
-            Role = user.Role,
+            Roles = roles,
             AccessToken = tokenResult.Token,
             ExpiresAtUtc = tokenResult.ExpiresAtUtc
         };
@@ -178,7 +232,8 @@ public class AuthService : IAuthService
         if (userId <= 0)
             return null;
 
-        var user = await _userRepository.GetByIdAsync(userId);
+        var user = await _userRepository.GetByIdWithRolesAsync(userId);
+
         if (user == null)
             return null;
 
@@ -190,41 +245,64 @@ public class AuthService : IAuthService
             PatientId = link?.PatientId,
             UHID = link?.UHID,
             MobileNumber = user.MobileNumber,
-            Role = user.Role
+            Roles = user.UserRoles
+                .Select(x => x.Role.Name)
+                .Distinct()
+                .ToArray()
         };
     }
-    public async Task SendLoginOtpAsync(int patientId)
+
+    public async Task SendLoginOtpAsync(
+        int patientId,
+        string mobileNumber)
     {
         if (patientId <= 0)
             throw new ArgumentException("Invalid patient id.");
 
         var patient = await _patientsApiClient.GetPatientByIdAsync(patientId);
+
         if (patient == null)
             throw new ArgumentException("Patient not found.");
 
+        var normalizedMobile = NormalizeMobile(mobileNumber);
+
+        if (NormalizeMobile(patient.MobileNumber) != normalizedMobile)
+            throw new ArgumentException("Mobile number does not match patient record.");
+
         var link = await _patientUserLinkRepository.GetByPatientIdAsync(patientId);
+
         if (link == null || !link.PortalActivated)
             throw new InvalidOperationException("Patient portal is not activated.");
 
-        var otp = _otpService.CreateOtp(patient.Id, patient.MobileNumber, "Login");
+        var otp = _otpService.CreateOtp(
+            patient.Id,
+            normalizedMobile,
+            "Login");
 
         await _otpRepository.AddAsync(otp);
         await _otpRepository.SaveChangesAsync();
 
-        Console.WriteLine($"[LOGIN OTP SENT] PatientId={patient.Id}, Mobile={patient.MobileNumber}, OTP={otp.OtpCode}");
+        Console.WriteLine($"[LOGIN OTP GENERATED] PatientId={patient.Id}");
+        Console.WriteLine($"Mobile={normalizedMobile}");
+        Console.WriteLine($"OTP={otp.OtpCode}");
+        Console.WriteLine("Purpose=Login");
+        Console.WriteLine("[OTP SAVED] Login OTP saved successfully.");
     }
-    private static void ValidateVerifyOtpRequest(VerifyOtpRequestDto request)
-    {
-        if (request.PatientId <= 0)
-            throw new ArgumentException("Invalid patient id.");
 
-        if (string.IsNullOrWhiteSpace(request.MobileNumber))
+    private static string NormalizeMobile(string mobile)
+    {
+        if (string.IsNullOrWhiteSpace(mobile))
             throw new ArgumentException("Mobile number is required.");
 
-        if (string.IsNullOrWhiteSpace(request.OtpCode))
-            throw new ArgumentException("OTP is required.");
+        var value = mobile.Trim()
+            .Replace(" ", "")
+            .Replace("-", "");
 
-        if (string.IsNullOrWhiteSpace(request.Purpose))
-            throw new ArgumentException("Purpose is required.");
+        if (value.StartsWith("+91"))
+            value = value[3..];
+        else if (value.StartsWith("91") && value.Length == 12)
+            value = value[2..];
+
+        return value;
     }
 }

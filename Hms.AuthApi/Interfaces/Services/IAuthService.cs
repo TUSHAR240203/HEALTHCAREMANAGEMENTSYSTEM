@@ -7,7 +7,7 @@ public interface IAuthService
     Task SendPortalActivationAsync(SendPatientPortalActivationRequestDto request);
     Task<AuthResponseDto> VerifyOtpAndActivateAsync(VerifyOtpRequestDto request);
 
-    Task SendLoginOtpAsync(int patientId); 
-    Task<AuthResponseDto> PatientLoginAsync(PatientLoginRequestDto request);
+    Task SendLoginOtpAsync(int patientId,string number); 
+    Task<AuthResponseDto> PatientLoginAsync(LoginRequestDto request);
     Task<CurrentUserResponseDto?> GetCurrentUserAsync(int userId);
 }
