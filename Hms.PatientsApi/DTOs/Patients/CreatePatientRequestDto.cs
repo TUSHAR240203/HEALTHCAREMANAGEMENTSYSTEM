@@ -1,4 +1,4 @@
-﻿using Hms.PatientsApi.Enums;
+using Hms.PatientsApi.Enums;
 
 namespace Hms.PatientsApi.DTOs.Patients;
 
@@ -19,7 +19,6 @@ public class CreatePatientRequestDto
     public string? AddressLine2 { get; set; }
     public string? City { get; set; }
     public string? State { get; set; }
-    public string? Country { get; set; }
     public string? PostalCode { get; set; }
 
     public string? EmergencyContactName { get; set; }

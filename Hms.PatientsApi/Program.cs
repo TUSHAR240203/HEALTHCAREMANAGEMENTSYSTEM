@@ -1,14 +1,23 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Hms.PatientsApi.Data;
 using Hms.PatientsApi.Interfaces.Repository;
 using Hms.PatientsApi.Interfaces.Services;
 using Hms.PatientsApi.Middleware;
 using Hms.PatientsApi.Repositories;
 using Hms.PatientsApi.Services;
+using Hms.PatientsApi.Validators;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers();
+
+builder.Services
+    .AddFluentValidationAutoValidation()
+    .AddValidatorsFromAssemblyContaining<CreatePatientRequestValidator>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -20,6 +29,8 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 
 var app = builder.Build();
 
+app.UseMiddleware<ExceptionMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -29,5 +40,4 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-app.UseMiddleware<ExceptionMiddleware>();
 app.Run();

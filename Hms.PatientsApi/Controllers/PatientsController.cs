@@ -1,4 +1,4 @@
-﻿using Hms.PatientsApi.DTOs.Patients;
+using Hms.PatientsApi.DTOs.Patients;
 using Hms.PatientsApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,6 +49,20 @@ public class PatientsController : ControllerBase
     public async Task<IActionResult> Search([FromBody] PatientSearchRequestDto request)
     {
         var result = await _patientService.SearchAsync(request);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/mobile-number/send-otp")]
+    public async Task<IActionResult> SendMobileNumberChangeOtp(int id, [FromBody] RequestMobileNumberChangeOtpDto request)
+    {
+        var result = await _patientService.SendMobileNumberChangeOtpAsync(id, request);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/mobile-number/verify-otp")]
+    public async Task<IActionResult> VerifyMobileNumberChangeOtp(int id, [FromBody] VerifyMobileNumberChangeOtpDto request)
+    {
+        var result = await _patientService.VerifyMobileNumberChangeOtpAsync(id, request);
         return Ok(result);
     }
 

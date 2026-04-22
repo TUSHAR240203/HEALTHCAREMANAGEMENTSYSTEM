@@ -1,13 +1,12 @@
-using FluentValidation;
-using Hms.AuthApi.DTOs;
+﻿using FluentValidation;
 using Hms.AuthApi.DTOs.Auth;
 
 namespace Hms.AuthApi.Validators;
 
-public class LoginRequestValidator
-    : AbstractValidator<LoginRequestDto>
+public class VerifyOtpRequestValidator
+    : AbstractValidator<VerifyOtpRequestDto>
 {
-    public LoginRequestValidator()
+    public VerifyOtpRequestValidator()
     {
         RuleFor(x => x.PatientId)
             .GreaterThan(0)
@@ -24,5 +23,9 @@ public class LoginRequestValidator
             .WithMessage("OTP is required")
             .Matches(@"^[0-9]{6}$")
             .WithMessage("OTP must be exactly 6 digits");
+
+        RuleFor(x => x.Purpose)
+            .NotEmpty()
+            .WithMessage("Purpose is required");
     }
 }

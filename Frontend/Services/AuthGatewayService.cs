@@ -14,11 +14,15 @@ namespace Hms.Web.Services
             _httpClient = httpClient;
         }
 
-        public async Task<(bool Success, string Message)> SendPortalActivationAsync(int patientId)
+        public async Task<(bool Success, string Message)> SendPortalActivationAsync(int patientId, string mobileNumber)
         {
             var response = await _httpClient.PostAsJsonAsync(
                 "gateway/auth/patient/send-portal-activation",
-                new SendPatientPortalActivationRequestDto { PatientId = patientId });
+                new SendPatientPortalActivationRequestDto
+                {
+                    PatientId = patientId,
+                    MobileNumber = mobileNumber
+                });
 
             if (response.IsSuccessStatusCode)
                 return (true, "Portal activation OTP sent successfully.");
@@ -41,11 +45,15 @@ namespace Hms.Web.Services
             return (false, null, error);
         }
 
-        public async Task<(bool Success, string Message)> SendLoginOtpAsync(int patientId)
+        public async Task<(bool Success, string Message)> SendLoginOtpAsync(int patientId, string mobileNumber)
         {
             var response = await _httpClient.PostAsJsonAsync(
                 "gateway/auth/patient/send-login-otp",
-                new SendPatientPortalActivationRequestDto { PatientId = patientId });
+                new SendPatientPortalActivationRequestDto
+                {
+                    PatientId = patientId,
+                    MobileNumber = mobileNumber
+                });
 
             if (response.IsSuccessStatusCode)
                 return (true, "Login OTP sent successfully.");
