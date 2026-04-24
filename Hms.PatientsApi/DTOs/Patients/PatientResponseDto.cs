@@ -17,4 +17,5 @@ public class PatientResponseDto
     public bool PortalActivated { get; set; }
     public PatientStatus Status { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+    public bool IsProfileCompleted { get; set; }
 }

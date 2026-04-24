@@ -166,7 +166,8 @@ public class AuthService : IAuthService
             MobileNumber = user.MobileNumber,
             Roles = roles,
             AccessToken = tokenResult.Token,
-            ExpiresAtUtc = tokenResult.ExpiresAtUtc
+            ExpiresAtUtc = tokenResult.ExpiresAtUtc,
+            IsProfileCompleted = patient.IsProfileCompleted
         };
     }
 
@@ -223,7 +224,9 @@ public class AuthService : IAuthService
             MobileNumber = user.MobileNumber,
             Roles = roles,
             AccessToken = tokenResult.Token,
-            ExpiresAtUtc = tokenResult.ExpiresAtUtc
+            ExpiresAtUtc = tokenResult.ExpiresAtUtc,
+            IsProfileCompleted = patient.IsProfileCompleted
+
         };
     }
 

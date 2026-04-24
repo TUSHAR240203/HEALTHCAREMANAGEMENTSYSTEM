@@ -14,6 +14,33 @@ public class PatientService : IPatientService
     {
         _patientRepository = patientRepository;
     }
+    public async Task<PatientResponseDto?> CompleteProfileAsync(int id, CompletePatientProfileRequestDto request)
+    {
+        var patient = await _patientRepository.GetByIdAsync(id);
+        if (patient == null) return null;
+
+        patient.BloodGroup = NormalizeNullable(request.BloodGroup);
+        patient.MaritalStatus = NormalizeNullable(request.MaritalStatus);
+        patient.AddressLine1 = NormalizeNullable(request.AddressLine1);
+        patient.AddressLine2 = NormalizeNullable(request.AddressLine2);
+        patient.City = NormalizeNullable(request.City);
+        patient.State = NormalizeNullable(request.State);
+        patient.PostalCode = NormalizeNullable(request.PostalCode);
+        patient.EmergencyContactName = NormalizeNullable(request.EmergencyContactName);
+        patient.EmergencyContactNumber = NormalizeNullable(request.EmergencyContactNumber);
+        patient.EmergencyContactRelation = NormalizeNullable(request.EmergencyContactRelation);
+        patient.AadhaarNumber = NormalizeNullable(request.AadhaarNumber);
+        patient.InsuranceProvider = NormalizeNullable(request.InsuranceProvider);
+        patient.InsurancePolicyNumber = NormalizeNullable(request.InsurancePolicyNumber);
+
+        patient.IsProfileCompleted = true;
+        patient.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _patientRepository.UpdateAsync(patient);
+        await _patientRepository.SaveChangesAsync();
+
+        return MapToResponse(patient);
+    }
 
     public async Task<PatientResponseDto> CreateAsync(CreatePatientRequestDto request)
     {
@@ -36,20 +63,7 @@ public class PatientService : IPatientService
             Gender = request.Gender,
             MobileNumber = normalizedMobile,
             Email = NormalizeNullable(request.Email),
-            BloodGroup = NormalizeNullable(request.BloodGroup),
-            MaritalStatus = NormalizeNullable(request.MaritalStatus),
-            AddressLine1 = NormalizeNullable(request.AddressLine1),
-            AddressLine2 = NormalizeNullable(request.AddressLine2),
-            City = NormalizeNullable(request.City),
-            State = NormalizeNullable(request.State),
-            PostalCode = NormalizeNullable(request.PostalCode),
-            EmergencyContactName = NormalizeNullable(request.EmergencyContactName),
-            EmergencyContactNumber = NormalizeNullable(request.EmergencyContactNumber),
-            EmergencyContactRelation = NormalizeNullable(request.EmergencyContactRelation),
-            AadhaarNumber = NormalizeNullable(request.AadhaarNumber),
-            InsuranceProvider = NormalizeNullable(request.InsuranceProvider),
-            InsurancePolicyNumber = NormalizeNullable(request.InsurancePolicyNumber),
-            PortalAccessEnabled = request.PortalAccessEnabled,
+
             PortalActivated = false
         };
 
