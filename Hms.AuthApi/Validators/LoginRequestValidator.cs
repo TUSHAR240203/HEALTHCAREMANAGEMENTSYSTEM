@@ -1,5 +1,4 @@
 using FluentValidation;
-using Hms.AuthApi.DTOs;
 using Hms.AuthApi.DTOs.Auth;
 
 namespace Hms.AuthApi.Validators;

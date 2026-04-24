@@ -1,4 +1,3 @@
-using Hms.AuthApi.DTOs;
 using Hms.AuthApi.DTOs.Auth;
 using Hms.AuthApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
