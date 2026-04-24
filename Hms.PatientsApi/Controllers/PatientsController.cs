@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+﻿using Hms.PatientsApi.DTOs.Patients;
+=======
 using Hms.PatientsApi.DTOs.Patients;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.PatientsApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -52,6 +56,8 @@ public class PatientsController : ControllerBase
         return Ok(result);
     }
 
+<<<<<<< HEAD
+=======
     [HttpPost("{id:int}/mobile-number/send-otp")]
     public async Task<IActionResult> SendMobileNumberChangeOtp(int id, [FromBody] RequestMobileNumberChangeOtpDto request)
     {
@@ -66,6 +72,7 @@ public class PatientsController : ControllerBase
         return Ok(result);
     }
 
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -86,6 +93,9 @@ public class PatientsController : ControllerBase
         if (!deleted) return NotFound();
         return NoContent();
     }
+<<<<<<< HEAD
+}
+=======
     [HttpPut("{id:int}/complete-profile")]
     public async Task<IActionResult> CompleteProfile(
     int id,
@@ -96,3 +106,4 @@ public class PatientsController : ControllerBase
         return Ok(result);
     }
 }
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

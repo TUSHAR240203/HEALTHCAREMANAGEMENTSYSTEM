@@ -29,7 +29,12 @@ namespace Hms.Web.Controllers
                 return View(model);
             }
 
+<<<<<<< HEAD
+            var result = await _authGatewayService.SendPortalActivationAsync(model.PatientId);
+
+=======
             var result = await _authGatewayService.SendPortalActivationAsync(model.PatientId, model.MobileNumber);
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             if (!result.Success)
             {
                 ModelState.AddModelError(string.Empty, result.Message);
@@ -114,7 +119,13 @@ namespace Hms.Web.Controllers
                     return View(model);
                 }
 
+<<<<<<< HEAD
+                var result = await _authGatewayService.SendLoginOtpAsync(model.PatientId);
+
+                if (!result.Success)
+=======
                 var result = await _authGatewayService.SendLoginOtpAsync(model.PatientId, model.MobileNumber); if (!result.Success)
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                 {
                     ModelState.AddModelError(string.Empty, result.Message);
                     model.OtpSent = false;

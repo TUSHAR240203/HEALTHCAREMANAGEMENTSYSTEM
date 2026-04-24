@@ -38,6 +38,17 @@ public class QueueRepository : IQueueRepository
             .ToListAsync();
     }
 
+<<<<<<< HEAD
+    public async Task<List<QueueToken>> GetDoctorQueueAsync(int doctorId, DateOnly queueDate)
+    {
+        return await _context.QueueTokens
+            .Where(x => x.DoctorId == doctorId && x.QueueDate == queueDate && !x.IsDeleted)
+            .OrderBy(x => x.TokenNumber)
+            .ToListAsync();
+    }
+
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     public async Task<QueueToken?> GetByIdAsync(int queueTokenId)
     {
         return await _context.QueueTokens
@@ -56,6 +67,21 @@ public class QueueRepository : IQueueRepository
             .FirstOrDefaultAsync();
     }
 
+<<<<<<< HEAD
+    public async Task<QueueToken?> GetDoctorCurrentAsync(int doctorId, DateOnly queueDate)
+    {
+        return await _context.QueueTokens
+            .Where(x =>
+                x.DoctorId == doctorId &&
+                x.QueueDate == queueDate &&
+                !x.IsDeleted &&
+                (x.Status == "Called" || x.Status == "InProgress"))
+            .OrderBy(x => x.TokenNumber)
+            .FirstOrDefaultAsync();
+    }
+
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     public async Task<QueueToken?> GetNextWaitingAsync(int departmentId, DateOnly queueDate)
     {
         return await _context.QueueTokens
@@ -78,4 +104,8 @@ public class QueueRepository : IQueueRepository
     {
         await _context.SaveChangesAsync();
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

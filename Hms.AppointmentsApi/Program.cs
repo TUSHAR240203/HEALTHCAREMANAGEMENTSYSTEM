@@ -1,4 +1,10 @@
+<<<<<<< HEAD
+using Hms.AppointmentsApi.Clients;
 using Hms.AppointmentsApi.Data;
+using Hms.AppointmentsApi.Interfaces.Clients;
+=======
+using Hms.AppointmentsApi.Data;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.AppointmentsApi.Interfaces.Repository;
 using Hms.AppointmentsApi.Interfaces.Services;
 using Hms.AppointmentsApi.Middleware;
@@ -18,6 +24,13 @@ builder.Services.AddDbContext<AppointmentsDbContext>(options =>
 
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+<<<<<<< HEAD
+builder.Services.AddHttpClient<IDoctorsApiClient, DoctorsApiClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:DoctorsApi"]!);
+});
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

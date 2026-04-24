@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+using Hms.ReceptionApi.DTOs.Doctors;
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.ReceptionApi.DTOs.Reception;
 
 namespace Hms.ReceptionApi.Interfaces.Services;
@@ -10,6 +14,13 @@ public interface IReceptionService
     Task<VerifyPatientResponseDto> VerifyPatientAsync(int patientId, VerifyPatientRequestDto request);
     Task ResendPortalActivationAsync(int patientId, ResendPortalActivationRequestDto request);
 
+<<<<<<< HEAD
+    Task<List<DoctorSummaryDto>> SearchDoctorsAsync(DoctorSearchRequestDto request);
+    Task<DoctorSummaryDto?> GetDoctorByIdAsync(int doctorId);
+    Task<DoctorAvailabilityResponseDto?> GetDoctorAvailableSlotsAsync(int doctorId, DateOnly date, bool isTeleConsultation);
+
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     Task<BookAppointmentResponseDto> BookAppointmentAsync(BookAppointmentRequestDto request);
     Task<BookAppointmentResponseDto> RescheduleAppointmentAsync(int appointmentId, RescheduleAppointmentRequestDto request);
     Task<BookAppointmentResponseDto> CancelAppointmentAsync(int appointmentId, CancelAppointmentRequestDto request);

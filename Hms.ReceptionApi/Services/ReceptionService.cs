@@ -1,4 +1,8 @@
 using Hms.ReceptionApi.DTOs;
+<<<<<<< HEAD
+using Hms.ReceptionApi.DTOs.Doctors;
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Entities;
 using Hms.ReceptionApi.Interfaces.Clients;
@@ -12,6 +16,10 @@ public class ReceptionService : IReceptionService
     private readonly IPatientsApiClient _patientsApiClient;
     private readonly IAppointmentsApiClient _appointmentsApiClient;
     private readonly IAuthApiClient _authApiClient;
+<<<<<<< HEAD
+    private readonly IDoctorsApiClient _doctorsApiClient;
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     private readonly ICheckInRepository _checkInRepository;
     private readonly IQueueRepository _queueRepository;
     private readonly IBillingApiClient _billingApiClient;
@@ -20,6 +28,10 @@ public class ReceptionService : IReceptionService
         IPatientsApiClient patientsApiClient,
         IAppointmentsApiClient appointmentsApiClient,
         IAuthApiClient authApiClient,
+<<<<<<< HEAD
+        IDoctorsApiClient doctorsApiClient,
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         IBillingApiClient billingApiClient,
         ICheckInRepository checkInRepository,
         IQueueRepository queueRepository)
@@ -27,11 +39,41 @@ public class ReceptionService : IReceptionService
         _patientsApiClient = patientsApiClient;
         _appointmentsApiClient = appointmentsApiClient;
         _authApiClient = authApiClient;
+<<<<<<< HEAD
+        _doctorsApiClient = doctorsApiClient;
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         _billingApiClient = billingApiClient;
         _checkInRepository = checkInRepository;
         _queueRepository = queueRepository;
     }
 
+<<<<<<< HEAD
+    public async Task<List<DoctorSummaryDto>> SearchDoctorsAsync(DoctorSearchRequestDto request)
+    {
+        request ??= new DoctorSearchRequestDto { IsActive = true };
+        request.IsActive ??= true;
+        return await _doctorsApiClient.SearchDoctorsAsync(request);
+    }
+
+    public async Task<DoctorSummaryDto?> GetDoctorByIdAsync(int doctorId)
+    {
+        if (doctorId <= 0)
+            throw new ArgumentException("Invalid doctor id.");
+
+        return await _doctorsApiClient.GetDoctorByIdAsync(doctorId);
+    }
+
+    public async Task<DoctorAvailabilityResponseDto?> GetDoctorAvailableSlotsAsync(int doctorId, DateOnly date, bool isTeleConsultation)
+    {
+        if (doctorId <= 0)
+            throw new ArgumentException("Invalid doctor id.");
+
+        return await _doctorsApiClient.GetAvailableSlotsAsync(doctorId, date, isTeleConsultation);
+    }
+
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     public async Task<InvoiceResponseDto> CreateInvoiceAsync(CreateInvoiceRequestDto request)
     {
         if (request.PatientId <= 0)
@@ -176,14 +218,38 @@ public class ReceptionService : IReceptionService
         if (patient == null)
             throw new ArgumentException("Patient not found.");
 
+<<<<<<< HEAD
+        var doctor = await _doctorsApiClient.GetDoctorByIdAsync(request.DoctorId);
+        if (doctor == null)
+            throw new ArgumentException("Doctor not found.");
+
+        if (!doctor.IsActive)
+            throw new InvalidOperationException("Doctor is inactive.");
+
+        if (doctor.DepartmentId != request.DepartmentId)
+            throw new InvalidOperationException("Selected doctor does not belong to the provided department.");
+
+        var availability = await _doctorsApiClient.GetAvailableSlotsAsync(request.DoctorId, request.AppointmentDate, request.IsTeleConsultation);
+        if (availability == null || !availability.Slots.Any(x => x.IsAvailable && x.SlotStartTime == request.SlotStartTime && x.SlotEndTime == request.SlotEndTime))
+            throw new InvalidOperationException("Selected slot is not available for the doctor.");
+
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         var appointmentRequest = new AppointmentCreateRequestDto
         {
             PatientId = patient.PatientId,
             UHID = patient.UHID,
+<<<<<<< HEAD
+            DoctorId = doctor.Id,
+            DoctorName = doctor.FullName,
+            DepartmentId = doctor.DepartmentId,
+            DepartmentName = doctor.DepartmentName,
+=======
             DoctorId = request.DoctorId,
             DoctorName = $"Doctor {request.DoctorId}",
             DepartmentId = request.DepartmentId,
             DepartmentName = $"Department {request.DepartmentId}",
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             AppointmentDate = request.AppointmentDate,
             SlotStartTime = request.SlotStartTime,
             SlotEndTime = request.SlotEndTime,
@@ -192,9 +258,13 @@ public class ReceptionService : IReceptionService
             IsTeleConsultation = request.IsTeleConsultation
         };
 
+<<<<<<< HEAD
+        return await _appointmentsApiClient.BookAppointmentAsync(appointmentRequest);
+=======
         var result = await _appointmentsApiClient.BookAppointmentAsync(appointmentRequest);
 
         return result;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     }
 
     public async Task<BookAppointmentResponseDto> RescheduleAppointmentAsync(int appointmentId, RescheduleAppointmentRequestDto request)
@@ -269,8 +339,12 @@ public class ReceptionService : IReceptionService
     public async Task<CheckInResponseDto?> GetCheckInByIdAsync(int checkInId)
     {
         var checkIn = await _checkInRepository.GetByIdAsync(checkInId);
+<<<<<<< HEAD
+        if (checkIn == null) return null;
+=======
         if (checkIn == null)
             return null;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
         return new CheckInResponseDto
         {
@@ -304,4 +378,8 @@ public class ReceptionService : IReceptionService
             }).ToList()
         };
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

@@ -16,6 +16,9 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByMobileAsync(string mobileNumber)
     {
+<<<<<<< HEAD
+        return await _context.Users.FirstOrDefaultAsync(x => x.MobileNumber == mobileNumber && !x.IsDeleted);
+=======
         return await _context.Users
             .FirstOrDefaultAsync(x => x.MobileNumber == mobileNumber && !x.IsDeleted);
     }
@@ -26,10 +29,14 @@ public class UserRepository : IUserRepository
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x => x.MobileNumber == mobileNumber && !x.IsDeleted);
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     }
 
     public async Task<User?> GetByIdAsync(int userId)
     {
+<<<<<<< HEAD
+        return await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted);
+=======
         return await _context.Users
             .FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted);
     }
@@ -40,6 +47,7 @@ public class UserRepository : IUserRepository
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted);
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     }
 
     public async Task AddAsync(User user)

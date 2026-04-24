@@ -36,7 +36,10 @@ public class OtpRepository : IOtpRepository
             .FirstOrDefaultAsync();
     }
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

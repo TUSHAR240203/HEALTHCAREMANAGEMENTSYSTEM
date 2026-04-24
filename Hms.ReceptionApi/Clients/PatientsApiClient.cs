@@ -68,7 +68,13 @@ public class PatientsApiClient : IPatientsApiClient
     {
         var patientCreateRequest = new
         {
+<<<<<<< HEAD
+            firstName = request.FirstName,
+            middleName = request.MiddleName,
+            lastName = request.LastName,
+=======
             fullName = request.FullName,
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             dateOfBirth = request.DateOfBirth,
             gender = request.Gender,
             mobileNumber = request.MobileNumber,
