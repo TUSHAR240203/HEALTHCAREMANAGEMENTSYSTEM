@@ -12,4 +12,5 @@ public class PatientApiResponse
     public bool PortalAccessEnabled { get; set; }
     public bool PortalActivated { get; set; }
     public int Status { get; set; }
+    public bool IsProfileCompleted { get; set; }
 }

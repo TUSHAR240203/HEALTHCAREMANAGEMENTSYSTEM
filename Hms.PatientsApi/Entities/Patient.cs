@@ -37,4 +37,5 @@ public class Patient : BaseEntity
     public bool PortalActivated { get; set; } = false;
 
     public PatientStatus Status { get; set; } = PatientStatus.Active;
+    public bool IsProfileCompleted { get; set; } = false;
 }

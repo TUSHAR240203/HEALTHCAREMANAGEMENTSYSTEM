@@ -12,4 +12,5 @@ public interface IPatientService
     Task<bool> SoftDeleteAsync(int id);
     Task<MobileNumberChangeOtpResponseDto> SendMobileNumberChangeOtpAsync(int patientId, RequestMobileNumberChangeOtpDto request);
     Task<MobileNumberChangeOtpResponseDto> VerifyMobileNumberChangeOtpAsync(int patientId, VerifyMobileNumberChangeOtpDto request);
+    Task<PatientResponseDto?> CompleteProfileAsync(int id, CompletePatientProfileRequestDto request);
 }

@@ -10,4 +10,5 @@ public class AuthResponseDto
     public string[] Roles { get; set; } = [];
     public string AccessToken { get; set; } = default!;
     public DateTime ExpiresAtUtc { get; set; }
+    public bool IsProfileCompleted { get; set; }
 }
