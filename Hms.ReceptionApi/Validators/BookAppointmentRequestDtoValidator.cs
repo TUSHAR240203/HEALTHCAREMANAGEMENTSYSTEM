@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using Hms.ReceptionApi.DTOs.Reception;
 
-namespace Hms.ReceptionApi.Validators;
+namespace  Hms.ReceptionApi.Validators;
 
 public class BookAppointmentRequestDtoValidator : AbstractValidator<BookAppointmentRequestDto>
 {
