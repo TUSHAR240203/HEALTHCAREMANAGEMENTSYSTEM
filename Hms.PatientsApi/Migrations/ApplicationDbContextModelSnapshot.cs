@@ -22,6 +22,61 @@ namespace Hms.PatientsApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+<<<<<<< HEAD
+=======
+            modelBuilder.Entity("Hms.PatientsApi.Entities.MobileNumberChangeRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ExistingOwnerPatientId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsConsumed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NewMobileNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("OtpCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("VerifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId", "NewMobileNumber", "IsConsumed");
+
+                    b.ToTable("MobileNumberChangeRequests", (string)null);
+                });
+
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             modelBuilder.Entity("Hms.PatientsApi.Entities.Patient", b =>
                 {
                     b.Property<int>("Id")
@@ -50,10 +105,13 @@ namespace Hms.PatientsApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+<<<<<<< HEAD
                     b.Property<string>("Country")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -81,11 +139,14 @@ namespace Hms.PatientsApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+<<<<<<< HEAD
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
@@ -118,6 +179,14 @@ namespace Hms.PatientsApi.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+<<<<<<< HEAD
+=======
+                    b.Property<string>("PatientIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.Property<bool>("PortalAccessEnabled")
                         .HasColumnType("bit");
 
@@ -147,6 +216,12 @@ namespace Hms.PatientsApi.Migrations
 
                     b.HasIndex("MobileNumber");
 
+<<<<<<< HEAD
+=======
+                    b.HasIndex("PatientIdentifier")
+                        .IsUnique();
+
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.HasIndex("UHID")
                         .IsUnique();
 

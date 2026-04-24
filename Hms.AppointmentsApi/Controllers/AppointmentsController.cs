@@ -78,6 +78,7 @@ public class AppointmentsController : ControllerBase
         return Ok(result);
     }
 
+<<<<<<< HEAD
     [HttpPut("{id:int}/start")]
     [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -88,6 +89,8 @@ public class AppointmentsController : ControllerBase
         return Ok(result);
     }
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     [HttpPut("{id:int}/complete")]
     [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -97,6 +100,7 @@ public class AppointmentsController : ControllerBase
         if (result == null) return NotFound();
         return Ok(result);
     }
+<<<<<<< HEAD
 
     [HttpPut("{id:int}/notes")]
     [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
@@ -108,3 +112,6 @@ public class AppointmentsController : ControllerBase
         return Ok(result);
     }
 }
+=======
+}
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

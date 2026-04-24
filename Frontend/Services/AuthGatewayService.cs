@@ -14,11 +14,23 @@ namespace Hms.Web.Services
             _httpClient = httpClient;
         }
 
+<<<<<<< HEAD
         public async Task<(bool Success, string Message)> SendPortalActivationAsync(int patientId)
         {
             var response = await _httpClient.PostAsJsonAsync(
                 "gateway/auth/patient/send-portal-activation",
                 new SendPatientPortalActivationRequestDto { PatientId = patientId });
+=======
+        public async Task<(bool Success, string Message)> SendPortalActivationAsync(int patientId, string mobileNumber)
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                "gateway/auth/patient/send-portal-activation",
+                new SendPatientPortalActivationRequestDto
+                {
+                    PatientId = patientId,
+                    MobileNumber = mobileNumber
+                });
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
             if (response.IsSuccessStatusCode)
                 return (true, "Portal activation OTP sent successfully.");
@@ -41,11 +53,23 @@ namespace Hms.Web.Services
             return (false, null, error);
         }
 
+<<<<<<< HEAD
         public async Task<(bool Success, string Message)> SendLoginOtpAsync(int patientId)
         {
             var response = await _httpClient.PostAsJsonAsync(
                 "gateway/auth/patient/send-login-otp",
                 new SendPatientPortalActivationRequestDto { PatientId = patientId });
+=======
+        public async Task<(bool Success, string Message)> SendLoginOtpAsync(int patientId, string mobileNumber)
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                "gateway/auth/patient/send-login-otp",
+                new SendPatientPortalActivationRequestDto
+                {
+                    PatientId = patientId,
+                    MobileNumber = mobileNumber
+                });
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
             if (response.IsSuccessStatusCode)
                 return (true, "Login OTP sent successfully.");

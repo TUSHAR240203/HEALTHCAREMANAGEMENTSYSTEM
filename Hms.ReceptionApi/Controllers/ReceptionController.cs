@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 using Hms.ReceptionApi.DTOs.Doctors;
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +55,7 @@ public class ReceptionController : ControllerBase
         return Ok(new { message = "Portal activation message sent successfully." });
     }
 
+<<<<<<< HEAD
 
     [HttpPost("doctors/search")]
     public async Task<IActionResult> SearchDoctors([FromBody] DoctorSearchRequestDto request)
@@ -76,6 +80,8 @@ public class ReceptionController : ControllerBase
         return Ok(result);
     }
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     [HttpPost("appointments/book")]
     public async Task<IActionResult> BookAppointment([FromBody] BookAppointmentRequestDto request)
     {

@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 using System.Text;
+=======
+using FluentValidation;
+using FluentValidation.AspNetCore;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.AuthApi.Clients;
 using Hms.AuthApi.Data;
 using Hms.AuthApi.Interfaces.Clients;
@@ -7,13 +12,28 @@ using Hms.AuthApi.Interfaces.Services;
 using Hms.AuthApi.Middleware;
 using Hms.AuthApi.Repositories;
 using Hms.AuthApi.Services;
+<<<<<<< HEAD
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+=======
+using Hms.AuthApi.Validators;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+<<<<<<< HEAD
+=======
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<VerifyOtpRequestValidator>();
+
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -21,6 +41,10 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+<<<<<<< HEAD
+=======
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<IPatientUserLinkRepository, PatientUserLinkRepository>();
 
@@ -50,7 +74,12 @@ builder.Services
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ValidateLifetime = true,
+<<<<<<< HEAD
             ClockSkew = TimeSpan.Zero
+=======
+            ClockSkew = TimeSpan.Zero,
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         };
     });
 

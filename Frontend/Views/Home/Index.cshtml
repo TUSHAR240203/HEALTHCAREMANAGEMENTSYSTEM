@@ -7,7 +7,11 @@
         <div class="col-lg-7">
             <span class="badge bg-light text-primary mb-3">Healthcare Operations</span>
             <h1 class="display-5 fw-bold mb-3">Hospital Management Portal</h1>
+<<<<<<< HEAD
             <p class="lead mb-4">A polished, role-ready interface for patient onboarding, appointments, billing, and reception workflows.</p>
+=======
+            <p class="lead mb-4">A cleaner Bootstrap-based dashboard for patient onboarding, appointments, billing, and reception workflows.</p>
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             <div class="d-flex flex-wrap gap-3 quick-links">
                 <a asp-controller="Account" asp-action="ActivatePortal" class="btn btn-light text-primary">Activate Patient Portal</a>
                 <a asp-controller="Account" asp-action="Login" class="btn btn-outline-light">Patient Login</a>
@@ -24,6 +28,7 @@
     </div>
 </div>
 
+<<<<<<< HEAD
 <div class="row g-4">
     <div class="col-lg-4">
         <div class="card h-100 border-0">
@@ -67,6 +72,55 @@
                 </div>
                 <p class="text-muted">Access patient search, check-in, queue support, invoice creation, and payment capture tools.</p>
                 <a asp-controller="Billing" asp-action="ByPatient" class="btn btn-outline-primary">Open Billing</a>
+=======
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="dashboard-tile">
+            <div class="tile-icon mb-3"><i class="bi bi-person-plus"></i></div>
+            <h3 class="h5">Portal Activation</h3>
+            <p class="text-muted">Send activation OTPs for patients whose portal access is enabled in the Patients API.</p>
+            <a asp-controller="Account" asp-action="ActivatePortal" class="btn btn-primary">Open Activation</a>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="dashboard-tile">
+            <div class="tile-icon mb-3"><i class="bi bi-box-arrow-in-right"></i></div>
+            <h3 class="h5">Patient Login</h3>
+            <p class="text-muted">Verify patient login using OTP and create a session-backed portal experience.</p>
+            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Go to Login</a>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="dashboard-tile">
+            <div class="tile-icon mb-3"><i class="bi bi-person-badge"></i></div>
+            <h3 class="h5">My Profile</h3>
+            <p class="text-muted">Review the patient-linked user account returned from the Auth API /me endpoint.</p>
+            <a asp-controller="Account" asp-action="Profile" class="btn btn-outline-primary">View Profile</a>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0">
+    <div class="card-body p-4 p-lg-5">
+        <div class="row g-4 align-items-start">
+            <div class="col-lg-6">
+                <h2 class="h4 mb-3">Before testing login or activation</h2>
+                <ul class="list-group list-group-flush rounded-4 overflow-hidden border">
+                    <li class="list-group-item py-3"><i class="bi bi-check-circle text-success me-2"></i>Start <strong>HealthcareGateway</strong> on <code>https://localhost:7000</code>.</li>
+                    <li class="list-group-item py-3"><i class="bi bi-check-circle text-success me-2"></i>Start <strong>Hms.AuthApi</strong> and <strong>Hms.PatientsApi</strong>.</li>
+                    <li class="list-group-item py-3"><i class="bi bi-check-circle text-success me-2"></i>Use a patient whose <strong>PortalAccessEnabled</strong> flag is true.</li>
+                    <li class="list-group-item py-3"><i class="bi bi-check-circle text-success me-2"></i>Read the OTP from the Auth API console output in development.</li>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <h2 class="h4 mb-3">Other modules in this MVC app</h2>
+                <div class="d-grid gap-3">
+                    <a asp-controller="Patients" asp-action="Index" class="btn btn-outline-secondary btn-lg text-start"><i class="bi bi-people me-2"></i>Patients management</a>
+                    <a asp-controller="Appointments" asp-action="Index" class="btn btn-outline-secondary btn-lg text-start"><i class="bi bi-calendar2-week me-2"></i>Appointments</a>
+                    <a asp-controller="Reception" asp-action="SearchPatients" class="btn btn-outline-secondary btn-lg text-start"><i class="bi bi-front me-2"></i>Reception</a>
+                    <a asp-controller="Billing" asp-action="ByPatient" class="btn btn-outline-secondary btn-lg text-start"><i class="bi bi-receipt me-2"></i>Billing</a>
+                </div>
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             </div>
         </div>
     </div>

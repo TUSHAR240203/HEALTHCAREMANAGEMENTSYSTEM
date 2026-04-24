@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 using Hms.ReceptionApi.DTOs.Reception;
+=======
+﻿using Hms.ReceptionApi.DTOs.Reception;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.ReceptionApi.Interfaces.Repository;
 using Hms.ReceptionApi.Interfaces.Services;
 
@@ -16,6 +20,7 @@ public class QueueService : IQueueService
     public async Task<DepartmentQueueResponseDto> GetDepartmentQueueAsync(int departmentId, DateOnly date)
     {
         var items = await _queueRepository.GetDepartmentQueueAsync(departmentId, date);
+<<<<<<< HEAD
         return MapQueue(departmentId, $"Department {departmentId}", date, items);
     }
 
@@ -23,11 +28,30 @@ public class QueueService : IQueueService
     {
         var items = await _queueRepository.GetDoctorQueueAsync(doctorId, date);
         return MapQueue(doctorId, $"Doctor {doctorId}", date, items);
+=======
+
+        return new DepartmentQueueResponseDto
+        {
+            DepartmentId = departmentId,
+            DepartmentName = $"Department {departmentId}",
+            Date = date,
+            Queue = items.Select(x => new QueueItemDto
+            {
+                QueueTokenId = x.Id,
+                TokenNumber = x.TokenNumber,
+                PatientId = x.PatientId,
+                UHID = x.UHID,
+                PatientName = x.PatientName,
+                Status = x.Status
+            }).ToList()
+        };
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     }
 
     public async Task<QueueCurrentResponseDto?> GetCurrentAsync(int departmentId, DateOnly date)
     {
         var token = await _queueRepository.GetCurrentAsync(departmentId, date);
+<<<<<<< HEAD
         return token == null ? null : MapCurrent(token);
     }
 
@@ -35,6 +59,21 @@ public class QueueService : IQueueService
     {
         var token = await _queueRepository.GetDoctorCurrentAsync(doctorId, date);
         return token == null ? null : MapCurrent(token);
+=======
+        if (token == null) return null;
+
+        return new QueueCurrentResponseDto
+        {
+            QueueTokenId = token.Id,
+            TokenNumber = token.TokenNumber,
+            PatientId = token.PatientId,
+            UHID = token.UHID,
+            PatientName = token.PatientName,
+            Status = token.Status,
+            CalledAtUtc = token.CalledAtUtc,
+            StartedAtUtc = token.StartedAtUtc
+        };
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     }
 
     public async Task<QueueActionResponseDto?> CallNextAsync(int departmentId, DateOnly date)
@@ -148,6 +187,7 @@ public class QueueService : IQueueService
         return MapAction(token, "Token cancelled successfully.");
     }
 
+<<<<<<< HEAD
     private static DepartmentQueueResponseDto MapQueue(int ownerId, string ownerName, DateOnly date, List<Entities.QueueToken> items)
     {
         return new DepartmentQueueResponseDto
@@ -186,6 +226,8 @@ public class QueueService : IQueueService
         };
     }
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     private static QueueActionResponseDto MapAction(Entities.QueueToken token, string message)
     {
         return new QueueActionResponseDto
@@ -199,4 +241,8 @@ public class QueueService : IQueueService
             Message = message
         };
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

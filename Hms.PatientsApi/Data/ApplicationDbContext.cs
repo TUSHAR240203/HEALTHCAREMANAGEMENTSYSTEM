@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 ﻿using Hms.PatientsApi.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection.Emit;
+=======
+using Hms.PatientsApi.Entities;
+using Microsoft.EntityFrameworkCore;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
 namespace Hms.PatientsApi.Data;
 
@@ -12,10 +17,15 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<Patient> Patients => Set<Patient>();
+<<<<<<< HEAD
+=======
+    public DbSet<MobileNumberChangeRequest> MobileNumberChangeRequests => Set<MobileNumberChangeRequest>();
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+<<<<<<< HEAD
 
         modelBuilder.Entity<Patient>(entity =>
         {
@@ -79,3 +89,14 @@ public class ApplicationDbContext : DbContext
         });
     }
 }
+=======
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+    }
+    //protected override void OnModelCreating(ModelBuilder modelBuilder)
+    //{
+    //    modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+    //}
+}
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

@@ -1,8 +1,13 @@
 using Hms.AppointmentsApi.DTOs.Appointments;
+<<<<<<< HEAD
 using Hms.AppointmentsApi.DTOs.Doctors;
 using Hms.AppointmentsApi.Entities;
 using Hms.AppointmentsApi.Enums;
 using Hms.AppointmentsApi.Interfaces.Clients;
+=======
+using Hms.AppointmentsApi.Entities;
+using Hms.AppointmentsApi.Enums;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.AppointmentsApi.Interfaces.Repository;
 using Hms.AppointmentsApi.Interfaces.Services;
 
@@ -11,18 +16,26 @@ namespace Hms.AppointmentsApi.Services;
 public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository _appointmentRepository;
+<<<<<<< HEAD
     private readonly IDoctorsApiClient _doctorsApiClient;
 
     public AppointmentService(IAppointmentRepository appointmentRepository, IDoctorsApiClient doctorsApiClient)
     {
         _appointmentRepository = appointmentRepository;
         _doctorsApiClient = doctorsApiClient;
+=======
+
+    public AppointmentService(IAppointmentRepository appointmentRepository)
+    {
+        _appointmentRepository = appointmentRepository;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     }
 
     public async Task<AppointmentResponseDto> CreateAsync(CreateAppointmentRequestDto request)
     {
         ValidateCreateRequest(request);
 
+<<<<<<< HEAD
         var doctor = await ValidateDoctorAsync(
             request.DoctorId,
             request.DepartmentId,
@@ -31,6 +44,8 @@ public class AppointmentService : IAppointmentService
             request.SlotStartTime,
             request.SlotEndTime);
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         var slotBooked = await _appointmentRepository.IsSlotBookedAsync(
             request.DoctorId,
             request.AppointmentDate,
@@ -44,10 +59,17 @@ public class AppointmentService : IAppointmentService
         {
             PatientId = request.PatientId,
             UHID = request.UHID.Trim(),
+<<<<<<< HEAD
             DoctorId = doctor.Id,
             DoctorName = doctor.FullName,
             DepartmentId = doctor.DepartmentId,
             DepartmentName = doctor.DepartmentName,
+=======
+            DoctorId = request.DoctorId,
+            DoctorName = NormalizeNullable(request.DoctorName),
+            DepartmentId = request.DepartmentId,
+            DepartmentName = NormalizeNullable(request.DepartmentName),
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             AppointmentDate = request.AppointmentDate,
             SlotStartTime = request.SlotStartTime,
             SlotEndTime = request.SlotEndTime,
@@ -119,6 +141,7 @@ public class AppointmentService : IAppointmentService
         if (appointment.Status == AppointmentStatus.Completed)
             throw new InvalidOperationException("Completed appointment cannot be rescheduled.");
 
+<<<<<<< HEAD
         await ValidateDoctorAsync(
             appointment.DoctorId,
             appointment.DepartmentId,
@@ -127,6 +150,8 @@ public class AppointmentService : IAppointmentService
             request.NewSlotStartTime,
             request.NewSlotEndTime);
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         var slotBooked = await _appointmentRepository.IsSlotBookedAsync(
             appointment.DoctorId,
             request.NewAppointmentDate,
@@ -171,6 +196,7 @@ public class AppointmentService : IAppointmentService
         return MapToResponse(appointment);
     }
 
+<<<<<<< HEAD
     public async Task<AppointmentResponseDto?> StartAsync(int id)
     {
         if (id <= 0)
@@ -195,6 +221,8 @@ public class AppointmentService : IAppointmentService
         return MapToResponse(appointment);
     }
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     public async Task<AppointmentResponseDto?> CompleteAsync(int id, CompleteAppointmentRequestDto request)
     {
         if (id <= 0)
@@ -217,6 +245,7 @@ public class AppointmentService : IAppointmentService
         return MapToResponse(appointment);
     }
 
+<<<<<<< HEAD
     public async Task<AppointmentResponseDto?> AddNotesAsync(int id, UpdateAppointmentNotesRequestDto request)
     {
         if (id <= 0)
@@ -260,6 +289,8 @@ public class AppointmentService : IAppointmentService
         return doctor;
     }
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     private static void ValidateCreateRequest(CreateAppointmentRequestDto request)
     {
         if (request == null)
@@ -324,4 +355,8 @@ public class AppointmentService : IAppointmentService
             CreatedAtUtc = appointment.CreatedAtUtc
         };
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

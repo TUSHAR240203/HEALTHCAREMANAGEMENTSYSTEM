@@ -3,6 +3,7 @@
     ViewData["Title"] = "My Profile";
 }
 
+<<<<<<< HEAD
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -56,8 +57,68 @@
                     <div class="mt-4">
                         <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Go to Home</a>
                     </div>
+=======
+<div class="page-header mb-4">
+    <div>
+        <h1 class="section-title">Patient Profile</h1>
+        <p class="page-subtitle">Authenticated account details from the Auth API.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-light text-primary">Dashboard</a>
+        <a asp-action="Logout" class="btn btn-outline-light">Logout</a>
+    </div>
+</div>
+
+<div class="card border-0">
+    <div class="card-body p-4 p-lg-5">
+        <div class="row g-4 align-items-center mb-4">
+            <div class="col-lg-8">
+                <h2 class="mb-2">Welcome back</h2>
+                <p class="text-muted mb-0">Your session is active. These values are pulled after the MVC app sends your bearer token to the backend.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <span class="badge bg-success-subtle text-success fs-6 px-3 py-2 rounded-pill">
+                    <i class="bi bi-shield-check me-1"></i> Authenticated
+                </span>
+            </div>
+        </div>
+
+        <div class="row g-3 profile-grid">
+            <div class="col-md-6 col-xl-4">
+                <div class="profile-stat">
+                    <div class="label">User ID</div>
+                    <div class="value">@Model.UserId</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <div class="profile-stat">
+                    <div class="label">Patient ID</div>
+                    <div class="value">@(Model.PatientId?.ToString() ?? "Not linked")</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <div class="profile-stat">
+                    <div class="label">UHID</div>
+                    <div class="value">@(string.IsNullOrWhiteSpace(Model.UHID) ? "Not available" : Model.UHID)</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-6">
+                <div class="profile-stat">
+                    <div class="label">Mobile Number</div>
+                    <div class="value">@Model.MobileNumber</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-6">
+                <div class="profile-stat">
+                    <div class="label">Role</div>
+                    <div class="value">@Model.Role</div>
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                 </div>
             </div>
         </div>
     </div>
+<<<<<<< HEAD
 </div>
+=======
+</div>
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

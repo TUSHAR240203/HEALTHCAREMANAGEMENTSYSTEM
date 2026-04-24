@@ -37,7 +37,13 @@ namespace Hms.ReceptionApi.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAtUtc")
+<<<<<<< HEAD
                         .HasColumnType("datetime2");
+=======
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
                     b.Property<int>("DepartmentId")
                         .HasColumnType("int");
@@ -46,7 +52,13 @@ namespace Hms.ReceptionApi.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
+<<<<<<< HEAD
                         .HasColumnType("bit");
+=======
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
                     b.Property<int>("PatientId")
                         .HasColumnType("int");
@@ -71,10 +83,23 @@ namespace Hms.ReceptionApi.Migrations
 
                     b.HasIndex("AppointmentId");
 
+<<<<<<< HEAD
+=======
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DoctorId");
+
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.HasIndex("PatientId");
 
                     b.HasIndex("DepartmentId", "CheckInTimeUtc");
 
+<<<<<<< HEAD
+=======
+                    b.HasIndex("PatientId", "AppointmentId")
+                        .IsUnique();
+
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.ToTable("PatientCheckIns", (string)null);
                 });
 
@@ -99,7 +124,13 @@ namespace Hms.ReceptionApi.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAtUtc")
+<<<<<<< HEAD
                         .HasColumnType("datetime2");
+=======
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
                     b.Property<int>("DepartmentId")
                         .HasColumnType("int");
@@ -108,7 +139,13 @@ namespace Hms.ReceptionApi.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
+<<<<<<< HEAD
                         .HasColumnType("bit");
+=======
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
@@ -119,8 +156,13 @@ namespace Hms.ReceptionApi.Migrations
 
                     b.Property<string>("PatientName")
                         .IsRequired()
+<<<<<<< HEAD
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
+=======
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
                     b.Property<DateOnly>("QueueDate")
                         .HasColumnType("date");
@@ -149,6 +191,17 @@ namespace Hms.ReceptionApi.Migrations
 
                     b.HasKey("Id");
 
+<<<<<<< HEAD
+=======
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("DepartmentId", "QueueDate", "Status");
+
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.HasIndex("DepartmentId", "QueueDate", "TokenNumber")
                         .IsUnique();
 

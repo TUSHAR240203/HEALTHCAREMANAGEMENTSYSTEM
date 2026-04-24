@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿using Hms.PatientsApi.Enums;
+=======
+using Hms.PatientsApi.Enums;
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
 namespace Hms.PatientsApi.DTOs.Patients;
 
@@ -11,6 +15,7 @@ public class CreatePatientRequestDto
     public Gender Gender { get; set; }
     public string MobileNumber { get; set; } = default!;
     public string? Email { get; set; }
+<<<<<<< HEAD
 
     public string? BloodGroup { get; set; }
     public string? MaritalStatus { get; set; }
@@ -30,5 +35,7 @@ public class CreatePatientRequestDto
     public string? InsuranceProvider { get; set; }
     public string? InsurancePolicyNumber { get; set; }
 
+=======
+>>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     public bool PortalAccessEnabled { get; set; }
 }
