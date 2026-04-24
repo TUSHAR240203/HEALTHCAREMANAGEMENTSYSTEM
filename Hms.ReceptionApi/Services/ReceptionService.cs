@@ -15,26 +15,14 @@ public class ReceptionService : IReceptionService
     private readonly ICheckInRepository _checkInRepository;
     private readonly IQueueRepository _queueRepository;
     private readonly IBillingApiClient _billingApiClient;
+
     public ReceptionService(
         IPatientsApiClient patientsApiClient,
         IAppointmentsApiClient appointmentsApiClient,
         IAuthApiClient authApiClient,
+        IBillingApiClient billingApiClient,
         ICheckInRepository checkInRepository,
         IQueueRepository queueRepository)
-    {
-        _patientsApiClient = patientsApiClient;
-        _appointmentsApiClient = appointmentsApiClient;
-        _authApiClient = authApiClient;
-        _checkInRepository = checkInRepository;
-        _queueRepository = queueRepository;
-    }
-    public ReceptionService(
-    IPatientsApiClient patientsApiClient,
-    IAppointmentsApiClient appointmentsApiClient,
-    IAuthApiClient authApiClient,
-    IBillingApiClient billingApiClient,
-    ICheckInRepository checkInRepository,
-    IQueueRepository queueRepository)
     {
         _patientsApiClient = patientsApiClient;
         _appointmentsApiClient = appointmentsApiClient;
@@ -43,6 +31,7 @@ public class ReceptionService : IReceptionService
         _checkInRepository = checkInRepository;
         _queueRepository = queueRepository;
     }
+
     public async Task<InvoiceResponseDto> CreateInvoiceAsync(CreateInvoiceRequestDto request)
     {
         if (request.PatientId <= 0)
@@ -112,6 +101,7 @@ public class ReceptionService : IReceptionService
 
         return await _billingApiClient.AddPaymentAsync(invoiceId, request);
     }
+
     public async Task<ReceptionPatientSearchResponseDto> SearchPatientsAsync(ReceptionPatientSearchRequestDto request)
     {
         return await _patientsApiClient.SearchPatientsAsync(request);
@@ -180,7 +170,6 @@ public class ReceptionService : IReceptionService
         await _authApiClient.SendPortalActivationAsync(patientId);
     }
 
-
     public async Task<BookAppointmentResponseDto> BookAppointmentAsync(BookAppointmentRequestDto request)
     {
         var patient = await _patientsApiClient.GetPatientSummaryAsync(request.PatientId);
@@ -190,7 +179,7 @@ public class ReceptionService : IReceptionService
         var appointmentRequest = new AppointmentCreateRequestDto
         {
             PatientId = patient.PatientId,
-            UHID = patient.UHID, // ✅ FIX
+            UHID = patient.UHID,
             DoctorId = request.DoctorId,
             DoctorName = $"Doctor {request.DoctorId}",
             DepartmentId = request.DepartmentId,
@@ -280,7 +269,8 @@ public class ReceptionService : IReceptionService
     public async Task<CheckInResponseDto?> GetCheckInByIdAsync(int checkInId)
     {
         var checkIn = await _checkInRepository.GetByIdAsync(checkInId);
-        if (checkIn == null) return null;
+        if (checkIn == null)
+            return null;
 
         return new CheckInResponseDto
         {
