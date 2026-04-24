@@ -1,0 +1,6 @@
+@Hms.BillingApi_HostAddress = http://localhost:5079
+
+GET {{Hms.BillingApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

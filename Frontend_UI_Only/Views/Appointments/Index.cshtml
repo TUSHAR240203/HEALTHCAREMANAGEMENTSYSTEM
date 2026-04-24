@@ -1,0 +1,181 @@
+@using Frontend.Models.ViewModels
+@model AppointmentListViewModel
+@using Frontend.Models.Api
+
+@{
+    ViewData["Title"] = "Appointments";
+}
+
+<div class="page-header">
+    <div>
+        <h1>Appointments</h1>
+        <p class="page-subtitle">Search, filter, and manage appointment records.</p>
+    </div>
+
+    <a asp-action="Create" class="btn btn-primary">+ Create Appointment</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert alert-success">@Model.Message</div>
+}
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-error">@Model.ErrorMessage</div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h2>Search Filters</h2>
+        <p>Use one or more filters to narrow down results.</p>
+    </div>
+
+    <form asp-action="Index" method="get" class="filter-grid">
+
+        <div class="form-group">
+            <label asp-for="Search.PatientId">Patient Id</label>
+            <input asp-for="Search.PatientId" class="form-control" placeholder="Enter patient id" />
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Search.DoctorId">Doctor Id</label>
+            <input asp-for="Search.DoctorId" class="form-control" placeholder="Enter doctor id" />
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Search.DepartmentId">Department Id</label>
+            <input asp-for="Search.DepartmentId" class="form-control" placeholder="Enter department id" />
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Search.AppointmentDate">Appointment Date</label>
+            <input asp-for="Search.AppointmentDate" type="date" class="form-control" />
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Search.Status">Status</label>
+            <select asp-for="Search.Status" asp-items="Html.GetEnumSelectList<AppointmentStatus>()" class="form-control">
+                <option value="">All Statuses</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Search.PageNumber">Page Number</label>
+            <input asp-for="Search.PageNumber" class="form-control" min="1" />
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Search.PageSize">Page Size</label>
+            <input asp-for="Search.PageSize" class="form-control" min="1" />
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a asp-action="Index" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="results-header">
+        <div>
+            <h2>Results</h2>
+            <p class="results-meta">
+                Total appointments: <strong>@(Model.Result?.TotalCount ?? 0)</strong>
+            </p>
+        </div>
+    </div>
+
+    @if (Model.Result?.Appointments?.Any() == true)
+    {
+        <div class="table-responsive">
+            <table class="styled-table">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Patient</th>
+                        <th>Doctor</th>
+                        <th>Department</th>
+                        <th>Date</th>
+                        <th>Time Slot</th>
+                        <th>Status</th>
+                        <th class="text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Result.Appointments)
+                    {
+                        <tr>
+                            <td>#@item.Id</td>
+                            <td>
+                                <div class="primary-text">@item.PatientId</div>
+                                <div class="secondary-text">UHID: @item.UHID</div>
+                            </td>
+                            <td>
+                                <div class="primary-text">@item.DoctorName</div>
+                                <div class="secondary-text">ID: @item.DoctorId</div>
+                            </td>
+                            <td>
+                                <div class="primary-text">@item.DepartmentName</div>
+                                <div class="secondary-text">ID: @item.DepartmentId</div>
+                            </td>
+                            <td>@item.AppointmentDate.ToString("dd MMM yyyy")</td>
+                            <td>@item.SlotStartTime - @item.SlotEndTime</td>
+                            <td>
+                                <span class="badge badge-@item.Status.ToString().ToLower()">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td class="text-right">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="table-link">View Details</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <h3>No appointments found</h3>
+            <p>Try changing the filters or resetting the search.</p>
+            <a asp-action="Index" class="btn btn-secondary">Clear Filters</a>
+        </div>
+    }
+
+    <div class="pagination">
+        @if (Model.Search.PageNumber > 1)
+        {
+            <a asp-action="Index"
+                   class="pagination-btn"
+                   asp-route-PageNumber="@(Model.Search.PageNumber - 1)"
+                   asp-route-PageSize="@Model.Search.PageSize"
+                   asp-route-PatientId="@Model.Search.PatientId"
+                   asp-route-DoctorId="@Model.Search.DoctorId"
+                   asp-route-DepartmentId="@Model.Search.DepartmentId"
+                   asp-route-Status="@Model.Search.Status"
+                   asp-route-AppointmentDate="@Model.Search.AppointmentDate">
+                ← Previous
+            </a>
+        }
+
+        <span class="pagination-info">Page @Model.Search.PageNumber</span>
+
+        @if (Model.Result != null &&
+             Model.Result.TotalCount > Model.Search.PageNumber * Model.Search.PageSize)
+        {
+            <a asp-action="Index"
+                   class="pagination-btn"
+                   asp-route-PageNumber="@(Model.Search.PageNumber + 1)"
+                   asp-route-PageSize="@Model.Search.PageSize"
+                   asp-route-PatientId="@Model.Search.PatientId"
+                   asp-route-DoctorId="@Model.Search.DoctorId"
+                   asp-route-DepartmentId="@Model.Search.DepartmentId"
+                   asp-route-Status="@Model.Search.Status"
+                   asp-route-AppointmentDate="@Model.Search.AppointmentDate">
+                Next →
+            </a>
+        }
+    </div>
+</div>

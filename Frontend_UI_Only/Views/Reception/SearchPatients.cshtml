@@ -1,0 +1,81 @@
+@model Frontend.Models.Reception.ReceptionPatientSearchRequestDto
+@{
+    ViewData["Title"] = "Search Patients";
+    var results = ViewBag.Results as List<Frontend.Models.Reception.ReceptionPatientSummaryDto>
+                  ?? new List<Frontend.Models.Reception.ReceptionPatientSummaryDto>();
+}
+
+<div class="page-header">
+    <div>
+        <h1>Search Patients</h1>
+        <p class="page-subtitle">Reception desk lookup for patient verification and quick actions.</p>
+    </div>
+</div>
+
+<div class="card border-0">
+    <div class="card-body p-4">
+        <form asp-action="SearchPatients" method="post">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="UHID" class="form-label"></label>
+                    <input asp-for="UHID" class="form-control" placeholder="Enter UHID" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="MobileNumber" class="form-label"></label>
+                    <input asp-for="MobileNumber" class="form-control" placeholder="Enter mobile number" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" placeholder="Enter patient name" />
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary">Search</button>
+                <a asp-action="SearchPatients" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0">
+    <div class="card-body p-0">
+        @if (results.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Patient Id</th>
+                            <th>UHID</th>
+                            <th>Name</th>
+                            <th>Mobile</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var patient in results)
+                    {
+                        <tr>
+                            <td>@patient.Id</td>
+                            <td>@patient.UHID</td>
+                            <td>@patient.FullName</td>
+                            <td>@patient.MobileNumber</td>
+                            <td>
+                                <a asp-action="PatientSummary" asp-route-patientId="@patient.Id" class="btn btn-sm btn-outline-primary">View Summary</a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="h5">No matching patients</h3>
+                <p class="text-muted">Use UHID, mobile number, or patient name to start a search.</p>
+            </div>
+        }
+    </div>
+</div>
