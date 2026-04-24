@@ -1,3 +1,5 @@
+using FluentValidation;
+using Hms.AppointmentsApi.Common;
 using System.Net;
 using System.Text.Json;
 
@@ -6,10 +8,12 @@ namespace Hms.AppointmentsApi.Middleware;
 public class ExceptionMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<ExceptionMiddleware> _logger;
 
-    public ExceptionMiddleware(RequestDelegate next)
+    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -17,6 +21,11 @@ public class ExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (ValidationException ex)
+        {
+            var errors = ex.Errors.Select(x => x.ErrorMessage).ToList();
+            await WriteErrorAsync(context, HttpStatusCode.BadRequest, "Validation failed.", errors);
         }
         catch (ArgumentException ex)
         {
@@ -28,21 +37,19 @@ public class ExceptionMiddleware
         }
         catch (Exception ex)
         {
-            await WriteErrorAsync(context, HttpStatusCode.InternalServerError, $"Unexpected error: {ex.Message}");
+            _logger.LogError(ex, "Unhandled exception occurred while processing {Method} {Path}", context.Request.Method, context.Request.Path);
+            await WriteErrorAsync(context, HttpStatusCode.InternalServerError, "An unexpected error occurred.");
         }
     }
 
-    private static async Task WriteErrorAsync(HttpContext context, HttpStatusCode statusCode, string message)
+    private static async Task WriteErrorAsync(HttpContext context, HttpStatusCode statusCode, string message, List<string>? errors = null)
     {
         context.Response.StatusCode = (int)statusCode;
         context.Response.ContentType = "application/json";
 
-        var payload = JsonSerializer.Serialize(new
-        {
-            statusCode = (int)statusCode,
-            message
-        });
+        var payload = ApiResponse<object>.Fail(message, errors);
+        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
-        await context.Response.WriteAsync(payload);
+        await context.Response.WriteAsync(json);
     }
 }

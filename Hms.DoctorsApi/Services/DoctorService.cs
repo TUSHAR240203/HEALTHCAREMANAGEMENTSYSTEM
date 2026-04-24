@@ -1,3 +1,4 @@
+using AutoMapper;
 using Hms.DoctorsApi.DTOs.Appointments;
 using Hms.DoctorsApi.DTOs.Doctors;
 using Hms.DoctorsApi.DTOs.Queue;
@@ -13,74 +14,59 @@ public class DoctorService : IDoctorService
     private readonly IDoctorRepository _doctorRepository;
     private readonly IAppointmentsApiClient _appointmentsApiClient;
     private readonly IReceptionApiClient _receptionApiClient;
+    private readonly IMapper _mapper;
 
     public DoctorService(
         IDoctorRepository doctorRepository,
         IAppointmentsApiClient appointmentsApiClient,
-        IReceptionApiClient receptionApiClient)
+        IReceptionApiClient receptionApiClient,
+        IMapper mapper)
     {
         _doctorRepository = doctorRepository;
         _appointmentsApiClient = appointmentsApiClient;
         _receptionApiClient = receptionApiClient;
+        _mapper = mapper;
     }
 
     public async Task<DoctorResponseDto> CreateAsync(CreateDoctorRequestDto request)
     {
-        ValidateCreateRequest(request);
-
         var doctorCode = GenerateDoctorCode(request.FullName);
         var normalizedLicense = NormalizeNullable(request.LicenseNumber);
 
-        var codeExists = await _doctorRepository.ExistsByDoctorCodeAsync(doctorCode);
-        if (codeExists)
+        if (await _doctorRepository.ExistsByDoctorCodeAsync(doctorCode))
             doctorCode = $"{doctorCode}-{DateTime.UtcNow:HHmmss}";
 
         if (!string.IsNullOrWhiteSpace(normalizedLicense) && await _doctorRepository.ExistsByLicenseNumberAsync(normalizedLicense))
             throw new InvalidOperationException("A doctor with this license number already exists.");
 
-        var doctor = new Doctor
-        {
-            DoctorCode = doctorCode,
-            FullName = request.FullName.Trim(),
-            Email = NormalizeNullable(request.Email),
-            Phone = NormalizeNullable(request.Phone),
-            Gender = NormalizeNullable(request.Gender),
-            Qualification = NormalizeNullable(request.Qualification),
-            Specialization = request.Specialization.Trim(),
-            DepartmentId = request.DepartmentId,
-            DepartmentName = request.DepartmentName.Trim(),
-            ConsultationFee = request.ConsultationFee,
-            ExperienceYears = request.ExperienceYears,
-            LicenseNumber = normalizedLicense,
-            RoomNumber = NormalizeNullable(request.RoomNumber),
-            SupportsTeleConsultation = request.SupportsTeleConsultation,
-            IsActive = true
-        };
+        var doctor = _mapper.Map<Doctor>(request);
+        doctor.DoctorCode = doctorCode;
+        doctor.LicenseNumber = normalizedLicense;
+        doctor.IsActive = true;
 
         await _doctorRepository.AddAsync(doctor);
         await _doctorRepository.SaveChangesAsync();
 
-        return MapDoctor(doctor);
+        return _mapper.Map<DoctorResponseDto>(doctor);
     }
 
     public async Task<DoctorResponseDto?> GetByIdAsync(int id)
     {
         if (id <= 0) throw new ArgumentException("Invalid doctor id.");
         var doctor = await _doctorRepository.GetByIdAsync(id);
-        return doctor == null ? null : MapDoctor(doctor);
+        return doctor == null ? null : _mapper.Map<DoctorResponseDto>(doctor);
     }
 
     public async Task<List<DoctorResponseDto>> SearchAsync(DoctorSearchRequestDto request)
     {
         request ??= new DoctorSearchRequestDto();
         var doctors = await _doctorRepository.SearchAsync(request);
-        return doctors.Select(MapDoctor).ToList();
+        return _mapper.Map<List<DoctorResponseDto>>(doctors);
     }
 
     public async Task<DoctorResponseDto?> UpdateAsync(int id, UpdateDoctorRequestDto request)
     {
         if (id <= 0) throw new ArgumentException("Invalid doctor id.");
-        ValidateUpdateRequest(request);
 
         var doctor = await _doctorRepository.GetByIdAsync(id);
         if (doctor == null) return null;
@@ -89,25 +75,13 @@ public class DoctorService : IDoctorService
         if (!string.IsNullOrWhiteSpace(normalizedLicense) && await _doctorRepository.ExistsByLicenseNumberAsync(normalizedLicense, id))
             throw new InvalidOperationException("Another doctor with this license number already exists.");
 
-        doctor.FullName = request.FullName.Trim();
-        doctor.Email = NormalizeNullable(request.Email);
-        doctor.Phone = NormalizeNullable(request.Phone);
-        doctor.Gender = NormalizeNullable(request.Gender);
-        doctor.Qualification = NormalizeNullable(request.Qualification);
-        doctor.Specialization = request.Specialization.Trim();
-        doctor.DepartmentId = request.DepartmentId;
-        doctor.DepartmentName = request.DepartmentName.Trim();
-        doctor.ConsultationFee = request.ConsultationFee;
-        doctor.ExperienceYears = request.ExperienceYears;
+        _mapper.Map(request, doctor);
         doctor.LicenseNumber = normalizedLicense;
-        doctor.RoomNumber = NormalizeNullable(request.RoomNumber);
-        doctor.SupportsTeleConsultation = request.SupportsTeleConsultation;
-        doctor.IsActive = request.IsActive;
         doctor.UpdatedAtUtc = DateTime.UtcNow;
 
         await _doctorRepository.UpdateAsync(doctor);
         await _doctorRepository.SaveChangesAsync();
-        return MapDoctor(doctor);
+        return _mapper.Map<DoctorResponseDto>(doctor);
     }
 
     public async Task<bool> SoftDeleteAsync(int id)
@@ -128,30 +102,23 @@ public class DoctorService : IDoctorService
     {
         await EnsureDoctorExistsAsync(doctorId);
         var schedules = await _doctorRepository.GetSchedulesAsync(doctorId);
-        return schedules.Select(MapSchedule).ToList();
+        return _mapper.Map<List<DoctorScheduleResponseDto>>(schedules);
     }
 
     public async Task<DoctorScheduleResponseDto> AddScheduleAsync(int doctorId, CreateDoctorScheduleRequestDto request)
     {
         await EnsureDoctorExistsAsync(doctorId);
-        ValidateScheduleRequest(request);
 
-        var schedule = new DoctorSchedule
-        {
-            DoctorId = doctorId,
-            DayOfWeek = request.DayOfWeek,
-            StartTime = request.StartTime,
-            EndTime = request.EndTime,
-            BreakStartTime = request.BreakStartTime,
-            BreakEndTime = request.BreakEndTime,
-            SlotDurationMinutes = request.SlotDurationMinutes,
-            MaxPatientsPerDay = request.MaxPatientsPerDay,
-            IsActive = true
-        };
+        var existingSchedules = await _doctorRepository.GetSchedulesAsync(doctorId);
+        if (existingSchedules.Any(x => x.DayOfWeek == request.DayOfWeek && request.StartTime < x.EndTime && request.EndTime > x.StartTime))
+            throw new InvalidOperationException("A schedule already exists for this doctor during the selected time range.");
+
+        var schedule = _mapper.Map<DoctorSchedule>(request);
+        schedule.DoctorId = doctorId;
 
         await _doctorRepository.AddScheduleAsync(schedule);
         await _doctorRepository.SaveChangesAsync();
-        return MapSchedule(schedule);
+        return _mapper.Map<DoctorScheduleResponseDto>(schedule);
     }
 
     public async Task<bool> DeleteScheduleAsync(int doctorId, int scheduleId)
@@ -168,7 +135,7 @@ public class DoctorService : IDoctorService
     {
         await EnsureDoctorExistsAsync(doctorId);
         var leaves = await _doctorRepository.GetLeavesAsync(doctorId);
-        return leaves.Select(MapLeave).ToList();
+        return _mapper.Map<List<DoctorLeaveResponseDto>>(leaves);
     }
 
     public async Task<DoctorLeaveResponseDto> AddLeaveAsync(int doctorId, CreateDoctorLeaveRequestDto request)
@@ -180,16 +147,12 @@ public class DoctorService : IDoctorService
         if (await _doctorRepository.HasLeaveOnDateAsync(doctorId, request.LeaveDate))
             throw new InvalidOperationException("Doctor leave already exists for this date.");
 
-        var leave = new DoctorLeave
-        {
-            DoctorId = doctorId,
-            LeaveDate = request.LeaveDate,
-            Reason = NormalizeNullable(request.Reason)
-        };
+        var leave = _mapper.Map<DoctorLeave>(request);
+        leave.DoctorId = doctorId;
 
         await _doctorRepository.AddLeaveAsync(leave);
         await _doctorRepository.SaveChangesAsync();
-        return MapLeave(leave);
+        return _mapper.Map<DoctorLeaveResponseDto>(leave);
     }
 
     public async Task<bool> DeleteLeaveAsync(int doctorId, int leaveId)
@@ -210,54 +173,41 @@ public class DoctorService : IDoctorService
         if (isTeleConsultation == true && !doctor.SupportsTeleConsultation)
             throw new InvalidOperationException("Doctor does not support teleconsultation.");
         if (await _doctorRepository.HasLeaveOnDateAsync(doctorId, date))
-        {
-            return new DoctorAvailabilityResponseDto
-            {
-                DoctorId = doctor.Id,
-                DoctorName = doctor.FullName,
-                Date = date,
-                Slots = new List<DoctorAvailabilitySlotDto>()
-            };
-        }
+            return BuildAvailabilityResponse(doctor, date, new List<DoctorAvailabilitySlotDto>());
 
         var schedules = await _doctorRepository.GetSchedulesAsync(doctorId);
         var schedule = schedules.FirstOrDefault(x => x.DayOfWeek == date.DayOfWeek && x.IsActive);
         if (schedule == null)
-        {
-            return new DoctorAvailabilityResponseDto
-            {
-                DoctorId = doctor.Id,
-                DoctorName = doctor.FullName,
-                Date = date,
-                Slots = new List<DoctorAvailabilitySlotDto>()
-            };
-        }
+            return BuildAvailabilityResponse(doctor, date, new List<DoctorAvailabilitySlotDto>());
 
+        var appointments = await _appointmentsApiClient.GetByDoctorIdAsync(doctorId);
+        var activeAppointments = appointments
+            .Where(x => x.AppointmentDate == date && x.Status != AppointmentStatus.Cancelled)
+            .ToList();
+
+        var maxReached = schedule.MaxPatientsPerDay.HasValue && activeAppointments.Count >= schedule.MaxPatientsPerDay.Value;
         var slots = new List<DoctorAvailabilitySlotDto>();
         var current = schedule.StartTime;
+
         while (current.AddMinutes(schedule.SlotDurationMinutes) <= schedule.EndTime)
         {
             var slotEnd = current.AddMinutes(schedule.SlotDurationMinutes);
             var inBreak = schedule.BreakStartTime.HasValue && schedule.BreakEndTime.HasValue && current < schedule.BreakEndTime.Value && slotEnd > schedule.BreakStartTime.Value;
+            var alreadyBooked = activeAppointments.Any(x => current < x.SlotEndTime && slotEnd > x.SlotStartTime);
+
             if (!inBreak)
             {
                 slots.Add(new DoctorAvailabilitySlotDto
                 {
                     SlotStartTime = current,
                     SlotEndTime = slotEnd,
-                    IsAvailable = true
+                    IsAvailable = !alreadyBooked && !maxReached
                 });
             }
             current = slotEnd;
         }
 
-        return new DoctorAvailabilityResponseDto
-        {
-            DoctorId = doctor.Id,
-            DoctorName = doctor.FullName,
-            Date = date,
-            Slots = slots
-        };
+        return BuildAvailabilityResponse(doctor, date, slots);
     }
 
     public async Task<List<AppointmentResponseDto>> GetTodayAppointmentsAsync(int doctorId)
@@ -296,10 +246,8 @@ public class DoctorService : IDoctorService
         await EnsureDoctorOwnsAppointmentAsync(doctorId, appointmentId);
 
         var currentQueue = await _receptionApiClient.GetDoctorCurrentQueueAsync(doctorId, DateOnly.FromDateTime(DateTime.UtcNow.Date));
-        if (currentQueue != null && currentQueue.AppointmentId == appointmentId && currentQueue.Status == "Called")
-        {
+        if (currentQueue != null && currentQueue.AppointmentId == appointmentId && currentQueue.Status is "Called" or "CheckedIn")
             await _receptionApiClient.StartQueueTokenAsync(currentQueue.QueueTokenId);
-        }
 
         return await _appointmentsApiClient.StartAppointmentAsync(appointmentId);
     }
@@ -310,9 +258,7 @@ public class DoctorService : IDoctorService
 
         var currentQueue = await _receptionApiClient.GetDoctorCurrentQueueAsync(doctorId, DateOnly.FromDateTime(DateTime.UtcNow.Date));
         if (currentQueue != null && currentQueue.AppointmentId == appointmentId)
-        {
             await _receptionApiClient.CompleteQueueTokenAsync(currentQueue.QueueTokenId, request.Notes);
-        }
 
         return await _appointmentsApiClient.CompleteAppointmentAsync(appointmentId, request);
     }
@@ -333,36 +279,18 @@ public class DoctorService : IDoctorService
     private async Task EnsureDoctorOwnsAppointmentAsync(int doctorId, int appointmentId)
     {
         await EnsureDoctorExistsAsync(doctorId);
-
         var appointments = await _appointmentsApiClient.GetByDoctorIdAsync(doctorId);
         if (!appointments.Any(x => x.Id == appointmentId))
             throw new ArgumentException("Appointment not found for this doctor.");
     }
 
-    private static void ValidateCreateRequest(CreateDoctorRequestDto request)
+    private static DoctorAvailabilityResponseDto BuildAvailabilityResponse(Doctor doctor, DateOnly date, List<DoctorAvailabilitySlotDto> slots) => new()
     {
-        if (request == null) throw new ArgumentException("Request body is required.");
-        if (string.IsNullOrWhiteSpace(request.FullName)) throw new ArgumentException("FullName is required.");
-        if (string.IsNullOrWhiteSpace(request.Specialization)) throw new ArgumentException("Specialization is required.");
-        if (request.DepartmentId <= 0) throw new ArgumentException("DepartmentId is required.");
-        if (string.IsNullOrWhiteSpace(request.DepartmentName)) throw new ArgumentException("DepartmentName is required.");
-        if (request.ConsultationFee < 0) throw new ArgumentException("ConsultationFee cannot be negative.");
-        if (request.ExperienceYears < 0) throw new ArgumentException("ExperienceYears cannot be negative.");
-    }
-
-    private static void ValidateUpdateRequest(UpdateDoctorRequestDto request) => ValidateCreateRequest(request);
-
-    private static void ValidateScheduleRequest(CreateDoctorScheduleRequestDto request)
-    {
-        if (request.EndTime <= request.StartTime)
-            throw new ArgumentException("EndTime must be greater than StartTime.");
-        if (request.SlotDurationMinutes <= 0)
-            throw new ArgumentException("SlotDurationMinutes must be greater than zero.");
-        if (request.BreakStartTime.HasValue != request.BreakEndTime.HasValue)
-            throw new ArgumentException("Both break times are required together.");
-        if (request.BreakStartTime.HasValue && request.BreakEndTime <= request.BreakStartTime)
-            throw new ArgumentException("BreakEndTime must be greater than BreakStartTime.");
-    }
+        DoctorId = doctor.Id,
+        DoctorName = doctor.FullName,
+        Date = date,
+        Slots = slots
+    };
 
     private static string GenerateDoctorCode(string fullName)
     {
@@ -372,47 +300,4 @@ public class DoctorService : IDoctorService
     }
 
     private static string? NormalizeNullable(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static DoctorResponseDto MapDoctor(Doctor doctor) => new()
-    {
-        Id = doctor.Id,
-        DoctorCode = doctor.DoctorCode,
-        FullName = doctor.FullName,
-        Email = doctor.Email,
-        Phone = doctor.Phone,
-        Gender = doctor.Gender,
-        Qualification = doctor.Qualification,
-        Specialization = doctor.Specialization,
-        DepartmentId = doctor.DepartmentId,
-        DepartmentName = doctor.DepartmentName,
-        ConsultationFee = doctor.ConsultationFee,
-        ExperienceYears = doctor.ExperienceYears,
-        LicenseNumber = doctor.LicenseNumber,
-        RoomNumber = doctor.RoomNumber,
-        IsActive = doctor.IsActive,
-        SupportsTeleConsultation = doctor.SupportsTeleConsultation,
-        CreatedAtUtc = doctor.CreatedAtUtc
-    };
-
-    private static DoctorScheduleResponseDto MapSchedule(DoctorSchedule schedule) => new()
-    {
-        Id = schedule.Id,
-        DoctorId = schedule.DoctorId,
-        DayOfWeek = schedule.DayOfWeek,
-        StartTime = schedule.StartTime,
-        EndTime = schedule.EndTime,
-        BreakStartTime = schedule.BreakStartTime,
-        BreakEndTime = schedule.BreakEndTime,
-        SlotDurationMinutes = schedule.SlotDurationMinutes,
-        MaxPatientsPerDay = schedule.MaxPatientsPerDay,
-        IsActive = schedule.IsActive
-    };
-
-    private static DoctorLeaveResponseDto MapLeave(DoctorLeave leave) => new()
-    {
-        Id = leave.Id,
-        DoctorId = leave.DoctorId,
-        LeaveDate = leave.LeaveDate,
-        Reason = leave.Reason
-    };
 }

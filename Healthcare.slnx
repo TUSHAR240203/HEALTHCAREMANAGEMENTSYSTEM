@@ -1,10 +1,10 @@
 <Solution>
+  <Project Path="../../../temp project/Hms.AppointmentsApi_blueprint_applied/Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
+  <Project Path="../../../temp project/Hms.DoctorsApi_Blueprint_Updated/Hms.DoctorsApi/Hms.DoctorsApi.csproj" />
   <Project Path="Frontend/Frontend.csproj" Id="fbebe9e7-3ce3-44f7-9a73-ae4c519baea7" />
   <Project Path="HealthcareGateway/HealthcareGateway.csproj" />
-  <Project Path="Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
   <Project Path="Hms.AuthApi/Hms.AuthApi.csproj" />
   <Project Path="Hms.BillingApi/Hms.BillingApi.csproj" />
-  <Project Path="Hms.DoctorsApi/Hms.DoctorsApi.csproj" />
   <Project Path="Hms.PatientsApi/Hms.PatientsApi.csproj" />
   <Project Path="Hms.ReceptionApi/Hms.ReceptionApi.csproj" />
 </Solution>
