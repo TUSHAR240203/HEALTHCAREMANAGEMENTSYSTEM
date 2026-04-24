@@ -1,3 +1,4 @@
+using Hms.AppointmentsApi.Common;
 using Hms.AppointmentsApi.DTOs.Appointments;
 using Hms.AppointmentsApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -16,75 +17,66 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateAppointmentRequestDto request)
     {
         var result = await _appointmentService.CreateAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<AppointmentResponseDto>.Ok(result, "Appointment created successfully."));
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _appointmentService.GetByIdAsync(id);
-        if (result == null) return NotFound();
-        return Ok(result);
+        return result == null
+            ? NotFound(ApiResponse<object>.Fail("Appointment not found."))
+            : Ok(ApiResponse<AppointmentResponseDto>.Ok(result));
     }
 
     [HttpGet("patient/{patientId:int}")]
-    [ProducesResponseType(typeof(List<AppointmentResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByPatientId(int patientId)
     {
         var result = await _appointmentService.GetByPatientIdAsync(patientId);
-        return Ok(result);
+        return Ok(ApiResponse<List<AppointmentResponseDto>>.Ok(result));
     }
 
     [HttpGet("doctor/{doctorId:int}")]
-    [ProducesResponseType(typeof(List<AppointmentResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByDoctorId(int doctorId)
     {
         var result = await _appointmentService.GetByDoctorIdAsync(doctorId);
-        return Ok(result);
+        return Ok(ApiResponse<List<AppointmentResponseDto>>.Ok(result));
     }
 
     [HttpPost("search")]
-    [ProducesResponseType(typeof(AppointmentSearchResponseDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search([FromBody] AppointmentSearchRequestDto request)
     {
         var result = await _appointmentService.SearchAsync(request);
-        return Ok(result);
+        return Ok(ApiResponse<AppointmentSearchResponseDto>.Ok(result));
     }
 
     [HttpPut("{id:int}/reschedule")]
-    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Reschedule(int id, [FromBody] RescheduleAppointmentRequestDto request)
     {
         var result = await _appointmentService.RescheduleAsync(id, request);
-        if (result == null) return NotFound();
-        return Ok(result);
+        return result == null
+            ? NotFound(ApiResponse<object>.Fail("Appointment not found."))
+            : Ok(ApiResponse<AppointmentResponseDto>.Ok(result, "Appointment rescheduled successfully."));
     }
 
     [HttpPut("{id:int}/cancel")]
-    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Cancel(int id, [FromBody] CancelAppointmentRequestDto request)
     {
         var result = await _appointmentService.CancelAsync(id, request);
-        if (result == null) return NotFound();
-        return Ok(result);
+        return result == null
+            ? NotFound(ApiResponse<object>.Fail("Appointment not found."))
+            : Ok(ApiResponse<AppointmentResponseDto>.Ok(result, "Appointment cancelled successfully."));
     }
 
     [HttpPut("{id:int}/complete")]
-    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Complete(int id, [FromBody] CompleteAppointmentRequestDto request)
     {
         var result = await _appointmentService.CompleteAsync(id, request);
-        if (result == null) return NotFound();
-        return Ok(result);
+        return result == null
+            ? NotFound(ApiResponse<object>.Fail("Appointment not found."))
+            : Ok(ApiResponse<AppointmentResponseDto>.Ok(result, "Appointment completed successfully."));
     }
 }
