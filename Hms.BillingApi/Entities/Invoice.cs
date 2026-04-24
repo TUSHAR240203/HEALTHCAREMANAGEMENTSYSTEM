@@ -6,9 +6,9 @@ public class Invoice : BaseEntity
     public string UHID { get; set; } = default!;
     public int AppointmentId { get; set; }
 
-    public decimal TotalAmount { get; set; }
-    public decimal PaidAmount { get; set; }
-    public decimal BalanceAmount { get; set; }
+    public decimal TotalAmount { get; set; } = 0;
+    public decimal PaidAmount { get; set; } = 0;
+    public decimal BalanceAmount { get; set; } = 0; 
 
     public string Status { get; set; } = "Pending";
 

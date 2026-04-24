@@ -1,14 +1,18 @@
 using Hms.BillingApi.Entities;
 
-namespace Hms.BillingApi.Interfaces.Repository;
+namespace Hms.BillingApi.Interfaces;
 
 public interface IInvoiceRepository
 {
-    Task AddInvoiceAsync(Invoice invoice);
+    Task<Invoice> CreateInvoiceAsync(Invoice invoice);
+
     Task<Invoice?> GetInvoiceByIdAsync(int invoiceId);
+
     Task<List<Invoice>> GetInvoicesByPatientIdAsync(int patientId);
-    Task AddInvoiceItemAsync(InvoiceItem item);
-    Task AddPaymentAsync(Payment payment);
+
+    Task<Invoice> AddInvoiceItemAsync(int invoiceId, InvoiceItem item);
+
+    Task<Invoice> AddPaymentAsync(int invoiceId, Payment payment);
+
     Task UpdateInvoiceAsync(Invoice invoice);
-    Task SaveChangesAsync();
 }

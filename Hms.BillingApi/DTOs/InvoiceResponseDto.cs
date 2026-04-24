@@ -17,3 +17,4 @@ public class InvoiceResponseDto
     public List<InvoiceItemResponseDto> Items { get; set; } = new();
     public List<PaymentResponseDto> Payments { get; set; } = new();
 }
+
