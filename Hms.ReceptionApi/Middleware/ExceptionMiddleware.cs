@@ -1,18 +1,23 @@
 using System.Net;
 using System.Text.Json;
+using Hms.ReceptionApi.DTOs.Common;
 
 namespace Hms.ReceptionApi.Middleware;
 
 public class ExceptionMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<ExceptionMiddleware> _logger;
 
-    public ExceptionMiddleware(RequestDelegate next)
+    public ExceptionMiddleware(
+        RequestDelegate next,
+        ILogger<ExceptionMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    public async Task Invoke(HttpContext context)
     {
         try
         {
@@ -20,30 +25,32 @@ public class ExceptionMiddleware
         }
         catch (ArgumentException ex)
         {
-            await WriteErrorAsync(context, HttpStatusCode.BadRequest, ex.Message);
+            await Handle(context, HttpStatusCode.BadRequest, ex.Message);
         }
-        catch (InvalidOperationException ex)
+        catch (KeyNotFoundException ex)
         {
-            await WriteErrorAsync(context, HttpStatusCode.Conflict, ex.Message);
+            await Handle(context, HttpStatusCode.NotFound, ex.Message);
         }
         catch (Exception ex)
         {
-            await WriteErrorAsync(context, HttpStatusCode.InternalServerError, $"An unexpected error occurred. {ex.Message}");
+            _logger.LogError(ex, ex.Message);
+            await Handle(context,
+                HttpStatusCode.InternalServerError,
+                "Internal server error");
         }
     }
 
-    private static async Task WriteErrorAsync(HttpContext context, HttpStatusCode statusCode, string message)
+    private static async Task Handle(
+        HttpContext context,
+        HttpStatusCode code,
+        string message)
     {
-        context.Response.StatusCode = (int)statusCode;
         context.Response.ContentType = "application/json";
+        context.Response.StatusCode = (int)code;
 
-        var response = new
-        {
-            statusCode = (int)statusCode,
-            message = message
-        };
+        var result = JsonSerializer.Serialize(
+            ApiResponse<string>.Fail(message));
 
-        var json = JsonSerializer.Serialize(response);
-        await context.Response.WriteAsync(json);
+        await context.Response.WriteAsync(result);
     }
 }
