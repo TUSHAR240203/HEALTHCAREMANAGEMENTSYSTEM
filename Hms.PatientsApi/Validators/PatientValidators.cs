@@ -16,10 +16,10 @@ public class CreatePatientRequestValidator : AbstractValidator<CreatePatientRequ
             .WithMessage("Mobile number must be a valid 10-digit Indian mobile number.");
         RuleFor(x => x.DateOfBirth).Must(x => x <= DateOnly.FromDateTime(DateTime.UtcNow)).WithMessage("DateOfBirth cannot be in the future.");
         RuleFor(x => x.Email).EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email));
-        RuleFor(x => x.EmergencyContactNumber)
-    .NotEmpty()
-    .Matches(@"^[6-9]\d{9}$")
-    .WithMessage("Emergency contact number must be a valid 10-digit Indian mobile number.");
+    //    RuleFor(x => x.EmergencyContactNumber)
+    //.NotEmpty()
+    //.Matches(@"^[6-9]\d{9}$")
+    //.WithMessage("Emergency contact number must be a valid 10-digit Indian mobile number.");
     }
 }
 
