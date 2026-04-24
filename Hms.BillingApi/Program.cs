@@ -1,11 +1,14 @@
 using Hms.BillingApi.Data;
-using Hms.BillingApi.Interfaces.Repository;
-using Hms.BillingApi.Interfaces.Services;
+using Hms.BillingApi.Interfaces;
 using Hms.BillingApi.Middleware;
 using Hms.BillingApi.Repositories;
 using Hms.BillingApi.Services;
-using Microsoft.EntityFrameworkCore;
+using Hms.BillingApi.Mappings;
+using Hms.BillingApi.Validators;
 
+using Microsoft.EntityFrameworkCore;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -22,6 +25,18 @@ builder.Services.AddDbContext<BillingDbContext>(options =>
 
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IBillingService, BillingService>();
+
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// ✅ AutoMapper
+builder.Services.AddAutoMapper(typeof(BillingProfile));
+
+// ✅ FluentValidation
+builder.Services.AddValidatorsFromAssemblyContaining<CreateInvoiceValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 
 var app = builder.Build();
 
