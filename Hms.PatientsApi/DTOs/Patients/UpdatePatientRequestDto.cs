@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-﻿using Hms.PatientsApi.Enums;
-=======
 using Hms.PatientsApi.Enums;
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
 namespace Hms.PatientsApi.DTOs.Patients;
 
@@ -24,10 +20,6 @@ public class UpdatePatientRequestDto
     public string? AddressLine2 { get; set; }
     public string? City { get; set; }
     public string? State { get; set; }
-<<<<<<< HEAD
-    public string? Country { get; set; }
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     public string? PostalCode { get; set; }
 
     public string? EmergencyContactName { get; set; }
@@ -41,8 +33,4 @@ public class UpdatePatientRequestDto
 
     public bool PortalAccessEnabled { get; set; }
     public PatientStatus Status { get; set; }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

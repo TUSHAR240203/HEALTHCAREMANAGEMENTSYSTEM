@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-using Hms.ReceptionApi.DTOs.Reception;
-=======
 ﻿using Hms.ReceptionApi.DTOs.Reception;
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.ReceptionApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,16 +22,6 @@ public class QueueController : ControllerBase
         return Ok(result);
     }
 
-<<<<<<< HEAD
-    [HttpGet("doctor/{doctorId:int}")]
-    public async Task<IActionResult> GetDoctorQueue(int doctorId, [FromQuery] DateOnly date)
-    {
-        var result = await _queueService.GetDoctorQueueAsync(doctorId, date);
-        return Ok(result);
-    }
-
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     [HttpGet("{departmentId:int}/current")]
     public async Task<IActionResult> GetCurrent(int departmentId, [FromQuery] DateOnly date)
     {
@@ -44,17 +30,6 @@ public class QueueController : ControllerBase
         return Ok(result);
     }
 
-<<<<<<< HEAD
-    [HttpGet("doctor/{doctorId:int}/current")]
-    public async Task<IActionResult> GetDoctorCurrent(int doctorId, [FromQuery] DateOnly date)
-    {
-        var result = await _queueService.GetDoctorCurrentAsync(doctorId, date);
-        if (result == null) return NotFound();
-        return Ok(result);
-    }
-
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     [HttpPost("{departmentId:int}/next")]
     public async Task<IActionResult> CallNext(int departmentId, [FromQuery] DateOnly date)
     {
@@ -102,8 +77,4 @@ public class QueueController : ControllerBase
         if (result == null) return NotFound();
         return Ok(result);
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

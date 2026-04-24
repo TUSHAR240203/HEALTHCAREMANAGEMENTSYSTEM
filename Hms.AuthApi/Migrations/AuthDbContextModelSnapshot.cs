@@ -115,8 +115,6 @@ namespace Hms.AuthApi.Migrations
                     b.ToTable("PatientUserLinks", (string)null);
                 });
 
-<<<<<<< HEAD
-=======
             modelBuilder.Entity("Hms.AuthApi.Entities.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -189,7 +187,6 @@ namespace Hms.AuthApi.Migrations
                         });
                 });
 
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             modelBuilder.Entity("Hms.AuthApi.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -206,13 +203,9 @@ namespace Hms.AuthApi.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<bool>("IsActive")
-<<<<<<< HEAD
-                        .HasColumnType("bit");
-=======
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -222,25 +215,11 @@ namespace Hms.AuthApi.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-<<<<<<< HEAD
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-<<<<<<< HEAD
-                    b.HasIndex("MobileNumber");
-
-                    b.ToTable("Users", (string)null);
-                });
-=======
                     b.HasIndex("MobileNumber")
                         .IsUnique();
 
@@ -302,7 +281,6 @@ namespace Hms.AuthApi.Migrations
                 {
                     b.Navigation("UserRoles");
                 });
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 #pragma warning restore 612, 618
         }
     }
