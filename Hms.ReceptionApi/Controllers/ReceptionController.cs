@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-using Hms.ReceptionApi.DTOs.Doctors;
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -55,33 +51,6 @@ public class ReceptionController : ControllerBase
         return Ok(new { message = "Portal activation message sent successfully." });
     }
 
-<<<<<<< HEAD
-
-    [HttpPost("doctors/search")]
-    public async Task<IActionResult> SearchDoctors([FromBody] DoctorSearchRequestDto request)
-    {
-        var result = await _receptionService.SearchDoctorsAsync(request);
-        return Ok(result);
-    }
-
-    [HttpGet("doctors/{doctorId:int}")]
-    public async Task<IActionResult> GetDoctorById(int doctorId)
-    {
-        var result = await _receptionService.GetDoctorByIdAsync(doctorId);
-        if (result == null) return NotFound();
-        return Ok(result);
-    }
-
-    [HttpGet("doctors/{doctorId:int}/available-slots")]
-    public async Task<IActionResult> GetDoctorAvailableSlots(int doctorId, [FromQuery] DateOnly date, [FromQuery] bool isTeleConsultation = false)
-    {
-        var result = await _receptionService.GetDoctorAvailableSlotsAsync(doctorId, date, isTeleConsultation);
-        if (result == null) return NotFound();
-        return Ok(result);
-    }
-
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     [HttpPost("appointments/book")]
     public async Task<IActionResult> BookAppointment([FromBody] BookAppointmentRequestDto request)
     {

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-﻿using Hms.PatientsApi.DTOs.Patients;
-=======
 using Hms.PatientsApi.DTOs.Patients;
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 using Hms.PatientsApi.Entities;
 using Hms.PatientsApi.Helpers;
 using Hms.PatientsApi.Interfaces.Repository;
@@ -18,13 +14,6 @@ public class PatientService : IPatientService
     {
         _patientRepository = patientRepository;
     }
-<<<<<<< HEAD
-
-    public async Task<PatientResponseDto> CreateAsync(CreatePatientRequestDto request)
-    {
-        ValidateCreateRequest(request);
-
-=======
     public async Task<PatientResponseDto?> CompleteProfileAsync(int id, CompletePatientProfileRequestDto request)
     {
         var patient = await _patientRepository.GetByIdAsync(id);
@@ -55,7 +44,6 @@ public class PatientService : IPatientService
 
     public async Task<PatientResponseDto> CreateAsync(CreatePatientRequestDto request)
     {
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         var normalizedMobile = request.MobileNumber.Trim();
 
         var mobileExists = await _patientRepository.ExistsByMobileAsync(normalizedMobile);
@@ -66,43 +54,17 @@ public class PatientService : IPatientService
 
         var patient = new Patient
         {
-<<<<<<< HEAD
-=======
             PatientIdentifier = PatientIdentifierGenerator.Generate(),
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             UHID = UhidGenerator.Generate(),
             FirstName = request.FirstName.Trim(),
             MiddleName = NormalizeNullable(request.MiddleName),
             LastName = request.LastName.Trim(),
-<<<<<<< HEAD
-            FullName = BuildFullName(request.FirstName, request.MiddleName, request.LastName),
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             DateOfBirth = request.DateOfBirth,
             Gender = request.Gender,
             MobileNumber = normalizedMobile,
             Email = NormalizeNullable(request.Email),
-<<<<<<< HEAD
-            BloodGroup = NormalizeNullable(request.BloodGroup),
-            MaritalStatus = NormalizeNullable(request.MaritalStatus),
-            AddressLine1 = NormalizeNullable(request.AddressLine1),
-            AddressLine2 = NormalizeNullable(request.AddressLine2),
-            City = NormalizeNullable(request.City),
-            State = NormalizeNullable(request.State),
-            Country = NormalizeNullable(request.Country),
-            PostalCode = NormalizeNullable(request.PostalCode),
-            EmergencyContactName = NormalizeNullable(request.EmergencyContactName),
-            EmergencyContactNumber = NormalizeNullable(request.EmergencyContactNumber),
-            EmergencyContactRelation = NormalizeNullable(request.EmergencyContactRelation),
-            AadhaarNumber = NormalizeNullable(request.AadhaarNumber),
-            InsuranceProvider = NormalizeNullable(request.InsuranceProvider),
-            InsurancePolicyNumber = NormalizeNullable(request.InsurancePolicyNumber),
-            PortalAccessEnabled = request.PortalAccessEnabled,
-            PortalActivated =false
-=======
 
             PortalActivated = false
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         };
 
         await _patientRepository.AddAsync(patient);
@@ -125,13 +87,7 @@ public class PatientService : IPatientService
         if (string.IsNullOrWhiteSpace(uhid))
             throw new ArgumentException("UHID is required.");
 
-<<<<<<< HEAD
-        var normalizedUhid = uhid.Trim();
-
-        var patient = await _patientRepository.GetByUhidAsync(normalizedUhid);
-=======
         var patient = await _patientRepository.GetByUhidAsync(uhid.Trim());
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         return patient == null ? null : MapToResponse(patient);
     }
 
@@ -140,23 +96,11 @@ public class PatientService : IPatientService
         if (id <= 0)
             throw new ArgumentException("Invalid patient id.");
 
-<<<<<<< HEAD
-        ValidateUpdateRequest(request);
-
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         var patient = await _patientRepository.GetByIdAsync(id);
         if (patient == null)
             return null;
 
         var normalizedMobile = request.MobileNumber.Trim();
-<<<<<<< HEAD
-
-        var mobileExists = await _patientRepository.ExistsByMobileAsync(normalizedMobile, id);
-        if (mobileExists)
-        {
-            throw new InvalidOperationException("Another patient with this mobile number already exists.");
-=======
         var mobileOwner = await _patientRepository.GetByMobileAsync(normalizedMobile, id);
 
         if (mobileOwner != null)
@@ -169,16 +113,11 @@ public class PatientService : IPatientService
 
             verifiedRequest.IsConsumed = true;
             verifiedRequest.UpdatedAtUtc = DateTime.UtcNow;
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         }
 
         patient.FirstName = request.FirstName.Trim();
         patient.MiddleName = NormalizeNullable(request.MiddleName);
         patient.LastName = request.LastName.Trim();
-<<<<<<< HEAD
-        patient.FullName = BuildFullName(request.FirstName, request.MiddleName, request.LastName);
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         patient.DateOfBirth = request.DateOfBirth;
         patient.Gender = request.Gender;
         patient.MobileNumber = normalizedMobile;
@@ -189,10 +128,6 @@ public class PatientService : IPatientService
         patient.AddressLine2 = NormalizeNullable(request.AddressLine2);
         patient.City = NormalizeNullable(request.City);
         patient.State = NormalizeNullable(request.State);
-<<<<<<< HEAD
-        patient.Country = NormalizeNullable(request.Country);
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         patient.PostalCode = NormalizeNullable(request.PostalCode);
         patient.EmergencyContactName = NormalizeNullable(request.EmergencyContactName);
         patient.EmergencyContactNumber = NormalizeNullable(request.EmergencyContactNumber);
@@ -201,24 +136,16 @@ public class PatientService : IPatientService
         patient.InsuranceProvider = NormalizeNullable(request.InsuranceProvider);
         patient.InsurancePolicyNumber = NormalizeNullable(request.InsurancePolicyNumber);
         patient.PortalAccessEnabled = request.PortalAccessEnabled;
-<<<<<<< HEAD
-        patient.Status = request.Status;
-        patient.UpdatedAtUtc = DateTime.UtcNow;
-        patient.PortalActivated = request.PortalActivated;
-=======
         patient.PortalActivated = request.PortalActivated;
         patient.Status = request.Status;
         patient.UpdatedAtUtc = DateTime.UtcNow;
 
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
         await _patientRepository.UpdateAsync(patient);
         await _patientRepository.SaveChangesAsync();
 
         return MapToResponse(patient);
     }
 
-<<<<<<< HEAD
-=======
     public async Task<MobileNumberChangeOtpResponseDto> SendMobileNumberChangeOtpAsync(int patientId, RequestMobileNumberChangeOtpDto request)
     {
         var patient = await _patientRepository.GetByIdAsync(patientId)
@@ -280,7 +207,6 @@ public class PatientService : IPatientService
         };
     }
 
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
     public async Task<PatientSearchResponseDto> SearchAsync(PatientSearchRequestDto request)
     {
         if (request == null)
@@ -303,14 +229,7 @@ public class PatientService : IPatientService
             throw new ArgumentException("Invalid patient id.");
 
         var patient = await _patientRepository.GetByIdAsync(id);
-<<<<<<< HEAD
-        if (patient == null)
-            return false;
-
-        if (patient.IsDeleted)
-=======
         if (patient == null || patient.IsDeleted)
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             return false;
 
         patient.IsDeleted = true;
@@ -322,70 +241,6 @@ public class PatientService : IPatientService
         return true;
     }
 
-<<<<<<< HEAD
-    private static void ValidateCreateRequest(CreatePatientRequestDto request)
-    {
-        if (request == null)
-            throw new ArgumentException("Request body is required.");
-
-        if (string.IsNullOrWhiteSpace(request.FirstName))
-            throw new ArgumentException("First name is required.");
-
-        if (string.IsNullOrWhiteSpace(request.LastName))
-            throw new ArgumentException("Last name is required.");
-
-        if (string.IsNullOrWhiteSpace(request.MobileNumber))
-            throw new ArgumentException("Mobile number is required.");
-
-        if (request.DateOfBirth > DateOnly.FromDateTime(DateTime.UtcNow))
-            throw new ArgumentException("Date of birth cannot be in the future.");
-
-        if (!IsValidMobile(request.MobileNumber))
-            throw new ArgumentException("Mobile number must be 10 digits.");
-    }
-
-    private static void ValidateUpdateRequest(UpdatePatientRequestDto request)
-    {
-        if (request == null)
-            throw new ArgumentException("Request body is required.");
-
-        if (string.IsNullOrWhiteSpace(request.FirstName))
-            throw new ArgumentException("First name is required.");
-
-        if (string.IsNullOrWhiteSpace(request.LastName))
-            throw new ArgumentException("Last name is required.");
-
-        if (string.IsNullOrWhiteSpace(request.MobileNumber))
-            throw new ArgumentException("Mobile number is required.");
-
-        if (request.DateOfBirth > DateOnly.FromDateTime(DateTime.UtcNow))
-            throw new ArgumentException("Date of birth cannot be in the future.");
-
-        if (!IsValidMobile(request.MobileNumber))
-            throw new ArgumentException("Mobile number must be 10 digits.");
-    }
-
-    private static bool IsValidMobile(string mobileNumber)
-    {
-        var trimmed = mobileNumber.Trim();
-        return trimmed.Length == 10 && trimmed.All(char.IsDigit);
-    }
-
-    private static string BuildFullName(string firstName, string? middleName, string lastName)
-    {
-        return string.Join(" ", new[]
-        {
-            firstName?.Trim(),
-            middleName?.Trim(),
-            lastName?.Trim()
-        }.Where(x => !string.IsNullOrWhiteSpace(x)));
-    }
-
-    private static string? NormalizeNullable(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
-=======
     private static string GenerateOtp()
         => Random.Shared.Next(100000, 999999).ToString();
 
@@ -394,21 +249,15 @@ public class PatientService : IPatientService
 
     private static string? NormalizeNullable(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
 
     private static PatientResponseDto MapToResponse(Patient patient)
     {
         return new PatientResponseDto
         {
             Id = patient.Id,
-<<<<<<< HEAD
-            UHID = patient.UHID,
-            FullName = patient.FullName,
-=======
             PatientIdentifier = patient.PatientIdentifier,
             UHID = patient.UHID,
             FullName = BuildFullName(patient.FirstName, patient.MiddleName, patient.LastName),
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             DateOfBirth = patient.DateOfBirth,
             Gender = patient.Gender,
             MobileNumber = patient.MobileNumber,
@@ -420,8 +269,4 @@ public class PatientService : IPatientService
             CreatedAtUtc = patient.CreatedAtUtc
         };
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85

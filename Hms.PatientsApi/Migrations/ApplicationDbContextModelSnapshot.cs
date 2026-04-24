@@ -22,8 +22,6 @@ namespace Hms.PatientsApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-<<<<<<< HEAD
-=======
             modelBuilder.Entity("Hms.PatientsApi.Entities.MobileNumberChangeRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -76,7 +74,6 @@ namespace Hms.PatientsApi.Migrations
                     b.ToTable("MobileNumberChangeRequests", (string)null);
                 });
 
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
             modelBuilder.Entity("Hms.PatientsApi.Entities.Patient", b =>
                 {
                     b.Property<int>("Id")
@@ -105,13 +102,6 @@ namespace Hms.PatientsApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-<<<<<<< HEAD
-                    b.Property<string>("Country")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -139,14 +129,6 @@ namespace Hms.PatientsApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-<<<<<<< HEAD
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
@@ -179,14 +161,11 @@ namespace Hms.PatientsApi.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-<<<<<<< HEAD
-=======
                     b.Property<string>("PatientIdentifier")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.Property<bool>("PortalAccessEnabled")
                         .HasColumnType("bit");
 
@@ -216,12 +195,9 @@ namespace Hms.PatientsApi.Migrations
 
                     b.HasIndex("MobileNumber");
 
-<<<<<<< HEAD
-=======
                     b.HasIndex("PatientIdentifier")
                         .IsUnique();
 
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
                     b.HasIndex("UHID")
                         .IsUnique();
 
