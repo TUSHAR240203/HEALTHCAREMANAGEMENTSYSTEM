@@ -4,6 +4,8 @@ public class PaymentResponseDto
 {
     public int Id { get; set; }
     public decimal Amount { get; set; }
-    public string PaymentMode { get; set; } = default!;
+
+    public string PaymentMethod { get; set; } = default!; // ✅ FIXED
+
     public DateTime PaidAtUtc { get; set; }
 }

@@ -38,15 +38,20 @@ public class BillingDbContext : DbContext
             entity.ToTable("InvoiceItems");
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.ServiceName).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.ServiceName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            // ✅ FIXED
+            entity.Property(x => x.Price)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.Quantity);
 
             entity.HasOne(x => x.Invoice)
                   .WithMany(x => x.Items)
                   .HasForeignKey(x => x.InvoiceId)
                   .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasQueryFilter(x => !x.IsDeleted);
         });
 
         modelBuilder.Entity<Payment>(entity =>
@@ -54,7 +59,9 @@ public class BillingDbContext : DbContext
             entity.ToTable("Payments");
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.PaymentMode).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.PaymentMethod)
+        .HasMaxLength(50)
+        .IsRequired();
             entity.Property(x => x.Amount).HasColumnType("decimal(18,2)");
 
             entity.HasOne(x => x.Invoice)
@@ -62,7 +69,7 @@ public class BillingDbContext : DbContext
                   .HasForeignKey(x => x.InvoiceId)
                   .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasQueryFilter(x => !x.IsDeleted);
+            //entity.HasQueryFilter(x => !x.IsDeleted);
         });
     }
 }

@@ -4,10 +4,7 @@
   <Project Path="Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
   <Project Path="Hms.AuthApi/Hms.AuthApi.csproj" />
   <Project Path="Hms.BillingApi/Hms.BillingApi.csproj" />
-<<<<<<< HEAD
   <Project Path="Hms.DoctorsApi/Hms.DoctorsApi.csproj" />
-=======
->>>>>>> ee49ab9fb4705d2037d437f343847efd9ce49e85
   <Project Path="Hms.PatientsApi/Hms.PatientsApi.csproj" />
   <Project Path="Hms.ReceptionApi/Hms.ReceptionApi.csproj" />
 </Solution>
