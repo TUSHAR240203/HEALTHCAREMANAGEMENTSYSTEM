@@ -1,5 +1,6 @@
 using Hms.PatientsApi.DTOs.Patients;
 using Hms.PatientsApi.Entities;
+using Hms.PatientsApi.Enums;
 using Hms.PatientsApi.Helpers;
 using Hms.PatientsApi.Interfaces.Repository;
 using Hms.PatientsApi.Interfaces.Services;
@@ -14,6 +15,38 @@ public class PatientService : IPatientService
     {
         _patientRepository = patientRepository;
     }
+
+    public async Task<PatientResponseDto> CreateAsync(CreatePatientRequestDto request)
+    {
+        var normalizedMobile = request.MobileNumber.Trim();
+
+        var patient = new Patient
+        {
+            PatientIdentifier = PatientIdentifierGenerator.Generate(),
+            UHID = UhidGenerator.Generate(),
+
+            FirstName = request.FirstName.Trim(),
+            MiddleName = NormalizeNullable(request.MiddleName),
+            LastName = request.LastName.Trim(),
+            DateOfBirth = request.DateOfBirth,
+            Gender = request.Gender,
+            MobileNumber = normalizedMobile,
+            Email = NormalizeNullable(request.Email),
+
+            PortalAccessEnabled = request.PortalAccessEnabled,
+            PortalActivated = false,
+            Status = PatientStatus.Active,
+            IsProfileCompleted = false,
+            IsDeleted = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await _patientRepository.AddAsync(patient);
+        await _patientRepository.SaveChangesAsync();
+
+        return MapToResponse(patient);
+    }
+
     public async Task<PatientResponseDto?> CompleteProfileAsync(int id, CompletePatientProfileRequestDto request)
     {
         var patient = await _patientRepository.GetByIdAsync(id);
@@ -37,37 +70,6 @@ public class PatientService : IPatientService
         patient.UpdatedAtUtc = DateTime.UtcNow;
 
         await _patientRepository.UpdateAsync(patient);
-        await _patientRepository.SaveChangesAsync();
-
-        return MapToResponse(patient);
-    }
-
-    public async Task<PatientResponseDto> CreateAsync(CreatePatientRequestDto request)
-    {
-        var normalizedMobile = request.MobileNumber.Trim();
-
-        var mobileExists = await _patientRepository.ExistsByMobileAsync(normalizedMobile);
-        if (mobileExists)
-        {
-            throw new InvalidOperationException("A patient with this mobile number already exists.");
-        }
-
-        var patient = new Patient
-        {
-            PatientIdentifier = PatientIdentifierGenerator.Generate(),
-            UHID = UhidGenerator.Generate(),
-            FirstName = request.FirstName.Trim(),
-            MiddleName = NormalizeNullable(request.MiddleName),
-            LastName = request.LastName.Trim(),
-            DateOfBirth = request.DateOfBirth,
-            Gender = request.Gender,
-            MobileNumber = normalizedMobile,
-            Email = NormalizeNullable(request.Email),
-
-            PortalActivated = false
-        };
-
-        await _patientRepository.AddAsync(patient);
         await _patientRepository.SaveChangesAsync();
 
         return MapToResponse(patient);
@@ -105,10 +107,13 @@ public class PatientService : IPatientService
 
         if (mobileOwner != null)
         {
-            var verifiedRequest = await _patientRepository.GetLatestPendingMobileChangeRequestAsync(id, normalizedMobile);
+            var verifiedRequest =
+                await _patientRepository.GetLatestPendingMobileChangeRequestAsync(id, normalizedMobile);
+
             if (verifiedRequest == null || !verifiedRequest.IsVerified)
             {
-                throw new InvalidOperationException($"This mobile number is already linked with patient '{BuildFullName(mobileOwner.FirstName, mobileOwner.MiddleName, mobileOwner.LastName)}'. Send and verify OTP before updating.");
+                throw new InvalidOperationException(
+                    $"This mobile number is already linked with patient '{BuildFullName(mobileOwner.FirstName, mobileOwner.MiddleName, mobileOwner.LastName)}'. Send and verify OTP before updating.");
             }
 
             verifiedRequest.IsConsumed = true;
@@ -146,7 +151,9 @@ public class PatientService : IPatientService
         return MapToResponse(patient);
     }
 
-    public async Task<MobileNumberChangeOtpResponseDto> SendMobileNumberChangeOtpAsync(int patientId, RequestMobileNumberChangeOtpDto request)
+    public async Task<MobileNumberChangeOtpResponseDto> SendMobileNumberChangeOtpAsync(
+        int patientId,
+        RequestMobileNumberChangeOtpDto request)
     {
         var patient = await _patientRepository.GetByIdAsync(patientId)
             ?? throw new ArgumentException("Patient not found.");
@@ -185,19 +192,21 @@ public class PatientService : IPatientService
         };
     }
 
-    public async Task<MobileNumberChangeOtpResponseDto> VerifyMobileNumberChangeOtpAsync(int patientId, VerifyMobileNumberChangeOtpDto request)
+    public async Task<MobileNumberChangeOtpResponseDto> VerifyMobileNumberChangeOtpAsync(
+        int patientId,
+        VerifyMobileNumberChangeOtpDto request)
     {
         var normalizedMobile = request.MobileNumber.Trim();
-        var verification = await _patientRepository.GetLatestPendingMobileChangeRequestAsync(patientId, normalizedMobile);
+        var verification =
+            await _patientRepository.GetLatestPendingMobileChangeRequestAsync(patientId, normalizedMobile);
 
         if (verification == null || verification.OtpCode != request.OtpCode.Trim())
-        {
             throw new InvalidOperationException("Invalid or expired OTP.");
-        }
 
         verification.IsVerified = true;
         verification.VerifiedAtUtc = DateTime.UtcNow;
         verification.UpdatedAtUtc = DateTime.UtcNow;
+
         await _patientRepository.SaveChangesAsync();
 
         return new MobileNumberChangeOtpResponseDto
@@ -245,7 +254,8 @@ public class PatientService : IPatientService
         => Random.Shared.Next(100000, 999999).ToString();
 
     private static string BuildFullName(string firstName, string? middleName, string lastName)
-        => string.Join(" ", new[] { firstName?.Trim(), middleName?.Trim(), lastName?.Trim() }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        => string.Join(" ", new[] { firstName?.Trim(), middleName?.Trim(), lastName?.Trim() }
+            .Where(x => !string.IsNullOrWhiteSpace(x)));
 
     private static string? NormalizeNullable(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -266,7 +276,8 @@ public class PatientService : IPatientService
             PortalAccessEnabled = patient.PortalAccessEnabled,
             PortalActivated = patient.PortalActivated,
             Status = patient.Status,
-            CreatedAtUtc = patient.CreatedAtUtc
+            CreatedAtUtc = patient.CreatedAtUtc,
+            IsProfileCompleted = patient.IsProfileCompleted
         };
     }
 }
