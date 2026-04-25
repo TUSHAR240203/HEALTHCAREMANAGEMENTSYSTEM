@@ -24,6 +24,13 @@ public class DoctorsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, Wrap(result, "Doctor created successfully."));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] bool? isActive)
+    {
+        var result = await _doctorService.SearchAsync(new DoctorSearchRequestDto { IsActive = isActive });
+        return Ok(Wrap(result, "Doctors fetched successfully."));
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {

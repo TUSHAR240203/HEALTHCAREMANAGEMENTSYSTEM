@@ -15,4 +15,5 @@ public class CreateDoctorRequestDto
     public string? LicenseNumber { get; set; }
     public string? RoomNumber { get; set; }
     public bool SupportsTeleConsultation { get; set; }
+    public string? PhotoUrl { get; set; }
 }

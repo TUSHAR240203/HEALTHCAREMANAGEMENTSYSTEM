@@ -1,93 +1,147 @@
 @using Microsoft.AspNetCore.Http
 @{
     var isLoggedIn = !string.IsNullOrWhiteSpace(Context.Session.GetString("AccessToken"));
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var displayName = Context.Session.GetString("FullName");
+    var mobileNumber = Context.Session.GetString("MobileNumber") ?? string.Empty;
+    var photoUrl = Context.Session.GetString("PhotoUrl");
+    var profileCompletion = Context.Session.GetInt32("ProfileCompletion") ?? 0;
+    var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+    var isReception = string.Equals(role, "Receptionist", StringComparison.OrdinalIgnoreCase);
+    var isDoctor = string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase);
+    var isPatient = string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
     var currentPath = Context.Request.Path.Value ?? string.Empty;
+    var avatarText = !string.IsNullOrWhiteSpace(displayName) ? displayName[..1].ToUpperInvariant() : (!string.IsNullOrWhiteSpace(role) ? role[..1].ToUpperInvariant() : "H");
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - HMS Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Frontend.styles.css" asp-append-version="true" />
 </head>
 <body>
+    <div class="ambient-orb orb-one"></div>
+    <div class="ambient-orb orb-two"></div>
     <div class="app-shell">
-        <header>
-            <nav class="navbar navbar-expand-lg app-navbar shadow-sm sticky-top">
-                <div class="container-fluid px-3 px-lg-4">
-                    <a class="navbar-brand d-flex align-items-center gap-3" asp-area="" asp-controller="Home" asp-action="Index">
-                        <span class="brand-mark"><i class="bi bi-hospital"></i></span>
-                        <span>
-                            <span class="brand-title d-block">HMS Portal</span>
-                            <small class="brand-subtitle">Hospital Management System</small>
-                        </span>
-                    </a>
-                    <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav"
-                            aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="collapse navbar-collapse" id="mainNav">
-                        <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-                            <li class="nav-item"><a class="nav-link @(currentPath == "/" ? "active" : "")" asp-controller="Home" asp-action="Index">Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/Patients") ? "active" : "")" asp-controller="Patients" asp-action="Index">Patients</a></li>
-                            <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/Appointments") ? "active" : "")" asp-controller="Appointments" asp-action="Index">Appointments</a></li>
-                            <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/Reception") ? "active" : "")" asp-controller="Reception" asp-action="SearchPatients">Reception</a></li>
-                            <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/Billing") ? "active" : "")" asp-controller="Billing" asp-action="ByPatient">Billing</a></li>
-                            <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/Account/ActivatePortal") ? "active" : "")" asp-controller="Account" asp-action="ActivatePortal">Activate Portal</a></li>
-                            @if (isLoggedIn)
+        <aside class="app-sidebar">
+            <a class="brand-block" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark"><i class="bi bi-hospital"></i></span>
+                <span><span class="brand-title">HMS Portal</span><small class="brand-subtitle">Role based hospital OS</small></span>
+            </a>
+
+            <nav class="side-nav">
+                <a class="side-link @(currentPath == "/" ? "active" : "")" asp-controller="Home" asp-action="Index"><i class="bi bi-grid-1x2"></i><span>Dashboard</span></a>
+                @if (isAdmin)
+                {
+                    <a class="side-link @(currentPath.StartsWith("/StaffUsers") ? "active" : "")" asp-controller="StaffUsers" asp-action="Index"><i class="bi bi-person-gear"></i><span>Staff Users</span></a>
+                }
+                @if (isAdmin || isReception)
+                {
+                    <a class="side-link @(currentPath.StartsWith("/Patients") ? "active" : "")" asp-controller="Patients" asp-action="Index"><i class="bi bi-people"></i><span>Patients</span></a>
+                    <a class="side-link @(currentPath.StartsWith("/Reception") ? "active" : "")" asp-controller="Reception" asp-action="SearchPatients"><i class="bi bi-headset"></i><span>Reception</span></a>
+                }
+                @if (isAdmin || isReception || isDoctor)
+                {
+                    <a class="side-link @(currentPath.StartsWith("/Doctors") ? "active" : "")" asp-controller="Doctors" asp-action="Index"><i class="bi bi-heart-pulse"></i><span>Doctors</span></a>
+                }
+                @if (isAdmin || isReception || isDoctor || isPatient)
+                {
+                    @if (isPatient)
+                    {
+                        <a class="side-link @(currentPath.StartsWith("/Appointments") ? "active" : "")" asp-controller="Appointments" asp-action="ByPatient"><i class="bi bi-calendar2-week"></i><span>My Appointments</span></a>
+                        <a class="side-link @(currentPath.StartsWith("/Appointments/PatientBook") ? "active" : "")" asp-controller="Appointments" asp-action="PatientBook"><i class="bi bi-calendar2-plus"></i><span>Book Appointment</span></a>
+                    }
+                    else
+                    {
+                        <a class="side-link @(currentPath.StartsWith("/Appointments") ? "active" : "")" asp-controller="Appointments" asp-action="Index"><i class="bi bi-calendar2-week"></i><span>Appointments</span></a>
+                    }
+                }
+                @if (isAdmin || isReception || isPatient)
+                {
+                    <a class="side-link @(currentPath.StartsWith("/Billing") ? "active" : "")" asp-controller="Billing" asp-action="ByPatient"><i class="bi bi-receipt"></i><span>@(isPatient ? "My Bills" : "Billing")</span></a>
+                }
+                @if (isLoggedIn)
+                {
+                    @if (isPatient)
+                    {
+                        <a class="side-link @(currentPath.StartsWith("/Account/CompleteProfile") || currentPath.StartsWith("/Account/Profile") ? "active" : "")" asp-controller="Account" asp-action="CompleteProfile"><i class="bi bi-person-circle"></i><span>Complete Profile</span></a>
+                    }
+                    else
+                    {
+                        <a class="side-link @(currentPath.StartsWith("/Account/Profile") ? "active" : "")" asp-controller="Account" asp-action="Profile"><i class="bi bi-person-circle"></i><span>Profile</span></a>
+                    }
+                    <a class="side-link @(currentPath.StartsWith("/Account/AuthPreference") ? "active" : "")" asp-controller="Account" asp-action="AuthPreference"><i class="bi bi-shield-lock"></i><span>Auth Settings</span></a>
+                }
+            </nav>
+
+            <div class="sidebar-card">
+                <div class="pulse-dot"></div>
+                <strong>Gateway</strong>
+                <span>https://localhost:7000</span>
+            </div>
+        </aside>
+
+        <section class="app-content">
+            <header class="topbar glass-panel">
+                <button class="icon-btn d-lg-none" type="button" data-sidebar-toggle><i class="bi bi-list"></i></button>
+                <div>
+                    <div class="small text-muted">@DateTime.Now.ToString("dddd, dd MMM yyyy")</div>
+                    <strong class="topbar-title">@ViewData["Title"]</strong>
+                </div>
+                <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+                    <button class="theme-toggle" type="button" data-theme-toggle title="Toggle theme"><i class="bi bi-moon-stars"></i><span class="d-none d-sm-inline">Theme</span></button>
+                    @if (isLoggedIn)
+                    {
+                        <div class="user-chip">
+                            @if (isPatient)
                             {
-                                <li class="nav-item"><a class="nav-link @(currentPath.StartsWith("/Account/Profile") ? "active" : "")" asp-controller="Account" asp-action="Profile">Profile</a></li>
-                                <li class="nav-item ms-lg-2"><a class="btn btn-outline-danger btn-sm rounded-pill px-3" asp-controller="Account" asp-action="Logout">Logout</a></li>
+                                <a class="avatar avatar-clickable" asp-controller="Account" asp-action="CompleteProfile" title="Edit patient photo and profile">
+                                    @if (!string.IsNullOrWhiteSpace(photoUrl))
+                                    {
+                                        <img src="@photoUrl" alt="Profile photo" />
+                                    }
+                                    else
+                                    {
+                                        <span>@avatarText</span>
+                                    }
+                                </a>
                             }
                             else
                             {
-                                <li class="nav-item ms-lg-2"><a class="btn btn-primary btn-sm rounded-pill px-3" asp-controller="Account" asp-action="Login">Login</a></li>
+                                <a class="avatar avatar-clickable" asp-controller="Account" asp-action="Profile" title="View profile"><span>@avatarText</span></a>
                             }
-                        </ul>
-                    </div>
+                            <span class="d-none d-md-block"><strong>@(displayName ?? role)</strong><small>@role • @mobileNumber@if (isPatient && profileCompletion > 0) { <text> • @profileCompletion% profile</text> }</small></span>
+                        </div>
+                        <a class="btn btn-danger-soft" asp-controller="Account" asp-action="Logout"><i class="bi bi-box-arrow-right"></i><span class="d-none d-sm-inline">Logout</span></a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-outline-primary" asp-controller="Account" asp-action="StaffLogin">Staff Login</a>
+                        <a class="btn btn-primary-soft" asp-controller="Account" asp-action="Register">Patient Register</a>
+                        <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Patient Login</a>
+                    }
                 </div>
-            </nav>
-        </header>
+            </header>
 
-        <main class="app-main">
-            <div class="container-fluid px-3 px-lg-4">
+            <main class="app-main fade-in-up">
                 @if (TempData["Success"] != null)
                 {
-                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
-                        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
                 }
                 @if (TempData["Error"] != null)
                 {
-                    <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
                 }
-
                 @RenderBody()
-            </div>
-        </main>
-
-        <footer class="app-footer mt-4">
-            <div class="container-fluid px-3 px-lg-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
-                <div>
-                    <strong>HMS Portal</strong>
-                    <span class="text-muted ms-2">Modern healthcare operations dashboard</span>
-                </div>
-                <div>
-                    &copy; 2026 - <a asp-area="" asp-controller="Home" asp-action="Privacy" class="footer-link">Privacy</a>
-                </div>
-            </div>
-        </footer>
+            </main>
+        </section>
     </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

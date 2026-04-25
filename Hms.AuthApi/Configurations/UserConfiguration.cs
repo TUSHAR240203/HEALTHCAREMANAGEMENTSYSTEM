@@ -12,6 +12,16 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.LoginId)
+            .HasMaxLength(100);
+
+        builder.HasIndex(x => x.LoginId)
+            .IsUnique()
+            .HasFilter("[LoginId] IS NOT NULL");
+
+        builder.Property(x => x.PasswordHash)
+            .HasMaxLength(500);
+
         builder.Property(x => x.MobileNumber)
             .IsRequired()
             .HasMaxLength(20);
@@ -22,8 +32,17 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.IsActive)
             .HasDefaultValue(true);
 
-        builder.HasIndex(x => x.MobileNumber)
-            .IsUnique();
+        builder.Property(x => x.IsPasswordLoginEnabled)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.IsOtpLoginEnabled)
+            .HasDefaultValue(true);
+
+        builder.Property(x => x.IsFirstLoginCompleted)
+            .HasDefaultValue(false);
+
+        // Family members can share the same mobile number, so this is intentionally not unique.
+        builder.HasIndex(x => x.MobileNumber);
 
         builder.HasMany(x => x.UserRoles)
             .WithOne(x => x.User)

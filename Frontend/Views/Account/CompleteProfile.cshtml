@@ -1,0 +1,150 @@
+@model Frontend.Models.Patients.CompletePatientProfileViewModel
+@{
+    ViewData["Title"] = "Complete Profile";
+    var pct = Math.Clamp(Model.CompletionPercentage, 0, 100);
+    var photo = string.IsNullOrWhiteSpace(Model.PhotoUrl) ? null : Model.PhotoUrl;
+    var initials = string.IsNullOrWhiteSpace(Model.FullName) ? "P" : Model.FullName.Trim()[0].ToString().ToUpperInvariant();
+}
+
+<div class="profile-complete-hero mb-4">
+    <div class="profile-progress-ring" style="--pct:@pct">
+        <div class="ring-inner">
+            <strong>@pct%</strong>
+            <span>complete</span>
+        </div>
+    </div>
+    <div class="flex-grow-1">
+        <span class="badge-soft mb-3"><i class="bi bi-person-check"></i> Patient portal setup</span>
+        <h1 class="h2 fw-black mb-2">Complete your profile</h1>
+        <p class="mb-0">Add your medical, emergency and insurance details so hospital staff can serve you faster.</p>
+    </div>
+    <div class="profile-preview-card">
+        @if (!string.IsNullOrWhiteSpace(photo))
+        {
+            <img src="@photo" alt="Profile photo" class="profile-preview-photo" />
+        }
+        else
+        {
+            <span class="profile-preview-photo placeholder-avatar">@initials</span>
+        }
+        <strong>@(string.IsNullOrWhiteSpace(Model.FullName) ? "Patient" : Model.FullName)</strong>
+        <small>@Model.UHID • @Model.MobileNumber</small>
+    </div>
+</div>
+
+<form asp-action="CompleteProfile" method="post" enctype="multipart/form-data" class="content-card profile-complete-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="PatientId" />
+    <input type="hidden" asp-for="FullName" />
+    <input type="hidden" asp-for="UHID" />
+    <input type="hidden" asp-for="MobileNumber" />
+    <input type="hidden" asp-for="Email" />
+    <div class="card-body p-4">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="photo-upload-panel sticky-summary">
+                    <div class="avatar-large-wrap mb-3" id="photoWrap">
+                        @if (!string.IsNullOrWhiteSpace(photo))
+                        {
+                            <img src="@photo" alt="Profile photo" id="photoPreview" class="avatar-large-img" />
+                            <span id="photoFallback" class="avatar-large-fallback d-none">@initials</span>
+                        }
+                        else
+                        {
+                            <img src="" alt="Profile photo" id="photoPreview" class="avatar-large-img d-none" />
+                            <span id="photoFallback" class="avatar-large-fallback">@initials</span>
+                        }
+                    </div>
+                    <label class="form-label fw-bold">Upload Photo from Gallery</label>
+                    <input asp-for="PhotoFile" type="file" accept="image/*" class="form-control mb-2" id="photoFileInput" />
+                    <span asp-validation-for="PhotoFile" class="text-danger small"></span>
+                    <div class="small text-muted mb-3">Choose a JPG, PNG, or WEBP from your device gallery.</div>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <hr class="flex-grow-1 m-0" /><span class="small text-muted px-1">OR</span><hr class="flex-grow-1 m-0" />
+                    </div>
+                    <label asp-for="PhotoUrl" class="form-label">Paste Image URL</label>
+                    <input asp-for="PhotoUrl" class="form-control" placeholder="https://example.com/photo.jpg" data-photo-url-input />
+                    <span asp-validation-for="PhotoUrl" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="BloodGroup" class="form-label"></label>
+                        <select asp-for="BloodGroup" class="form-select">
+                            <option value="">Select blood group</option>
+                            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                            <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="MaritalStatus" class="form-label"></label>
+                        <select asp-for="MaritalStatus" class="form-select">
+                            <option value="">Select status</option>
+                            <option>Single</option><option>Married</option><option>Other</option>
+                        </select>
+                    </div>
+                    <div class="col-12"><hr /></div>
+                    <div class="col-md-6">
+                        <label asp-for="AddressLine1" class="form-label"></label>
+                        <input asp-for="AddressLine1" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="AddressLine2" class="form-label"></label>
+                        <input asp-for="AddressLine2" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="City" class="form-label"></label>
+                        <input asp-for="City" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="State" class="form-label"></label>
+                        <input asp-for="State" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="PostalCode" class="form-label"></label>
+                        <input asp-for="PostalCode" class="form-control" />
+                    </div>
+                    <div class="col-12"><hr /></div>
+                    <div class="col-md-4">
+                        <label asp-for="EmergencyContactName" class="form-label"></label>
+                        <input asp-for="EmergencyContactName" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="EmergencyContactNumber" class="form-label"></label>
+                        <input asp-for="EmergencyContactNumber" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="EmergencyContactRelation" class="form-label"></label>
+                        <input asp-for="EmergencyContactRelation" class="form-control" />
+                    </div>
+                    <div class="col-12"><hr /></div>
+                    <div class="col-md-4">
+                        <label asp-for="AadhaarNumber" class="form-label"></label>
+                        <input asp-for="AadhaarNumber" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="InsuranceProvider" class="form-label"></label>
+                        <input asp-for="InsuranceProvider" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="InsurancePolicyNumber" class="form-label"></label>
+                        <input asp-for="InsurancePolicyNumber" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 justify-content-end mt-4">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary">Skip for now</a>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-cloud-check me-2"></i>Save Profile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

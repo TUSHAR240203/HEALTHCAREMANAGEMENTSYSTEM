@@ -18,6 +18,7 @@ public class DoctorMappingProfile : Profile
             .ForMember(dest => dest.Qualification, opt => opt.MapFrom(src => Normalize(src.Qualification)))
             .ForMember(dest => dest.LicenseNumber, opt => opt.MapFrom(src => Normalize(src.LicenseNumber)))
             .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => Normalize(src.RoomNumber)))
+            .ForMember(dest => dest.PhotoUrl, opt => opt.MapFrom(src => Normalize(src.PhotoUrl)))
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.DoctorCode, opt => opt.Ignore())
             .ForMember(dest => dest.IsActive, opt => opt.Ignore())

@@ -18,5 +18,6 @@ public class DoctorResponseDto
     public string? RoomNumber { get; set; }
     public bool IsActive { get; set; }
     public bool SupportsTeleConsultation { get; set; }
+    public string? PhotoUrl { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }

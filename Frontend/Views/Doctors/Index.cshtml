@@ -1,0 +1,35 @@
+@model List<Frontend.Models.Doctors.DoctorResponseDto>
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Doctors";
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var canCreate = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Receptionist", StringComparison.OrdinalIgnoreCase);
+}
+<div class="page-header hero-panel mb-4">
+    <div><span class="badge-soft mb-3"><i class="bi bi-heart-pulse"></i> Clinical directory</span><h1 class="h2 fw-bold">Doctor profiles</h1><p class="mb-0">Profiles are stored in Doctors API and linked by mobile/email to Auth users.</p></div>
+    @if (canCreate) { <a asp-action="Create" class="btn btn-light text-primary"><i class="bi bi-plus-circle me-2"></i>Add doctor</a> }
+</div>
+<div class="row g-4">
+@if (Model.Count == 0)
+{
+    <div class="col-12"><div class="content-card"><div class="card-body text-center py-5 text-muted">No doctors returned from Doctors API.</div></div></div>
+}
+@foreach (var doctor in Model)
+{
+    <div class="col-md-6 col-xl-4">
+        <div class="dashboard-tile h-100">
+            <div class="d-flex align-items-start gap-3 mb-3">
+                @if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl)) { <img src="@doctor.PhotoUrl" class="avatar-sm" /> } else { <div class="tile-icon"><i class="bi bi-person-vcard"></i></div> }
+                <div><h3 class="h5 mb-1">@doctor.FullName</h3><div class="text-muted">@doctor.Specialization</div></div>
+            </div>
+            <div class="info-grid">
+                <div class="info-card"><span class="info-label">Department</span><span class="info-value">@doctor.DepartmentName</span></div>
+                <div class="info-card"><span class="info-label">Fee</span><span class="info-value">₹@doctor.ConsultationFee</span></div>
+                <div class="info-card"><span class="info-label">Experience</span><span class="info-value">@doctor.ExperienceYears yrs</span></div>
+                <div class="info-card"><span class="info-label">Room</span><span class="info-value">@(doctor.RoomNumber ?? "N/A")</span></div>
+            </div>
+            <a asp-action="Details" asp-route-id="@doctor.Id" class="btn btn-outline-primary w-100 mt-3">View details</a>
+        </div>
+    </div>
+}
+</div>

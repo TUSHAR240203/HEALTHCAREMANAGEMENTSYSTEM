@@ -76,10 +76,6 @@ builder.Services.AddHttpClient<IAppointmentsApiClient, AppointmentsApiClient>(cl
     client.BaseAddress = new Uri(builder.Configuration["Services:AppointmentsApi"]!);
 });
 
-builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["Services:AuthApi"]!);
-});
 
 builder.Services.AddHttpClient<ILocationApiClient, LocationApiClient>(client =>
 {

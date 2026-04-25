@@ -16,8 +16,4 @@ public static class ApiRoutes
         public static string Cancel(int id) => $"/api/appointments/{id}/cancel";
     }
 
-    public static class Auth
-    {
-        public const string SendPortalActivation = "/api/auth/patient/send-portal-activation";
-    }
 }
