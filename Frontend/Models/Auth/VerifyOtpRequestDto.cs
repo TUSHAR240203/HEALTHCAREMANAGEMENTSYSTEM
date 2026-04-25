@@ -1,4 +1,4 @@
-namespace Hms.Web.Models.Auth
+namespace Frontend.Models.Auth
 {
     public class VerifyOtpRequestDto
     {

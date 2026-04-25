@@ -16,4 +16,5 @@
     public string? AadhaarNumber { get; set; }
     public string? InsuranceProvider { get; set; }
     public string? InsurancePolicyNumber { get; set; }
+    public string? PhotoUrl { get; set; }
 }

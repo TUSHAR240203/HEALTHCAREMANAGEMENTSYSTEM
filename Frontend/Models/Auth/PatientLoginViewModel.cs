@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Hms.Web.Models.Auth
+namespace Frontend.Models.Auth
 {
     public class PatientLoginViewModel
     {

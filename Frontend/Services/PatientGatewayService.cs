@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using Hms.Web.Models.Patients;
+using Frontend.Models.Patients;
 
-namespace Hms.Web.Services
+namespace Frontend.Services
 {
     public class PatientGatewayService
     {
@@ -29,6 +29,32 @@ namespace Hms.Web.Services
 
             return (false, await ReadErrorAsync(response), null);
         }
+
+        public async Task<(bool Success, string Message, PatientResponseDto? Data)> RegisterForPortalAsync(CreatePatientRequestDto request)
+        {
+            var apiRequest = new
+            {
+                firstName = request.FirstName?.Trim(),
+                middleName = (string?)null,
+                lastName = request.LastName?.Trim(),
+                dateOfBirth = request.DateOfBirth.ToString("yyyy-MM-dd"),
+                gender = request.Gender,
+                mobileNumber = request.MobileNumber?.Trim(),
+                email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
+                portalAccessEnabled = true
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("gateway/patients", apiRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<PatientResponseDto>(_jsonOptions);
+                return (true, "Patient created successfully.", data);
+            }
+
+            return (false, await ReadErrorAsync(response), null);
+        }
+
         public async Task<PatientResponseDto?> GetByIdAsync(int id)
         {
             var response = await _httpClient.GetAsync($"gateway/patients/{id}");
@@ -77,6 +103,19 @@ namespace Hms.Web.Services
             {
                 return new List<PatientResponseDto>();
             }
+        }
+
+        public async Task<(bool Success, string Message, PatientResponseDto? Data)> CompleteProfileAsync(int id, CompletePatientProfileRequestDto request)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"gateway/patients/{id}/complete-profile", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<PatientResponseDto>(_jsonOptions);
+                return (true, "Profile completed successfully.", data);
+            }
+
+            return (false, await ReadErrorAsync(response), null);
         }
 
         public async Task<(bool Success, string Message)> UpdateAsync(int id, UpdatePatientRequestDto request)

@@ -1,89 +1,89 @@
+@using Frontend.Models.Api
 @model AppointmentDetailsViewModel
 @{
     ViewData["Title"] = "Appointment Details";
+    var patientName = Model.Patient?.FullName ?? $"Patient #{Model.Appointment.PatientId}";
+    var doctorName = Model.Doctor?.FullName ?? Model.Appointment.DoctorName ?? $"Doctor #{Model.Appointment.DoctorId}";
 }
+<div class="page-header">
+    <div>
+        <h1>Appointment #@Model.Appointment.Id</h1>
+        <p class="page-subtitle">Patient, doctor, slot, status, and actions in one place.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-primary">Back to Appointments</a>
+</div>
+@if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert alert-success">@Model.Message</div> }
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
 
-<h1>Appointment #@Model.Appointment.Id</h1>
-
-@if (!string.IsNullOrWhiteSpace(Model.Message))
-{
-    <div class="alert success">@Model.Message</div>
-}
-@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-{
-    <div class="alert error">@Model.ErrorMessage</div>
-}
-
-<div class="card">
-    <div class="details-grid">
-        <div><strong>Patient Id:</strong> @Model.Appointment.PatientId</div>
-        <div><strong>UHID:</strong> @Model.Appointment.UHID</div>
-        <div><strong>Doctor:</strong> @Model.Appointment.DoctorName (@Model.Appointment.DoctorId)</div>
-        <div><strong>Department:</strong> @Model.Appointment.DepartmentName (@Model.Appointment.DepartmentId)</div>
-        <div><strong>Date:</strong> @Model.Appointment.AppointmentDate.ToString("dd-MMM-yyyy")</div>
-        <div><strong>Time:</strong> @Model.Appointment.SlotStartTime - @Model.Appointment.SlotEndTime</div>
-        <div><strong>Visit Type:</strong> @Model.Appointment.VisitType</div>
-        <div><strong>Status:</strong> @Model.Appointment.Status</div>
-        <div><strong>Tele Consultation:</strong> @(Model.Appointment.IsTeleConsultation ? "Yes" : "No")</div>
-        <div><strong>Created:</strong> @Model.Appointment.CreatedAtUtc.ToLocalTime().ToString("dd-MMM-yyyy HH:mm")</div>
-        <div class="full-width"><strong>Reason:</strong> @Model.Appointment.ReasonForVisit</div>
-        <div class="full-width"><strong>Cancellation Reason:</strong> @Model.Appointment.CancellationReason</div>
-        <div class="full-width"><strong>Completion Notes:</strong> @Model.Appointment.CompletionNotes</div>
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="content-card h-100 p-4">
+            <div class="doctor-summary">
+                @if (!string.IsNullOrWhiteSpace(Model.Patient?.PhotoUrl)) { <img src="@Model.Patient.PhotoUrl" class="avatar-large-img" /> } else { <div class="tile-icon"><i class="bi bi-person"></i></div> }
+                <div><small class="text-muted">Patient</small><h2 class="h5 mb-1">@patientName</h2><span>UHID: @Model.Appointment.UHID</span><small>Mobile: @(Model.Patient?.MobileNumber ?? "N/A")</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="content-card h-100 p-4">
+            <div class="doctor-summary">
+                @if (!string.IsNullOrWhiteSpace(Model.Doctor?.PhotoUrl)) { <img src="@Model.Doctor.PhotoUrl" class="avatar-large-img" /> } else { <div class="tile-icon"><i class="bi bi-heart-pulse"></i></div> }
+                <div><small class="text-muted">Doctor</small><h2 class="h5 mb-1">@doctorName</h2><span>@(Model.Doctor?.Specialization ?? "Specialization N/A")</span><small>@Model.Appointment.DepartmentName</small></div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="three-column">
-    <div class="card">
-        <h2>Reschedule</h2>
-        <form asp-action="Reschedule" asp-route-id="@Model.Appointment.Id" method="post" class="stack-form">
-            <div>
-                <label asp-for="Reschedule.NewAppointmentDate"></label>
-                <input asp-for="Reschedule.NewAppointmentDate" type="date"
-                       value="@Model.Reschedule.NewAppointmentDate.ToString("yyyy-MM-dd")" />
-            </div>
-            <div>
-                <label asp-for="Reschedule.NewSlotStartTime"></label>
-                <input asp-for="Reschedule.NewSlotStartTime" type="time"
-                       value="@Model.Reschedule.NewSlotStartTime.ToString("HH\\:mm")" />
-            </div>
-            <div>
-                <label asp-for="Reschedule.NewSlotEndTime"></label>
-                <input asp-for="Reschedule.NewSlotEndTime" type="time"
-                       value="@Model.Reschedule.NewSlotEndTime.ToString("HH\\:mm")" />
-            </div>
-            <div>
-                <label asp-for="Reschedule.Reason"></label>
-                <textarea asp-for="Reschedule.Reason"></textarea>
-            </div>
-            <button type="submit" class="btn">Reschedule</button>
-        </form>
-    </div>
-
-    <div class="card">
-        <h2>Cancel</h2>
-        <form asp-action="Cancel" asp-route-id="@Model.Appointment.Id" method="post" class="stack-form">
-            <div>
-                <label asp-for="Cancel.Reason"></label>
-                <textarea asp-for="Cancel.Reason"></textarea>
-            </div>
-            <button type="submit" class="btn danger">Cancel Appointment</button>
-        </form>
-    </div>
-
-    <div class="card">
-        <h2>Complete</h2>
-        <form asp-action="Complete" asp-route-id="@Model.Appointment.Id" method="post" class="stack-form">
-            <div>
-                <label asp-for="Complete.Notes"></label>
-                <textarea asp-for="Complete.Notes"></textarea>
-            </div>
-            <button type="submit" class="btn">Mark Completed</button>
-        </form>
+<div class="content-card p-4 mb-4">
+    <div class="row g-3">
+        <div class="col-md-3"><div class="profile-stat"><div class="label">Date</div><div class="value">@Model.Appointment.AppointmentDate.ToString("dd MMM yyyy")</div></div></div>
+        <div class="col-md-3"><div class="profile-stat"><div class="label">Time</div><div class="value">@Model.Appointment.SlotStartTime.ToString("hh:mm tt") - @Model.Appointment.SlotEndTime.ToString("hh:mm tt")</div></div></div>
+        <div class="col-md-3"><div class="profile-stat"><div class="label">Visit</div><div class="value">@Model.Appointment.VisitType</div></div></div>
+        <div class="col-md-3"><div class="profile-stat"><div class="label">Status</div><div class="value">@Model.Appointment.Status</div></div></div>
+        <div class="col-12"><strong>Reason:</strong> @(string.IsNullOrWhiteSpace(Model.Appointment.ReasonForVisit) ? "N/A" : Model.Appointment.ReasonForVisit)</div>
     </div>
 </div>
 
-<div class="form-actions">
-    <a asp-action="Index" class="btn secondary">Back to Search</a>
-    <a asp-action="ByPatient" asp-route-patientId="@Model.Appointment.PatientId" class="btn secondary">Patient Appointments</a>
-    <a asp-action="ByDoctor" asp-route-doctorId="@Model.Appointment.DoctorId" class="btn secondary">Doctor Appointments</a>
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card border-0 h-100">
+            <div class="card-header"><h2 class="h5 mb-0">Reschedule like seat booking</h2></div>
+            <div class="card-body p-4">
+                <div class="reschedule-movie-panel mb-3">
+                    <strong>@doctorName</strong>
+                    <div class="text-muted small">Pick a date, then choose one free slot. Booked slots stay visible but locked.</div>
+                </div>
+                <form asp-action="Details" method="get" class="mb-3">
+                    <input type="hidden" name="id" value="@Model.Appointment.Id" />
+                    <label class="form-label">Select date</label>
+                    <input name="rescheduleDate" type="date" class="form-control" value="@Model.Reschedule.NewAppointmentDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+                </form>
+                <form asp-action="Reschedule" asp-route-id="@Model.Appointment.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="Reschedule.NewAppointmentDate" type="hidden" value="@Model.Reschedule.NewAppointmentDate.ToString("yyyy-MM-dd")" />
+                    <div class="slot-grid mb-3">
+                        @foreach (var slot in Model.FreeSlots)
+                        {
+                            var sid = "rs_" + slot.Value.Replace(":", "").Replace("|", "_");
+                            <input type="radio" class="slot-radio" name="SelectedSlot" id="@sid" value="@slot.Value" disabled="@slot.IsBooked" />
+                            <label class="slot-pill @(slot.IsBooked ? "booked" : "available")" for="@sid">
+                                <i class="bi @(slot.IsBooked ? "bi-lock-fill" : "bi-check-circle")"></i>
+                                <span>@slot.Label</span>
+                                <small>@(slot.IsBooked ? "Booked" : "Free")</small>
+                            </label>
+                        }
+                    </div>
+                    <label asp-for="Reschedule.Reason" class="form-label"></label>
+                    <textarea asp-for="Reschedule.Reason" class="form-control mb-3" rows="3" placeholder="Reason for reschedule"></textarea>
+                    <button type="submit" class="btn btn-primary w-100">Confirm New Slot</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="card border-0 h-100"><div class="card-header"><h2 class="h5 mb-0">Cancel</h2></div><div class="card-body p-4"><form asp-action="Cancel" asp-route-id="@Model.Appointment.Id" method="post">@Html.AntiForgeryToken()<textarea asp-for="Cancel.Reason" class="form-control mb-3" rows="5" placeholder="Reason"></textarea><button class="btn btn-danger w-100">Cancel</button></form></div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 h-100"><div class="card-header"><h2 class="h5 mb-0">Complete</h2></div><div class="card-body p-4"><form asp-action="Complete" asp-route-id="@Model.Appointment.Id" method="post">@Html.AntiForgeryToken()<textarea asp-for="Complete.Notes" class="form-control mb-3" rows="5" placeholder="Consultation notes"></textarea><button class="btn btn-success w-100">Mark completed</button></form></div></div>
+    </div>
 </div>

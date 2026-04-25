@@ -1,64 +1,55 @@
-@model Hms.Web.Models.Auth.CurrentUserResponseDto
+@model Frontend.Models.Auth.CurrentUserResponseDto
 @{
     ViewData["Title"] = "My Profile";
+    var isPatient = string.Equals(Model.Role, "Patient", StringComparison.OrdinalIgnoreCase);
+    var photo = Model.PhotoUrl;
+    var initials = string.IsNullOrWhiteSpace(Model.FullName) ? Model.Role[..1].ToUpperInvariant() : Model.FullName.Trim()[0].ToString().ToUpperInvariant();
 }
-
-<div class="page-header mb-4">
-    <div>
-        <h1 class="section-title">Patient Profile</h1>
-        <p class="page-subtitle">Authenticated account details from the Auth API.</p>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a asp-controller="Home" asp-action="Index" class="btn btn-light text-primary">Dashboard</a>
-        <a asp-action="Logout" class="btn btn-outline-light">Logout</a>
-    </div>
-</div>
-
-<div class="card border-0">
-    <div class="card-body p-4 p-lg-5">
-        <div class="row g-4 align-items-center mb-4">
-            <div class="col-lg-8">
-                <h2 class="mb-2">Welcome back</h2>
-                <p class="text-muted mb-0">Your session is active. These values are pulled after the MVC app sends your bearer token to the backend.</p>
-            </div>
-            <div class="col-lg-4 text-lg-end">
-                <span class="badge bg-success-subtle text-success fs-6 px-3 py-2 rounded-pill">
-                    <i class="bi bi-shield-check me-1"></i> Authenticated
-                </span>
+<div class="hero-panel mb-4">
+    <div class="row align-items-center g-4 position-relative">
+        <div class="col-lg-8 d-flex align-items-center gap-3">
+            <span class="profile-preview-photo placeholder-avatar">
+                @if (!string.IsNullOrWhiteSpace(photo))
+                {
+                    <img src="@photo" alt="Profile photo" class="w-100 h-100 rounded-circle object-fit-cover" />
+                }
+                else
+                {
+                    @initials
+                }
+            </span>
+            <div>
+                <span class="badge-soft mb-3"><i class="bi bi-person-circle"></i> Secure profile</span>
+                <h1 class="h2 fw-bold mb-2">@(string.IsNullOrWhiteSpace(Model.FullName) ? Model.Role + " Account" : Model.FullName)</h1>
+                <p class="mb-0">Role-based session profile returned from Auth API /me.</p>
             </div>
         </div>
-
-        <div class="row g-3 profile-grid">
-            <div class="col-md-6 col-xl-4">
-                <div class="profile-stat">
-                    <div class="label">User ID</div>
-                    <div class="value">@Model.UserId</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-4">
-                <div class="profile-stat">
-                    <div class="label">Patient ID</div>
-                    <div class="value">@(Model.PatientId?.ToString() ?? "Not linked")</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-4">
-                <div class="profile-stat">
-                    <div class="label">UHID</div>
-                    <div class="value">@(string.IsNullOrWhiteSpace(Model.UHID) ? "Not available" : Model.UHID)</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-6">
-                <div class="profile-stat">
-                    <div class="label">Mobile Number</div>
-                    <div class="value">@Model.MobileNumber</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-6">
-                <div class="profile-stat">
-                    <div class="label">Role</div>
-                    <div class="value">@Model.Role</div>
-                </div>
-            </div>
+        <div class="col-lg-4 text-lg-end">
+            @if (isPatient)
+            {
+                <a asp-action="CompleteProfile" class="btn btn-light text-primary"><i class="bi bi-camera me-2"></i>Edit Photo & Profile</a>
+            }
+            else
+            {
+                <a asp-action="AuthPreference" class="btn btn-light text-primary"><i class="bi bi-shield-lock me-2"></i>Auth Settings</a>
+            }
+        </div>
+    </div>
+</div>
+<div class="content-card">
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-3"><div class="profile-stat"><div class="label">User ID</div><div class="value">@Model.UserId</div></div></div>
+            <div class="col-md-6 col-xl-3"><div class="profile-stat"><div class="label">Patient ID</div><div class="value">@(Model.PatientId.HasValue && Model.PatientId.Value > 0 ? Model.PatientId.Value.ToString() : "N/A")</div></div></div>
+            <div class="col-md-6 col-xl-3"><div class="profile-stat"><div class="label">UHID</div><div class="value">@(string.IsNullOrWhiteSpace(Model.UHID) ? "N/A" : Model.UHID)</div></div></div>
+            <div class="col-md-6 col-xl-3"><div class="profile-stat"><div class="label">Role</div><div class="value">@Model.Role</div></div></div>
+            <div class="col-md-6"><div class="profile-stat"><div class="label">Mobile Number</div><div class="value">@Model.MobileNumber</div></div></div>
+            <div class="col-md-6"><div class="profile-stat"><div class="label">Full Name</div><div class="value">@(string.IsNullOrWhiteSpace(Model.FullName) ? "Staff profile name not stored in Auth" : Model.FullName)</div></div></div>
+            @if (isPatient)
+            {
+                <div class="col-md-6"><div class="profile-stat"><div class="label">Profile Status</div><div class="value">@(Model.IsProfileCompleted ? "Completed" : "Pending")</div></div></div>
+                <div class="col-md-6"><div class="profile-stat"><div class="label">Photo</div><div class="value">@(string.IsNullOrWhiteSpace(Model.PhotoUrl) ? "Not added" : "Added")</div></div></div>
+            }
         </div>
     </div>
 </div>

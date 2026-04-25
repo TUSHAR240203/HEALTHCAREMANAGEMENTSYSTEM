@@ -38,4 +38,5 @@ public class Patient : BaseEntity
 
     public PatientStatus Status { get; set; } = PatientStatus.Active;
     public bool IsProfileCompleted { get; set; } = false;
+    public string? PhotoUrl { get; set; }
 }

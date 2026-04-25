@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -23,8 +23,7 @@ namespace Frontend.Services
 
         public async Task<InvoiceResponseDto?> CreateInvoiceAsync(CreateInvoiceRequestDto request)
         {
-            return await PostAsync<CreateInvoiceRequestDto, InvoiceResponseDto>(
-                "gateway/billing/invoice", request);
+            return await PostAsync<CreateInvoiceRequestDto, InvoiceResponseDto>("gateway/billing/invoice", request);
         }
 
         public async Task<InvoiceResponseDto?> GetInvoiceByIdAsync(int invoiceId)
@@ -40,14 +39,12 @@ namespace Frontend.Services
 
         public async Task<InvoiceResponseDto?> AddInvoiceItemAsync(int invoiceId, AddInvoiceItemRequestDto request)
         {
-            return await PostAsync<AddInvoiceItemRequestDto, InvoiceResponseDto>(
-                $"gateway/billing/invoice/{invoiceId}/items", request);
+            return await PostAsync<AddInvoiceItemRequestDto, InvoiceResponseDto>($"gateway/billing/{invoiceId}/item", request);
         }
 
         public async Task<InvoiceResponseDto?> AddPaymentAsync(int invoiceId, PaymentRequestDto request)
         {
-            return await PostAsync<PaymentRequestDto, InvoiceResponseDto>(
-                $"gateway/billing/invoice/{invoiceId}/pay", request);
+            return await PostAsync<PaymentRequestDto, InvoiceResponseDto>($"gateway/billing/{invoiceId}/payment", request);
         }
 
         private async Task<TResponse?> GetAsync<TResponse>(string url, bool allowNotFound = false)
@@ -65,10 +62,7 @@ namespace Frontend.Services
 
         private StringContent CreateJsonContent<TRequest>(TRequest request)
         {
-            return new StringContent(
-                JsonSerializer.Serialize(request, _jsonOptions),
-                Encoding.UTF8,
-                "application/json");
+            return new StringContent(JsonSerializer.Serialize(request, _jsonOptions), Encoding.UTF8, "application/json");
         }
 
         private async Task<TResponse?> ReadResponseAsync<TResponse>(HttpResponseMessage response, bool allowNotFound)
@@ -79,18 +73,40 @@ namespace Frontend.Services
             var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
-            {
-                throw new ApiException(
-                    string.IsNullOrWhiteSpace(body)
-                        ? $"API request failed with status code {(int)response.StatusCode}."
-                        : body,
-                    (int)response.StatusCode);
-            }
+                throw new ApiException(ExtractMessage(body, $"API request failed with status code {(int)response.StatusCode}."), (int)response.StatusCode);
 
             if (string.IsNullOrWhiteSpace(body))
                 return default;
 
+            try
+            {
+                using var document = JsonDocument.Parse(body);
+                var root = document.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data))
+                    return data.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? default : data.Deserialize<TResponse>(_jsonOptions);
+            }
+            catch (JsonException)
+            {
+            }
+
             return JsonSerializer.Deserialize<TResponse>(body, _jsonOptions);
+        }
+
+        private static string ExtractMessage(string body, string fallback)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return fallback;
+            try
+            {
+                using var document = JsonDocument.Parse(body);
+                var root = document.RootElement;
+                if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+                    return message.GetString() ?? fallback;
+                if (root.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
+                    return title.GetString() ?? fallback;
+                if (root.TryGetProperty("errors", out var errors)) return errors.ToString();
+            }
+            catch { }
+            return body;
         }
     }
 }

@@ -1,9 +1,11 @@
 ﻿using Frontend.Models.Reception;
 using Frontend.Services;
 using Microsoft.AspNetCore.Mvc;
+using Frontend.Infrastructure;
 
 namespace Frontend.Controllers
 {
+    [RequireRole("Admin", "Receptionist")]
     public class ReceptionController : Controller
     {
         private readonly IReceptionApiService _receptionApiService;
@@ -84,10 +86,7 @@ namespace Frontend.Controllers
         [HttpGet]
         public IActionResult BookAppointment()
         {
-            return View(new BookAppointmentRequestDto
-            {
-                AppointmentDate = DateOnly.FromDateTime(DateTime.Today)
-            });
+            return RedirectToAction("Create", "Appointments");
         }
 
         [HttpPost]

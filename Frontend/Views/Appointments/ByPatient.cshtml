@@ -1,33 +1,59 @@
+@using Frontend.Models.Api
 @model List<AppointmentResponseDto>
 @{
-    ViewData["Title"] = "Appointments By Patient";
+    ViewData["Title"] = "My Appointments";
 }
 
-<h1>Appointments By Patient</h1>
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Doctor</th>
-                <th>Status</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model)
-            {
-                <tr>
-                    <td>@item.Id</td>
-                    <td>@item.AppointmentDate.ToString("dd-MMM-yyyy")</td>
-                    <td>@item.SlotStartTime - @item.SlotEndTime</td>
-                    <td>@item.DoctorName</td>
-                    <td>@item.Status</td>
-                    <td><a asp-action="Details" asp-route-id="@item.Id">Details</a></td>
-                </tr>
-            }
-        </tbody>
-    </table>
+<div class="page-header">
+    <div>
+        <h1>My Appointments</h1>
+        <p class="page-subtitle">Track upcoming visits, appointment status, and doctor details.</p>
+    </div>
+    <a asp-action="PatientBook" class="btn btn-primary"><i class="bi bi-calendar2-plus me-1"></i> Book New Appointment</a>
+</div>
+
+<div class="card border-0">
+    <div class="card-body p-0">
+        @if (Model?.Any() == true)
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Appointment</th>
+                            <th>Doctor</th>
+                            <th>Department</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.OrderByDescending(x => x.AppointmentDate).ThenBy(x => x.SlotStartTime))
+                    {
+                        <tr>
+                            <td><strong>#@item.Id</strong><div class="text-muted small">@item.VisitType</div></td>
+                            <td>@item.DoctorName</td>
+                            <td>@item.DepartmentName</td>
+                            <td>@item.AppointmentDate.ToString("dd MMM yyyy")</td>
+                            <td>@item.SlotStartTime.ToString("hh\\:mm tt") - @item.SlotEndTime.ToString("hh\\:mm tt")</td>
+                            <td><span class="badge badge-@item.Status.ToString().ToLower()">@item.Status</span></td>
+                            <td><a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Details</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="tile-icon mx-auto mb-3"><i class="bi bi-calendar2-plus"></i></div>
+                <h3>No appointments yet</h3>
+                <p class="text-muted">Book your first appointment by choosing a doctor and free time slot.</p>
+                <a asp-action="PatientBook" class="btn btn-primary">Book Appointment</a>
+            </div>
+        }
+    </div>
 </div>

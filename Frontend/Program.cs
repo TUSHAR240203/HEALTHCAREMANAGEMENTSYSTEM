@@ -1,5 +1,5 @@
-﻿using Frontend.Services;
-using Hms.Web.Services;
+using Frontend.Infrastructure;
+using Frontend.Services;
 
 namespace Frontend
 {
@@ -10,31 +10,26 @@ namespace Frontend
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllersWithViews();
-builder.Services.AddHttpClient<IReceptionApiService, ReceptionApiService>(client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7000/");
-});
-
-            builder.Services.AddHttpClient<AuthGatewayService>(client =>
-            {
-                client.BaseAddress = new Uri("https://localhost:7000/");
-            });
-
-            builder.Services.AddHttpClient<PatientGatewayService>(client =>
-            {
-                client.BaseAddress = new Uri("https://localhost:7000/");
-            });
-
-            builder.Services.AddHttpClient<IAppointmentApiService, AppointmentApiService>(client =>
-            {
-                client.BaseAddress = new Uri("https://localhost:7000/");
-            });
-            builder.Services.AddHttpClient<IBillingApiService, BillingApiService>(client =>
-            {
-                client.BaseAddress = new Uri("https://localhost:7000/");
-            });
-
             builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddTransient<AuthHeaderHandler>();
+
+            var gatewayBaseUrl = builder.Configuration.GetSection("ApiSettings")["BaseUrl"] ?? "https://localhost:7000/";
+
+            builder.Services.AddHttpClient<AuthGatewayService>(client => client.BaseAddress = new Uri(gatewayBaseUrl))
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+            builder.Services.AddHttpClient<PatientGatewayService>(client => client.BaseAddress = new Uri(gatewayBaseUrl))
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+            builder.Services.AddHttpClient<StaffUserGatewayService>(client => client.BaseAddress = new Uri(gatewayBaseUrl))
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+            builder.Services.AddHttpClient<DoctorGatewayService>(client => client.BaseAddress = new Uri(gatewayBaseUrl))
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+            builder.Services.AddHttpClient<IReceptionApiService, ReceptionApiService>(client => client.BaseAddress = new Uri(gatewayBaseUrl))
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+            builder.Services.AddHttpClient<IAppointmentApiService, AppointmentApiService>(client => client.BaseAddress = new Uri(gatewayBaseUrl))
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+            builder.Services.AddHttpClient<IBillingApiService, BillingApiService>(client => client.BaseAddress = new Uri(gatewayBaseUrl))
+                .AddHttpMessageHandler<AuthHeaderHandler>();
 
             builder.Services.AddSession(options =>
             {
@@ -53,9 +48,7 @@ builder.Services.AddHttpClient<IReceptionApiService, ReceptionApiService>(client
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-
             app.UseRouting();
-
             app.UseSession();
             app.UseAuthorization();
 
@@ -67,5 +60,3 @@ builder.Services.AddHttpClient<IReceptionApiService, ReceptionApiService>(client
         }
     }
 }
-
-

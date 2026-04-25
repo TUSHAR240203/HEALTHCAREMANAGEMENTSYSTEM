@@ -17,6 +17,7 @@ public class Doctor : BaseEntity
     public string? RoomNumber { get; set; }
     public bool IsActive { get; set; } = true;
     public bool SupportsTeleConsultation { get; set; }
+    public string? PhotoUrl { get; set; }
 
     public ICollection<DoctorSchedule> Schedules { get; set; } = new List<DoctorSchedule>();
     public ICollection<DoctorLeave> Leaves { get; set; } = new List<DoctorLeave>();

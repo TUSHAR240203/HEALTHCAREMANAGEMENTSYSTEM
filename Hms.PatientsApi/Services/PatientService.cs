@@ -66,6 +66,7 @@ public class PatientService : IPatientService
         patient.InsuranceProvider = NormalizeNullable(request.InsuranceProvider);
         patient.InsurancePolicyNumber = NormalizeNullable(request.InsurancePolicyNumber);
 
+        patient.PhotoUrl = request.PhotoUrl;
         patient.IsProfileCompleted = true;
         patient.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -273,11 +274,24 @@ public class PatientService : IPatientService
             MobileNumber = patient.MobileNumber,
             Email = patient.Email,
             BloodGroup = patient.BloodGroup,
+            MaritalStatus = patient.MaritalStatus,
+            AddressLine1 = patient.AddressLine1,
+            AddressLine2 = patient.AddressLine2,
+            City = patient.City,
+            State = patient.State,
+            PostalCode = patient.PostalCode,
+            EmergencyContactName = patient.EmergencyContactName,
+            EmergencyContactNumber = patient.EmergencyContactNumber,
+            EmergencyContactRelation = patient.EmergencyContactRelation,
+            AadhaarNumber = patient.AadhaarNumber,
+            InsuranceProvider = patient.InsuranceProvider,
+            InsurancePolicyNumber = patient.InsurancePolicyNumber,
             PortalAccessEnabled = patient.PortalAccessEnabled,
             PortalActivated = patient.PortalActivated,
             Status = patient.Status,
             CreatedAtUtc = patient.CreatedAtUtc,
-            IsProfileCompleted = patient.IsProfileCompleted
+            IsProfileCompleted = patient.IsProfileCompleted,
+            PhotoUrl = patient.PhotoUrl
         };
     }
 }
