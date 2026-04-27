@@ -156,7 +156,7 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAtUtc = new DateTime(2026, 4, 25, 5, 19, 8, 496, DateTimeKind.Utc).AddTicks(1100),
+                            CreatedAtUtc = new DateTime(2026, 4, 22, 7, 9, 23, 731, DateTimeKind.Utc).AddTicks(3029),
                             IsDeleted = false,
                             Name = "Admin",
                             NormalizedName = "ADMIN"
@@ -164,7 +164,7 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAtUtc = new DateTime(2026, 4, 25, 5, 19, 8, 496, DateTimeKind.Utc).AddTicks(1273),
+                            CreatedAtUtc = new DateTime(2026, 4, 22, 7, 9, 23, 731, DateTimeKind.Utc).AddTicks(3086),
                             IsDeleted = false,
                             Name = "Patient",
                             NormalizedName = "PATIENT"
@@ -172,7 +172,7 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAtUtc = new DateTime(2026, 4, 25, 5, 19, 8, 496, DateTimeKind.Utc).AddTicks(1279),
+                            CreatedAtUtc = new DateTime(2026, 4, 22, 7, 9, 23, 731, DateTimeKind.Utc).AddTicks(3090),
                             IsDeleted = false,
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
@@ -180,7 +180,7 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAtUtc = new DateTime(2026, 4, 25, 5, 19, 8, 496, DateTimeKind.Utc).AddTicks(1288),
+                            CreatedAtUtc = new DateTime(2026, 4, 22, 7, 9, 23, 731, DateTimeKind.Utc).AddTicks(3094),
                             IsDeleted = false,
                             Name = "Receptionist",
                             NormalizedName = "RECEPTIONIST"
@@ -210,44 +210,18 @@ namespace Hms.AuthApi.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsFirstLoginCompleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsOtpLoginEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsPasswordLoginEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("LoginId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<string>("MobileNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("PasswordHash")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LoginId")
-                        .IsUnique()
-                        .HasFilter("[LoginId] IS NOT NULL");
-
-                    b.HasIndex("MobileNumber");
+                    b.HasIndex("MobileNumber")
+                        .IsUnique();
 
                     b.ToTable("Users", (string)null);
                 });
