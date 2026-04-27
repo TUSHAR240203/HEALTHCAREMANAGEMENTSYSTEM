@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Hms.AuthApi.Common;
 using Hms.AuthApi.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,11 +24,25 @@ public class AuthController : ControllerBase
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (!int.TryParse(userIdClaim, out var userId))
-            return Unauthorized();
+            return Unauthorized(new ApiResponse<object>(
+                false,
+                "Unauthorized user.",
+                null
+            ));
 
         var result = await _authService.GetCurrentUserAsync(userId);
-        if (result == null) return NotFound();
 
-        return Ok(result);
+        if (result == null)
+            return NotFound(new ApiResponse<object>(
+                false,
+                "User not found.",
+                null
+            ));
+
+        return Ok(new ApiResponse<object>(
+            true,
+            "Current user fetched successfully.",
+            result
+        ));
     }
 }
