@@ -1,4 +1,4 @@
-namespace Hms.AuthApi.Common
+﻿namespace Hms.PatientsApi.Common
 {
     public class ApiResponse<T>
     {
