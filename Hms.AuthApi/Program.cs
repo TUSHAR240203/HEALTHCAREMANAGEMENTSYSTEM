@@ -1,4 +1,5 @@
-using System.Text;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Hms.AuthApi.Clients;
 using Hms.AuthApi.Data;
 using Hms.AuthApi.Interfaces.Clients;
@@ -7,11 +8,12 @@ using Hms.AuthApi.Interfaces.Services;
 using Hms.AuthApi.Middleware;
 using Hms.AuthApi.Repositories;
 using Hms.AuthApi.Services;
+using Hms.AuthApi.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
-
+using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
@@ -28,6 +30,10 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 builder.Services.AddControllers();
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<VerifyOtpRequestValidator>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -37,6 +43,7 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
     ));
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<IPatientUserLinkRepository, PatientUserLinkRepository>();
 

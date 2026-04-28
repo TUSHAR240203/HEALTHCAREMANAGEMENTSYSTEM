@@ -1,6 +1,6 @@
 using Hms.BillingApi.Data;
 using Hms.BillingApi.Entities;
-using Hms.BillingApi.Interfaces.Repository;
+using Hms.BillingApi.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hms.BillingApi.Repositories;
@@ -14,9 +14,11 @@ public class InvoiceRepository : IInvoiceRepository
         _context = context;
     }
 
-    public async Task AddInvoiceAsync(Invoice invoice)
+    public async Task<Invoice> CreateInvoiceAsync(Invoice invoice)
     {
-        await _context.Invoices.AddAsync(invoice);
+        _context.Invoices.Add(invoice);
+        await _context.SaveChangesAsync();
+        return invoice;
     }
 
     public async Task<Invoice?> GetInvoiceByIdAsync(int invoiceId)
@@ -33,28 +35,44 @@ public class InvoiceRepository : IInvoiceRepository
             .Include(x => x.Items)
             .Include(x => x.Payments)
             .Where(x => x.PatientId == patientId)
-            .OrderByDescending(x => x.CreatedAtUtc)
             .ToListAsync();
     }
 
-    public async Task AddInvoiceItemAsync(InvoiceItem item)
+    public async Task<Invoice> AddInvoiceItemAsync(int invoiceId, InvoiceItem item)
     {
-        await _context.InvoiceItems.AddAsync(item);
+        var invoice = await _context.Invoices
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.Id == invoiceId);
+
+        if (invoice == null)
+            throw new Exception("Invoice not found");
+
+        invoice.Items.Add(item);
+
+        await _context.SaveChangesAsync();
+        return invoice;
     }
 
-    public async Task AddPaymentAsync(Payment payment)
+    public async Task<Invoice> AddPaymentAsync(int invoiceId, Payment payment)
     {
-        await _context.Payments.AddAsync(payment);
+        var invoice = await _context.Invoices
+            .Include(x => x.Payments)
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.Id == invoiceId);
+
+        if (invoice == null)
+            throw new Exception("Invoice not found");
+
+        invoice.Payments.Add(payment);
+
+        await _context.SaveChangesAsync();
+        return invoice;
     }
 
-    public Task UpdateInvoiceAsync(Invoice invoice)
+    // ✅ NEW METHOD (for saving totals)
+    public async Task UpdateInvoiceAsync(Invoice invoice)
     {
         _context.Invoices.Update(invoice);
-        return Task.CompletedTask;
-    }
-
-    public async Task SaveChangesAsync()
-    {
         await _context.SaveChangesAsync();
     }
 }

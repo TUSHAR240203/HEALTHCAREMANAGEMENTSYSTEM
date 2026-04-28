@@ -1,6 +1,6 @@
 namespace Hms.AuthApi.DTOs.Auth;
 
-public class PatientLoginRequestDto
+public class LoginRequestDto
 {
     public int PatientId { get; set; }
     public string MobileNumber { get; set; } = default!;

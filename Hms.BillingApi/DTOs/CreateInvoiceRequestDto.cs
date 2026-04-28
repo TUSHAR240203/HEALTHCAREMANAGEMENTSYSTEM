@@ -6,4 +6,7 @@ public class CreateInvoiceRequestDto
     public string UHID { get; set; } = default!;
     public int AppointmentId { get; set; }
     public decimal ConsultationFee { get; set; }
+
+    // ✅ added
+    public List<AddInvoiceItemRequestDto> Items { get; set; } = new();
 }

@@ -1,9 +1,11 @@
-using Hms.Web.Models.Patients;
-using Hms.Web.Services;
+using Frontend.Models.Patients;
+using Frontend.Services;
 using Microsoft.AspNetCore.Mvc;
+using Frontend.Infrastructure;
 
-namespace Hms.Web.Controllers
+namespace Frontend.Controllers
 {
+    [RequireRole("Admin", "Receptionist")]
     public class PatientsController : Controller
     {
         private readonly PatientGatewayService _patientGatewayService;

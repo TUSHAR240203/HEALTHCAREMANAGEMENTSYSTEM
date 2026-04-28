@@ -1,11 +1,12 @@
 using Hms.BillingApi.DTOs.Billing;
-using Hms.BillingApi.Interfaces.Services;
+using Hms.BillingApi.Interfaces;
+using Hms.BillingApi.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hms.BillingApi.Controllers;
 
 [ApiController]
-[Route("api/billing")]
+[Route("api/[controller]")]
 public class BillingController : ControllerBase
 {
     private readonly IBillingService _billingService;
@@ -16,40 +17,39 @@ public class BillingController : ControllerBase
     }
 
     [HttpPost("invoice")]
-    public async Task<IActionResult> CreateInvoice([FromBody] CreateInvoiceRequestDto request)
+    public async Task<IActionResult> CreateInvoice([FromBody] CreateInvoiceRequestDto dto)
     {
-        var result = await _billingService.CreateInvoiceAsync(request);
-        return CreatedAtAction(nameof(GetInvoiceById), new { invoiceId = result.Id }, result);
+        var result = await _billingService.CreateInvoiceAsync(dto);
+        return Ok(ApiResponse<InvoiceResponseDto>.SuccessResponse(result, "Invoice created successfully"));
     }
 
     [HttpGet("invoice/{invoiceId:int}")]
     public async Task<IActionResult> GetInvoiceById(int invoiceId)
     {
         var result = await _billingService.GetInvoiceByIdAsync(invoiceId);
-        if (result == null) return NotFound();
-        return Ok(result);
+        return result == null
+            ? NotFound(ApiResponse<object>.FailResponse("Invoice not found"))
+            : Ok(ApiResponse<InvoiceResponseDto>.SuccessResponse(result));
     }
 
     [HttpGet("patient/{patientId:int}/invoices")]
     public async Task<IActionResult> GetInvoicesByPatientId(int patientId)
     {
         var result = await _billingService.GetInvoicesByPatientIdAsync(patientId);
-        return Ok(result);
+        return Ok(ApiResponse<List<InvoiceResponseDto>>.SuccessResponse(result));
     }
 
-    [HttpPost("invoice/{invoiceId:int}/items")]
-    public async Task<IActionResult> AddInvoiceItem(int invoiceId, [FromBody] AddInvoiceItemRequestDto request)
+    [HttpPost("{invoiceId:int}/item")]
+    public async Task<IActionResult> AddItem(int invoiceId, [FromBody] AddInvoiceItemRequestDto dto)
     {
-        var result = await _billingService.AddInvoiceItemAsync(invoiceId, request);
-        if (result == null) return NotFound();
-        return Ok(result);
+        var result = await _billingService.AddInvoiceItemAsync(invoiceId, dto);
+        return Ok(ApiResponse<InvoiceResponseDto>.SuccessResponse(result, "Item added successfully"));
     }
 
-    [HttpPost("invoice/{invoiceId:int}/pay")]
-    public async Task<IActionResult> AddPayment(int invoiceId, [FromBody] PaymentRequestDto request)
+    [HttpPost("{invoiceId:int}/payment")]
+    public async Task<IActionResult> AddPayment(int invoiceId, [FromBody] PaymentRequestDto dto)
     {
-        var result = await _billingService.AddPaymentAsync(invoiceId, request);
-        if (result == null) return NotFound();
-        return Ok(result);
+        var result = await _billingService.AddPaymentAsync(invoiceId, dto);
+        return Ok(ApiResponse<InvoiceResponseDto>.SuccessResponse(result, "Payment processed successfully"));
     }
 }

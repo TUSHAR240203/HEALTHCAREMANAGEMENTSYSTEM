@@ -19,79 +19,67 @@ public class PatientPortalAuthControllerTests
     }
 
     [Fact]
-    public async Task SendPortalActivation_ShouldReturnOk()
+    public async Task SendLoginOtp_ShouldReturnOk()
     {
         var request = new SendPatientPortalActivationRequestDto
         {
-            PatientId = 1
+            PatientId = 1,
+            MobileNumber = "9999999999"
         };
 
         _authServiceMock
-            .Setup(x => x.SendPortalActivationAsync(request))
+            .Setup(x => x.SendLoginOtpAsync(request.PatientId, request.MobileNumber))
             .Returns(Task.CompletedTask);
 
-        var result = await _controller.SendPortalActivation(request);
+        var result = await _controller.SendLoginOtp(request);
 
-        Assert.IsType<OkObjectResult>(result);
-    }
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
 
-    [Fact]
-    public async Task VerifyOtp_ShouldReturnOk()
-    {
-        var request = new VerifyOtpRequestDto
-        {
-            PatientId = 1,
-            MobileNumber = "9999999999",
-            OtpCode = "123456",
-            Purpose = "Activation"
-        };
-
-        var response = new AuthResponseDto();
-
-        _authServiceMock
-            .Setup(x => x.VerifyOtpAndActivateAsync(request))
-            .ReturnsAsync(response);
-
-        var result = await _controller.VerifyOtp(request);
-
-        Assert.IsType<OkObjectResult>(result);
+        _authServiceMock.Verify(
+            x => x.SendLoginOtpAsync(request.PatientId, request.MobileNumber),
+            Times.Once
+        );
     }
 
     [Fact]
     public async Task PatientLogin_ShouldReturnOk()
     {
-        var request = new PatientLoginRequestDto
+        var request = new LoginRequestDto
         {
             PatientId = 1,
             MobileNumber = "9999999999",
             OtpCode = "123456"
         };
 
-        var response = new AuthResponseDto();
-
-        _authServiceMock
-            .Setup(x => x.PatientLoginAsync(request))
-            .ReturnsAsync(response);
-
-        var result = await _controller.PatientLogin(request);
-
-        Assert.IsType<OkObjectResult>(result);
-    }
-
-    [Fact]
-    public async Task SendLoginOtp_ShouldReturnOk()
-    {
-        var request = new SendPatientPortalActivationRequestDto
+        var authResponse = new AuthResponseDto
         {
-            PatientId = 1
+            UserId = 1,
+            PatientId = 1,
+            UHID = "UHID001",
+            FullName = "Test Patient",
+            MobileNumber = "9999999999",
+            Roles = new[] { "Patient" },
+            AccessToken = "fake-token",
+            ExpiresAtUtc = DateTime.UtcNow.AddHours(1),
+            IsProfileCompleted = true,
+            IsPasswordLoginEnabled = false,
+            IsOtpLoginEnabled = true,
+            IsFirstLoginCompleted = false
         };
 
         _authServiceMock
-            .Setup(x => x.SendLoginOtpAsync(1))
-            .Returns(Task.CompletedTask);
+            .Setup(x => x.PatientLoginAsync(request))
+            .ReturnsAsync(authResponse);
 
-        var result = await _controller.SendLoginOtp(request);
+        var result = await _controller.PatientLogin(request);
 
-        Assert.IsType<OkObjectResult>(result);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+
+        _authServiceMock.Verify(
+            x => x.PatientLoginAsync(request),
+            Times.Once
+        );
     }
 }

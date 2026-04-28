@@ -39,11 +39,11 @@
                 {
                     <div class="table-responsive">
                         <table class="table table-striped align-middle mb-0">
-                            <thead><tr><th>Id</th><th>Service Name</th><th>Amount</th></tr></thead>
+                            <thead><tr><th>Id</th><th>Service Name</th><th>Price</th><th>Qty</th><th>Amount</th></tr></thead>
                             <tbody>
                             @foreach (var item in Model.Items)
                             {
-                                <tr><td>@item.Id</td><td>@item.ServiceName</td><td>@item.Amount</td></tr>
+                                <tr><td>@item.Id</td><td>@item.ServiceName</td><td>₹@item.Price</td><td>@item.Quantity</td><td>₹@item.Amount</td></tr>
                             }
                             </tbody>
                         </table>
@@ -68,7 +68,7 @@
                             <tbody>
                             @foreach (var payment in Model.Payments)
                             {
-                                <tr><td>@payment.Id</td><td>@payment.Amount</td><td>@payment.PaymentMode</td><td>@payment.PaidAtUtc</td></tr>
+                                <tr><td>@payment.Id</td><td>₹@payment.Amount</td><td>@payment.PaymentMethod</td><td>@payment.PaidAtUtc</td></tr>
                             }
                             </tbody>
                         </table>

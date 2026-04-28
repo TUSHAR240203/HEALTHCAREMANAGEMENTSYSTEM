@@ -13,76 +13,142 @@ public class UserRepositoryTests
         using var context = TestDbContextFactory.Create();
         var repo = new UserRepository(context);
 
+        var role = new Role
+        {
+            Name = "Patient",
+            NormalizedName = "PATIENT"
+        };
+
         var user = new User
         {
             MobileNumber = "9999999999",
-            Role = "Patient"
+            LoginId = "9999999999",
+            IsActive = true,
+            IsDeleted = false
         };
+
+        user.UserRoles.Add(new UserRole
+        {
+            User = user,
+            Role = role
+        });
 
         await repo.AddAsync(user);
         await repo.SaveChangesAsync();
 
         Assert.Single(context.Users);
+        Assert.Single(context.Roles);
+        Assert.Single(context.UserRoles);
     }
 
     [Fact]
-    public async Task GetByMobileAsync_ShouldReturnUser_WhenUserExists()
+    public async Task GetByMobileWithRolesAsync_ShouldReturnUser_WhenUserExists()
     {
         using var context = TestDbContextFactory.Create();
-        context.Users.Add(new User
+
+        var role = new Role
         {
-            MobileNumber = "9999999999",
-            Role = "Patient",
-            IsDeleted = false
-        });
-        await context.SaveChangesAsync();
+            Name = "Patient",
+            NormalizedName = "PATIENT"
+        };
 
-        var repo = new UserRepository(context);
-
-        var result = await repo.GetByMobileAsync("9999999999");
-
-        Assert.NotNull(result);
-        Assert.Equal("9999999999", result.MobileNumber);
-    }
-
-    [Fact]
-    public async Task GetByMobileAsync_ShouldReturnNull_WhenUserIsDeleted()
-    {
-        using var context = TestDbContextFactory.Create();
-        context.Users.Add(new User
-        {
-            MobileNumber = "9999999999",
-            Role = "Patient",
-            IsDeleted = true
-        });
-        await context.SaveChangesAsync();
-
-        var repo = new UserRepository(context);
-
-        var result = await repo.GetByMobileAsync("9999999999");
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GetByIdAsync_ShouldReturnUser_WhenUserExists()
-    {
-        using var context = TestDbContextFactory.Create();
         var user = new User
         {
-            MobileNumber = "8888888888",
-            Role = "Patient",
+            MobileNumber = "9999999999",
+            LoginId = "9999999999",
+            IsActive = true,
             IsDeleted = false
         };
+
+        user.UserRoles.Add(new UserRole
+        {
+            User = user,
+            Role = role
+        });
 
         context.Users.Add(user);
         await context.SaveChangesAsync();
 
         var repo = new UserRepository(context);
 
-        var result = await repo.GetByIdAsync(user.Id);
+        var result = await repo.GetByMobileWithRolesAsync("9999999999");
+
+        Assert.NotNull(result);
+        Assert.Equal("9999999999", result.MobileNumber);
+        Assert.Single(result.UserRoles);
+        Assert.Equal("Patient", result.UserRoles.First().Role.Name);
+    }
+
+    [Fact]
+    public async Task GetByMobileWithRolesAsync_ShouldReturnNull_WhenUserIsDeleted()
+    {
+        using var context = TestDbContextFactory.Create();
+
+        var role = new Role
+        {
+            Name = "Patient",
+            NormalizedName = "PATIENT"
+        };
+
+        var user = new User
+        {
+            MobileNumber = "9999999999",
+            LoginId = "9999999999",
+            IsActive = true,
+            IsDeleted = true
+        };
+
+        user.UserRoles.Add(new UserRole
+        {
+            User = user,
+            Role = role
+        });
+
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var repo = new UserRepository(context);
+
+        var result = await repo.GetByMobileWithRolesAsync("9999999999");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByIdWithRolesAsync_ShouldReturnUser_WhenUserExists()
+    {
+        using var context = TestDbContextFactory.Create();
+
+        var role = new Role
+        {
+            Name = "Patient",
+            NormalizedName = "PATIENT"
+        };
+
+        var user = new User
+        {
+            MobileNumber = "8888888888",
+            LoginId = "8888888888",
+            IsActive = true,
+            IsDeleted = false
+        };
+
+        user.UserRoles.Add(new UserRole
+        {
+            User = user,
+            Role = role
+        });
+
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var repo = new UserRepository(context);
+
+        var result = await repo.GetByIdWithRolesAsync(user.Id);
 
         Assert.NotNull(result);
         Assert.Equal(user.Id, result.Id);
+        Assert.Single(result.UserRoles);
+        Assert.Equal("Patient", result.UserRoles.First().Role.Name);
     }
 }

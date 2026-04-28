@@ -16,7 +16,7 @@ public static class MockData
             Gender = Gender.Male,
             MobileNumber = "9999999999",
             Email = "tushar@gmail.com",
-            BloodGroup = "B+",
+            //BloodGroup = "B+",
             PortalAccessEnabled = true
         };
     }
@@ -46,7 +46,7 @@ public static class MockData
             UHID = "UHID001",
             FirstName = "Tushar",
             LastName = "Sharma",
-            FullName = "Tushar Sharma",
+            //FullName = "Tushar Sharma",
             DateOfBirth = new DateOnly(2003, 2, 24),
             Gender = Gender.Male,
             MobileNumber = "9999999999",

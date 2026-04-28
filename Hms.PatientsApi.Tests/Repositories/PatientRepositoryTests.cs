@@ -1,4 +1,5 @@
 using Hms.PatientsApi.DTOs.Patients;
+using Hms.PatientsApi.Entities;
 using Hms.PatientsApi.Repositories;
 using Hms.PatientsApi.Tests.TestHelpers;
 using Xunit;
@@ -34,7 +35,7 @@ public class PatientRepositoryTests
         var result = await repo.GetByIdAsync(1);
 
         Assert.NotNull(result);
-        Assert.Equal("Tushar Sharma", result.FullName);
+        Assert.Equal("Tushar Sharma", $"{result.FirstName} {result.LastName}");
     }
 
     [Fact]

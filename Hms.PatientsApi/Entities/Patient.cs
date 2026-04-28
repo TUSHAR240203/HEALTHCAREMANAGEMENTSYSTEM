@@ -1,14 +1,14 @@
-﻿using Hms.PatientsApi.Enums;
+using Hms.PatientsApi.Enums;
 
 namespace Hms.PatientsApi.Entities;
 
 public class Patient : BaseEntity
 {
+    public string PatientIdentifier { get; set; } = default!;
     public string UHID { get; set; } = default!;
     public string FirstName { get; set; } = default!;
     public string? MiddleName { get; set; }
     public string LastName { get; set; } = default!;
-    public string FullName { get; set; } = default!;
 
     public DateOnly DateOfBirth { get; set; }
     public Gender Gender { get; set; }
@@ -23,7 +23,6 @@ public class Patient : BaseEntity
     public string? AddressLine2 { get; set; }
     public string? City { get; set; }
     public string? State { get; set; }
-    public string? Country { get; set; }
     public string? PostalCode { get; set; }
 
     public string? EmergencyContactName { get; set; }
@@ -38,4 +37,6 @@ public class Patient : BaseEntity
     public bool PortalActivated { get; set; } = false;
 
     public PatientStatus Status { get; set; } = PatientStatus.Active;
+    public bool IsProfileCompleted { get; set; } = false;
+    public string? PhotoUrl { get; set; }
 }

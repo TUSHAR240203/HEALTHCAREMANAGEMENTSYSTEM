@@ -1,9 +1,12 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Hms.PatientsApi.Data;
 using Hms.PatientsApi.Interfaces.Repository;
 using Hms.PatientsApi.Interfaces.Services;
 using Hms.PatientsApi.Middleware;
 using Hms.PatientsApi.Repositories;
 using Hms.PatientsApi.Services;
+using Hms.PatientsApi.Validators;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -48,6 +51,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.UseMiddleware<ExceptionMiddleware>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.Run();
