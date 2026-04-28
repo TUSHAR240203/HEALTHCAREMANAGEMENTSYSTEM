@@ -73,7 +73,10 @@ namespace Frontend.Controllers
             try
             {
                 var result = await _receptionApiService.GetPatientSummaryAsync(patientId);
-                if (result == null) return NotFound();
+
+                if (result == null)
+                    return NotFound();
+
                 return View(result);
             }
             catch (ApiException ex)
@@ -109,49 +112,139 @@ namespace Frontend.Controllers
             }
         }
 
+        // FINAL CHECK-IN GET
+        // This loads today's scheduled appointments into the searchable dropdown.
         [HttpGet]
-        public IActionResult CheckIn()
+        public async Task<IActionResult> CheckIn(DateOnly? date)
         {
-            return View(new CheckInRequestDto
-            {
-                CheckInTimeUtc = DateTime.UtcNow
-            });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CheckIn(CheckInRequestDto request)
-        {
-            if (!ModelState.IsValid)
-                return View(request);
+            var checkInDate = date ?? DateOnly.FromDateTime(DateTime.Today);
 
             try
             {
-                await _receptionApiService.CheckInAsync<object>(request);
-                TempData["Success"] = "Patient checked in successfully.";
-                return RedirectToAction(nameof(SearchPatients));
-            }
-            catch (ApiException ex)
-            {
-                ModelState.AddModelError(string.Empty, ex.Message);
-                return View(request);
-            }
-        }
+                var appointments =
+                    await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(checkInDate);
 
-        [HttpGet]
-        public async Task<IActionResult> Queue(int departmentId, DateOnly? date)
-        {
-            try
-            {
-                var queueDate = date ?? DateOnly.FromDateTime(DateTime.Today);
-                var result = await _receptionApiService.GetQueueAsync(departmentId, queueDate);
-                ViewBag.CurrentQueue = await _receptionApiService.GetCurrentQueueAsync(departmentId, queueDate);
-                return View(result);
+                var model = new CheckInPageViewModel
+                {
+                    Date = checkInDate,
+                    Appointments = appointments,
+                    CheckIn = new CheckInRequestDto
+                    {
+                        CheckInTimeUtc = DateTime.UtcNow
+                    }
+                };
+
+                return View(model);
             }
             catch (ApiException ex)
             {
                 TempData["Error"] = ex.Message;
-                return RedirectToAction(nameof(SearchPatients));
+
+                return View(new CheckInPageViewModel
+                {
+                    Date = checkInDate,
+                    Appointments = new List<TodayAppointmentForCheckInDto>(),
+                    CheckIn = new CheckInRequestDto
+                    {
+                        CheckInTimeUtc = DateTime.UtcNow
+                    }
+                });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CheckIn(CheckInPageViewModel model)
+        {
+            if (model.Date == default)
+            {
+                model.Date = DateOnly.FromDateTime(DateTime.Today);
+            }
+
+            if (model.CheckIn.AppointmentId <= 0)
+            {
+                ModelState.AddModelError(string.Empty, "Please select an appointment for check-in.");
+            }
+
+            if (model.CheckIn.PatientId <= 0)
+            {
+                ModelState.AddModelError(string.Empty, "Patient details are missing. Select an appointment again.");
+            }
+
+            if (model.CheckIn.DoctorId <= 0)
+            {
+                ModelState.AddModelError(string.Empty, "Doctor details are missing. Select an appointment again.");
+            }
+
+            if (model.CheckIn.DepartmentId <= 0)
+            {
+                ModelState.AddModelError(string.Empty, "Department details are missing. Select an appointment again.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                model.Appointments =
+                    await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(model.Date);
+
+                return View(model);
+            }
+
+            try
+            {
+                model.CheckIn.QueueDate = model.Date;
+                model.CheckIn.CheckInTimeUtc = DateTime.UtcNow;
+
+                await _receptionApiService.CheckInAsync<object>(model.CheckIn);
+
+                TempData["Success"] = "Patient checked in successfully and added to queue.";
+
+                return RedirectToAction(nameof(Queue), new
+                {
+                    departmentId = model.CheckIn.DepartmentId,
+                    date = model.CheckIn.QueueDate.ToString("yyyy-MM-dd")
+                });
+            }
+            catch (ApiException ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+
+                model.Appointments =
+                    await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(model.Date);
+
+                return View(model);
+            }
+        }
+        [HttpGet]
+        public async Task<IActionResult> Queue(int departmentId = 1, DateOnly? date = null)
+        {
+            var queueDate = date ?? DateOnly.FromDateTime(DateTime.Today);
+
+            try
+            {
+                var result = await _receptionApiService.GetQueueAsync(departmentId, queueDate);
+
+                ViewBag.CurrentQueue =
+                    await _receptionApiService.GetCurrentQueueAsync(departmentId, queueDate);
+
+                return View(result ?? new DepartmentQueueResponseDto
+                {
+                    DepartmentId = departmentId,
+                    DepartmentName = $"Department {departmentId}",
+                    Date = queueDate,
+                    Queue = new List<QueueItemDto>()
+                });
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+
+                return View(new DepartmentQueueResponseDto
+                {
+                    DepartmentId = departmentId,
+                    DepartmentName = $"Department {departmentId}",
+                    Date = queueDate,
+                    Queue = new List<QueueItemDto>()
+                });
             }
         }
 
@@ -159,54 +252,146 @@ namespace Frontend.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CallNext(int departmentId, DateOnly date)
         {
-            try { await _receptionApiService.CallNextAsync<object>(departmentId, date); TempData["Success"] = "Next patient called."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.CallNextAsync<object>(departmentId, date);
+                TempData["Success"] = "Next patient called.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new
+            {
+                departmentId,
+                date = date.ToString("yyyy-MM-dd")
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> StartToken(int queueTokenId, int departmentId, DateOnly date)
         {
-            try { await _receptionApiService.StartTokenAsync<object>(queueTokenId); TempData["Success"] = "Consultation started."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.StartTokenAsync<object>(queueTokenId);
+                TempData["Success"] = "Consultation started.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new
+            {
+                departmentId,
+                date = date.ToString("yyyy-MM-dd")
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CompleteToken(int queueTokenId, int departmentId, DateOnly date, string? notes)
+        public async Task<IActionResult> CompleteToken(
+            int queueTokenId,
+            int departmentId,
+            DateOnly date,
+            string? notes)
         {
-            try { await _receptionApiService.CompleteTokenAsync<object>(queueTokenId, new CompleteQueueTokenRequestDto { Notes = notes }); TempData["Success"] = "Patient completed."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.CompleteTokenAsync<object>(
+                    queueTokenId,
+                    new CompleteQueueTokenRequestDto
+                    {
+                        Notes = notes
+                    });
+
+                TempData["Success"] = "Patient completed.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new
+            {
+                departmentId,
+                date = date.ToString("yyyy-MM-dd")
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SkipToken(int queueTokenId, int departmentId, DateOnly date)
         {
-            try { await _receptionApiService.SkipTokenAsync<object>(queueTokenId); TempData["Success"] = "Patient skipped."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.SkipTokenAsync<object>(queueTokenId);
+                TempData["Success"] = "Patient skipped.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new
+            {
+                departmentId,
+                date = date.ToString("yyyy-MM-dd")
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecallToken(int queueTokenId, int departmentId, DateOnly date)
         {
-            try { await _receptionApiService.RecallTokenAsync<object>(queueTokenId); TempData["Success"] = "Patient recalled."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.RecallTokenAsync<object>(queueTokenId);
+                TempData["Success"] = "Patient recalled.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new
+            {
+                departmentId,
+                date = date.ToString("yyyy-MM-dd")
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CancelToken(int queueTokenId, int departmentId, DateOnly date, string? notes)
+        public async Task<IActionResult> CancelToken(
+            int queueTokenId,
+            int departmentId,
+            DateOnly date,
+            string? notes)
         {
-            try { await _receptionApiService.CancelTokenAsync<object>(queueTokenId, new CancelQueueTokenRequestDto { Notes = notes }); TempData["Success"] = "Token cancelled."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.CancelTokenAsync<object>(
+                    queueTokenId,
+                    new CancelQueueTokenRequestDto
+                    {
+                        Notes = notes
+                    });
+
+                TempData["Success"] = "Token cancelled.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new
+            {
+                departmentId,
+                date = date.ToString("yyyy-MM-dd")
+            });
         }
     }
 }

@@ -77,3 +77,29 @@ namespace Frontend.Models.Doctors
         public bool IsActive { get; set; }
     }
 }
+
+namespace Frontend.Models.Doctors
+{
+    public class DoctorLeaveResponseDto
+    {
+        public int Id { get; set; }
+        public int DoctorId { get; set; }
+        public DateOnly LeaveDate { get; set; }
+        public string? Reason { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime? ReviewedAtUtc { get; set; }
+        public string? ReviewedBy { get; set; }
+    }
+
+    public class CreateDoctorLeaveViewModel
+    {
+        [Required, Range(1, int.MaxValue, ErrorMessage = "Enter the doctor profile ID."), Display(Name = "Doctor ID")]
+        public int DoctorId { get; set; }
+
+        [Required, DataType(DataType.Date), Display(Name = "Leave Date")]
+        public DateOnly LeaveDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+
+        [StringLength(250)]
+        public string? Reason { get; set; }
+    }
+}

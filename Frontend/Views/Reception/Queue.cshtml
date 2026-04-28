@@ -1,104 +1,238 @@
 @model Frontend.Models.Reception.DepartmentQueueResponseDto
 @using Frontend.Models.Reception
+
 @{
     ViewData["Title"] = "Department Queue";
+
     var current = ViewBag.CurrentQueue as QueueCurrentResponseDto;
     var queueDate = Model?.Date ?? DateOnly.FromDateTime(DateTime.Today);
-    var waitingCount = Model?.Queue?.Count(x => string.Equals(x.Status, "Waiting", StringComparison.OrdinalIgnoreCase)) ?? 0;
-    var completedCount = Model?.Queue?.Count(x => string.Equals(x.Status, "Completed", StringComparison.OrdinalIgnoreCase)) ?? 0;
-    var skippedCount = Model?.Queue?.Count(x => string.Equals(x.Status, "Skipped", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+    var waitingCount = Model?.Queue?.Count(x =>
+        string.Equals(x.Status, "Waiting", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+    var calledCount = Model?.Queue?.Count(x =>
+        string.Equals(x.Status, "Called", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+    var progressCount = Model?.Queue?.Count(x =>
+        string.Equals(x.Status, "InProgress", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+    var completedCount = Model?.Queue?.Count(x =>
+        string.Equals(x.Status, "Completed", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+    var skippedCount = Model?.Queue?.Count(x =>
+        string.Equals(x.Status, "Skipped", StringComparison.OrdinalIgnoreCase)) ?? 0;
 }
 
-<div class="page-header receptionist-header">
+<div class="page-header">
     <div>
-        <span class="badge-soft"><i class="bi bi-people"></i> Reception live desk</span>
         <h1>Department Queue</h1>
-        <p class="page-subtitle">Call, start, skip, recall, cancel and complete patients from one professional queue console.</p>
+        <p class="page-subtitle">
+            Manage checked-in patients: next, start, skip, recall, complete, and cancel.
+        </p>
     </div>
-    @if (Model != null)
-    {
-        <form asp-action="CallNext" method="post" class="m-0">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-            <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-            <button class="btn btn-primary btn-lg"><i class="bi bi-megaphone me-2"></i>Next Patient</button>
-        </form>
-    }
+
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="CheckIn" class="btn btn-outline-success">
+            Check In Patient
+        </a>
+
+        @if (Model != null)
+        {
+            <form asp-action="CallNext" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                <button class="btn btn-primary">
+                    Next Patient
+                </button>
+            </form>
+        }
+    </div>
 </div>
 
-@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
-@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form asp-action="Queue" method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Department ID</label>
+                <input type="number"
+                       name="departmentId"
+                       value="@(Model?.DepartmentId ?? 1)"
+                       min="1"
+                       class="form-control" />
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Queue Date</label>
+                <input type="date"
+                       name="date"
+                       value="@queueDate.ToString("yyyy-MM-dd")"
+                       class="form-control" />
+            </div>
+
+            <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100">
+                    Load Queue
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 @if (Model == null)
 {
-    <div class="empty-state"><h3>No queue data found</h3><p>Select a department and date to load queue details.</p></div>
+    <div class="alert alert-info">
+        No queue data found.
+    </div>
 }
 else
 {
-    <div class="queue-command-grid">
-        <div class="queue-current-card">
-            <div class="queue-current-label">Now Serving</div>
-            @if (current != null)
-            {
-                <div class="queue-token-xl">#@current.TokenNumber</div>
-                <h2>@current.PatientName</h2>
-                <p>UHID @current.UHID • Patient ID @current.PatientId</p>
-                <span class="queue-status-pill">@current.Status</span>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted mb-1">Now Serving</div>
 
-                <div class="queue-action-row mt-4">
-                    <form asp-action="StartToken" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
-                        <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                        <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                        <button class="btn btn-outline-primary"><i class="bi bi-play-circle me-1"></i>Start</button>
-                    </form>
-                    <form asp-action="SkipToken" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
-                        <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                        <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                        <button class="btn btn-outline-warning"><i class="bi bi-skip-forward me-1"></i>Skip</button>
-                    </form>
-                    <form asp-action="CompleteToken" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
-                        <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                        <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                        <input type="hidden" name="notes" value="Completed from receptionist queue" />
-                        <button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Complete</button>
-                    </form>
+                    @if (current != null)
+                    {
+                        <h1 class="display-5">#@current.TokenNumber</h1>
+                        <h4>@current.PatientName</h4>
+                        <p class="mb-1">UHID: @current.UHID</p>
+                        <p class="mb-3">Patient ID: @current.PatientId</p>
+                        <span class="badge bg-primary">@current.Status</span>
+
+                        <div class="d-flex gap-2 flex-wrap mt-4">
+                            @if (string.Equals(current.Status, "Called", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <form asp-action="StartToken" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
+                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                    <button class="btn btn-outline-primary btn-sm">Start</button>
+                                </form>
+
+                                <form asp-action="SkipToken" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
+                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                    <button class="btn btn-outline-warning btn-sm">Skip</button>
+                                </form>
+                            }
+
+                            @if (string.Equals(current.Status, "Called", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(current.Status, "InProgress", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <form asp-action="CompleteToken" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
+                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="notes" value="Completed from queue console" />
+                                    <button class="btn btn-success btn-sm">Complete</button>
+                                </form>
+
+                                <form asp-action="CancelToken" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
+                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="notes" value="Cancelled from queue console" />
+                                    <button class="btn btn-outline-danger btn-sm">Cancel</button>
+                                </form>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <h1 class="display-5">--</h1>
+                        <p>No active patient.</p>
+                        <p class="text-muted">Click <strong>Next Patient</strong> to call the next waiting token.</p>
+                    }
                 </div>
-            }
-            else
-            {
-                <div class="queue-token-xl muted">--</div>
-                <h2>No active patient</h2>
-                <p>Press <strong>Next Patient</strong> to call the next waiting token.</p>
-            }
+            </div>
         </div>
 
-        <div class="queue-metrics">
-            <div class="metric-card"><span>Department</span><strong>@Model.DepartmentName</strong></div>
-            <div class="metric-card"><span>Date</span><strong>@queueDate.ToString("dd MMM yyyy")</strong></div>
-            <div class="metric-card"><span>Waiting</span><strong>@waitingCount</strong></div>
-            <div class="metric-card"><span>Completed</span><strong>@completedCount</strong></div>
-            <div class="metric-card"><span>Skipped</span><strong>@skippedCount</strong></div>
+        <div class="col-md-8">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="text-muted">Waiting</div>
+                            <h3>@waitingCount</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="text-muted">Called</div>
+                            <h3>@calledCount</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="text-muted">In Progress</div>
+                            <h3>@progressCount</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="text-muted">Skipped</div>
+                            <h3>@skippedCount</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="text-muted">Completed</div>
+                            <h3>@completedCount</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="text-muted">Department</div>
+                            <h3>@Model.DepartmentId</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="card border-0 queue-board">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="h5 mb-1">Patient Sequence</h2>
-                <p class="section-subtitle mb-0">Use row actions for skipped, recalled, cancelled, or completed tokens.</p>
-            </div>
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Patient Queue</h5>
         </div>
+
         <div class="card-body p-0">
             @if (Model.Queue.Any())
             {
                 <div class="table-responsive">
-                    <table class="table align-middle mb-0 professional-table">
+                    <table class="table align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>Token</th>
@@ -108,52 +242,133 @@ else
                                 <th class="text-end">Actions</th>
                             </tr>
                         </thead>
+
                         <tbody>
-                        @foreach (var item in Model.Queue)
-                        {
-                            <tr>
-                                <td><span class="token-chip">#@item.TokenNumber</span></td>
-                                <td>
-                                    <div class="primary-text">@item.PatientName</div>
-                                    <div class="secondary-text">Patient ID: @item.PatientId</div>
-                                </td>
-                                <td>@item.UHID</td>
-                                <td><span class="queue-status-pill small">@item.Status</span></td>
-                                <td class="text-end">
-                                    <div class="queue-row-actions">
-                                        <form asp-action="RecallToken" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
-                                            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                                            <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                                            <button class="btn btn-sm btn-outline-primary">Recall</button>
-                                        </form>
-                                        <form asp-action="SkipToken" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
-                                            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                                            <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                                            <button class="btn btn-sm btn-outline-warning">Skip</button>
-                                        </form>
-                                        <form asp-action="CompleteToken" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
-                                            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                                            <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                                            <input type="hidden" name="notes" value="Completed from queue board" />
-                                            <button class="btn btn-sm btn-success">Complete</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
+                            @foreach (var item in Model.Queue)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>#@item.TokenNumber</strong>
+                                    </td>
+
+                                    <td>
+                                        <div>@item.PatientName</div>
+                                        <small class="text-muted">Patient ID: @item.PatientId</small>
+                                    </td>
+
+                                    <td>@item.UHID</td>
+
+                                    <td>
+                                        @if (string.Equals(item.Status, "Waiting", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-secondary">Waiting</span>
+                                        }
+                                        else if (string.Equals(item.Status, "Called", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-primary">Called</span>
+                                        }
+                                        else if (string.Equals(item.Status, "InProgress", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-info text-dark">In Progress</span>
+                                        }
+                                        else if (string.Equals(item.Status, "Skipped", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-warning text-dark">Skipped</span>
+                                        }
+                                        else if (string.Equals(item.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-success">Completed</span>
+                                        }
+                                        else if (string.Equals(item.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-danger">Cancelled</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark">@item.Status</span>
+                                        }
+                                    </td>
+
+                                    <td class="text-end">
+                                        <div class="d-flex gap-2 justify-content-end flex-wrap">
+                                            @if (string.Equals(item.Status, "Waiting", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="text-muted small">Use Next Patient</span>
+                                            }
+                                            else if (string.Equals(item.Status, "Called", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <form asp-action="StartToken" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
+                                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                                    <button class="btn btn-sm btn-outline-primary">Start</button>
+                                                </form>
+
+                                                <form asp-action="SkipToken" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
+                                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                                    <button class="btn btn-sm btn-outline-warning">Skip</button>
+                                                </form>
+
+                                                <form asp-action="CompleteToken" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
+                                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                                    <input type="hidden" name="notes" value="Completed from queue table" />
+                                                    <button class="btn btn-sm btn-success">Complete</button>
+                                                </form>
+                                            }
+                                            else if (string.Equals(item.Status, "InProgress", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <form asp-action="CompleteToken" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
+                                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                                    <input type="hidden" name="notes" value="Completed from queue table" />
+                                                    <button class="btn btn-sm btn-success">Complete</button>
+                                                </form>
+                                            }
+                                            else if (string.Equals(item.Status, "Skipped", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <form asp-action="RecallToken" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
+                                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                                    <button class="btn btn-sm btn-outline-primary">Recall</button>
+                                                </form>
+
+                                                <form asp-action="CancelToken" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
+                                                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                                                    <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                                    <input type="hidden" name="notes" value="Cancelled skipped token" />
+                                                    <button class="btn btn-sm btn-outline-danger">Cancel</button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">No action</span>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
             }
             else
             {
-                <div class="empty-state"><h3>No patients in queue</h3><p>Checked-in patients will appear here.</p></div>
+                <div class="p-4 text-center text-muted">
+                    No patients in queue. Check in a patient first.
+                </div>
             }
         </div>
     </div>

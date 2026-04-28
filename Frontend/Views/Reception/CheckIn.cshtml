@@ -1,33 +1,255 @@
-@model Frontend.Models.Reception.CheckInRequestDto
+@model Frontend.Models.Reception.CheckInPageViewModel
+
 @{
     ViewData["Title"] = "Patient Check-In";
 }
 
-<div class="page-header">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h1>Patient Check-In</h1>
-        <p class="page-subtitle">Confirm arrival and move the patient smoothly into the department workflow.</p>
+        <h2 class="mb-1">Patient Check-In</h2>
+        <p class="text-muted mb-0">
+            Select from today's scheduled appointments. Patient, doctor, and department details will fill automatically.
+        </p>
+    </div>
+
+    <a asp-controller="Reception"
+           asp-action="Queue"
+           asp-route-departmentId="1"
+           asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
+           class="btn btn-outline-primary">
+        <i class="bi bi-list-ol"></i> View Queue
+    </a>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form asp-controller="Reception" asp-action="CheckIn" method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Appointment Date</label>
+                <input type="date"
+                       name="date"
+                       value="@Model.Date.ToString("yyyy-MM-dd")"
+                       class="form-control" />
+            </div>
+
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    Load Appointments
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-7">
-        <div class="card border-0">
-            <div class="card-body p-4">
-                <form asp-action="CheckIn" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="row g-3">
-                        <div class="col-md-6"><label asp-for="AppointmentId" class="form-label"></label><input asp-for="AppointmentId" class="form-control" /></div>
-                        <div class="col-md-6"><label asp-for="PatientId" class="form-label"></label><input asp-for="PatientId" class="form-control" /></div>
-                        <div class="col-md-6"><label asp-for="DoctorId" class="form-label"></label><input asp-for="DoctorId" class="form-control" /></div>
-                        <div class="col-md-6"><label asp-for="DepartmentId" class="form-label"></label><input asp-for="DepartmentId" class="form-control" /></div>
-                    </div>
-                    <div class="mt-4 d-flex gap-2 flex-wrap">
-                        <button type="submit" class="btn btn-success">Check In Patient</button>
-                        <a asp-action="SearchPatients" class="btn btn-outline-secondary">Back</a>
-                    </div>
-                </form>
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <form asp-controller="Reception" asp-action="CheckIn" method="post">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" name="Date" value="@Model.Date.ToString("yyyy-MM-dd")" />
+
+            <input type="hidden" asp-for="CheckIn.AppointmentId" id="AppointmentId" />
+            <input type="hidden" asp-for="CheckIn.PatientId" id="PatientId" />
+            <input type="hidden" asp-for="CheckIn.DoctorId" id="DoctorId" />
+            <input type="hidden" asp-for="CheckIn.DepartmentId" id="DepartmentId" />
+            <input type="hidden" asp-for="CheckIn.QueueDate" id="QueueDate" value="@Model.Date.ToString("yyyy-MM-dd")" />
+            <input type="hidden" asp-for="CheckIn.CheckInTimeUtc" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="mb-4">
+                <label class="form-label">Search Today's Scheduled Appointment</label>
+
+                <input type="text"
+                       id="appointmentSearch"
+                       class="form-control"
+                       placeholder="Search by patient name, UHID, doctor, department, or appointment ID..."
+                       autocomplete="off" />
+
+                <div id="appointmentDropdown"
+                     class="list-group mt-2 shadow-sm"
+                     style="max-height: 320px; overflow-y: auto;">
+                    @if (Model.Appointments.Any())
+                    {
+                        foreach (var item in Model.Appointments)
+                        {
+                            var searchText = $"{item.AppointmentId} {item.PatientName} {item.UHID} {item.DoctorName} {item.DepartmentName} {item.Status}".ToLowerInvariant();
+                            var appointmentTimeText = $"{item.AppointmentDate:dd MMM yyyy} {item.SlotStartTime:hh\\:mm tt}";
+
+                            <button type="button"
+                                    class="list-group-item list-group-item-action appointment-option"
+                                    data-search="@searchText"
+                                    data-appointment-id="@item.AppointmentId"
+                                    data-patient-id="@item.PatientId"
+                                    data-patient-name="@item.PatientName"
+                                    data-uhid="@item.UHID"
+                                    data-doctor-id="@item.DoctorId"
+                                    data-doctor-name="@item.DoctorName"
+                                    data-department-id="@item.DepartmentId"
+                                    data-department-name="@item.DepartmentName"
+                                    data-time="@appointmentTimeText"
+                                    data-status="@item.Status">
+                                <div class="d-flex justify-content-between align-items-start gap-3">
+                                    <div>
+                                        <strong>@item.PatientName</strong>
+                                        <span class="text-muted">(@item.UHID)</span>
+
+                                        <div class="small text-muted">
+                                            Appointment #@item.AppointmentId |
+                                            Doctor: @item.DoctorName |
+                                            Department: @item.DepartmentName
+                                        </div>
+                                    </div>
+
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">@item.Status</span>
+
+                                        <div class="small text-muted">
+                                            @item.SlotStartTime.ToString("hh\\:mm tt")
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        }
+                    }
+                    else
+                    {
+                        <div class="list-group-item text-muted">
+                            No scheduled appointments found for this date.
+                        </div>
+                    }
+                </div>
             </div>
-        </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label">Patient</label>
+                    <input type="text" id="SelectedPatient" class="form-control" readonly />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">UHID</label>
+                    <input type="text" id="SelectedUHID" class="form-control" readonly />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Doctor</label>
+                    <input type="text" id="SelectedDoctor" class="form-control" readonly />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Department</label>
+                    <input type="text" id="SelectedDepartment" class="form-control" readonly />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Appointment Time</label>
+                    <input type="text" id="SelectedTime" class="form-control" readonly />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <input type="text" id="SelectedStatus" class="form-control" readonly />
+                </div>
+            </div>
+
+            <button type="submit" id="checkInButton" class="btn btn-success" disabled>
+                <i class="bi bi-check-circle"></i> Check In Selected Patient
+            </button>
+
+            <a asp-controller="Reception"
+                   asp-action="Queue"
+                   asp-route-departmentId="1"
+                   asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
+                   class="btn btn-outline-secondary ms-2">
+                Back to Queue
+            </a>
+        </form>
     </div>
 </div>
+
+<style>
+    .appointment-option.active,
+    .appointment-option.active:hover,
+    .appointment-option.active:focus {
+        background-color: #ffffff !important;
+        border: 2px solid #198754 !important;
+        color: inherit !important;
+        box-shadow: 0 0 0 0.15rem rgba(25, 135, 84, 0.15) !important;
+    }
+
+        .appointment-option.active strong,
+        .appointment-option.active span,
+        .appointment-option.active small,
+        .appointment-option.active div {
+            color: inherit !important;
+        }
+
+        .appointment-option.active .badge {
+            background-color: #198754 !important;
+            color: #ffffff !important;
+        }
+
+    .appointment-option:focus,
+    .appointment-option:active {
+        outline: none !important;
+        box-shadow: 0 0 0 0.15rem rgba(25, 135, 84, 0.15) !important;
+    }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const searchInput = document.getElementById("appointmentSearch");
+        const options = document.querySelectorAll(".appointment-option");
+        const checkInButton = document.getElementById("checkInButton");
+
+        const appointmentIdInput = document.getElementById("AppointmentId");
+        const patientIdInput = document.getElementById("PatientId");
+        const doctorIdInput = document.getElementById("DoctorId");
+        const departmentIdInput = document.getElementById("DepartmentId");
+        const queueDateInput = document.getElementById("QueueDate");
+
+        const selectedPatient = document.getElementById("SelectedPatient");
+        const selectedUHID = document.getElementById("SelectedUHID");
+        const selectedDoctor = document.getElementById("SelectedDoctor");
+        const selectedDepartment = document.getElementById("SelectedDepartment");
+        const selectedTime = document.getElementById("SelectedTime");
+        const selectedStatus = document.getElementById("SelectedStatus");
+
+        searchInput?.addEventListener("input", function () {
+            const value = this.value.toLowerCase().trim();
+
+            options.forEach(option => {
+                const search = option.dataset.search || "";
+                option.style.display = search.includes(value) ? "" : "none";
+            });
+        });
+
+        options.forEach(option => {
+            option.addEventListener("click", function () {
+                options.forEach(x => x.classList.remove("active"));
+                this.classList.add("active");
+
+                appointmentIdInput.value = this.dataset.appointmentId || "";
+                patientIdInput.value = this.dataset.patientId || "";
+                doctorIdInput.value = this.dataset.doctorId || "";
+                departmentIdInput.value = this.dataset.departmentId || "";
+                queueDateInput.value = "@Model.Date.ToString("yyyy-MM-dd")";
+
+                selectedPatient.value = this.dataset.patientName || "";
+                selectedUHID.value = this.dataset.uhid || "";
+                selectedDoctor.value = this.dataset.doctorName || "";
+                selectedDepartment.value = this.dataset.departmentName || "";
+                selectedTime.value = this.dataset.time || "";
+                selectedStatus.value = this.dataset.status || "";
+
+                searchInput.value =
+                    `${this.dataset.patientName || ""} - ${this.dataset.uhid || ""} - Appointment #${this.dataset.appointmentId || ""}`;
+
+                checkInButton.disabled = false;
+            });
+        });
+    </script>
+}

@@ -1,0 +1,97 @@
+@model List<Frontend.Models.Doctors.DoctorLeaveResponseDto>
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Doctor Leaves";
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+    var doctorId = ViewBag.DoctorId as int?;
+    var status = ViewBag.Status as string;
+}
+
+<div class="page-header">
+    <div>
+        <span class="badge-soft"><i class="bi bi-calendar-x"></i> Doctor leave</span>
+        <h1>Doctor Leave Requests</h1>
+        <p class="page-subtitle">Doctors submit leave from their portal. Admin approval controls whether leave blocks availability.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="RequestLeave" asp-route-doctorId="@doctorId" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Apply Leave</a>
+        @if (isAdmin)
+        {
+            <a asp-action="Leaves" asp-route-status="Pending" class="btn btn-outline-primary">Pending</a>
+            <a asp-action="Leaves" asp-route-status="Approved" class="btn btn-outline-success">Approved</a>
+            <a asp-action="Leaves" asp-route-status="Rejected" class="btn btn-outline-danger">Rejected</a>
+            <a asp-action="Leaves" class="btn btn-outline-secondary">All</a>
+        }
+    </div>
+</div>
+
+@if (string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase) && !doctorId.HasValue)
+{
+    <div class="alert alert-info">Open this page with your doctor profile id, for example <code>/Doctors/Leaves?doctorId=1</code>. This keeps leave tied to the correct doctor profile.</div>
+}
+else if (!Model.Any())
+{
+    <div class="empty-state"><h3>No leave requests found</h3><p>New leave applications will appear here.</p></div>
+}
+else
+{
+    <div class="card border-0 queue-board">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 professional-table">
+                    <thead>
+                        <tr>
+                            <th>Leave Date</th>
+                            <th>Doctor ID</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Reviewed</th>
+                            @if (isAdmin) { <th class="text-end">Admin Action</th> }
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.LeaveDate.ToString("dd MMM yyyy")</td>
+                            <td>@item.DoctorId</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Reason) ? "-" : item.Reason)</td>
+                            <td><span class="queue-status-pill small">@item.Status</span></td>
+                            <td>@(item.ReviewedAtUtc?.ToString("dd MMM yyyy HH:mm") ?? "Pending")</td>
+                            @if (isAdmin)
+                            {
+                                <td class="text-end">
+                                    @if (string.Equals(item.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <div class="queue-row-actions justify-content-end">
+                                            <form asp-action="ApproveLeave" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="leaveId" value="@item.Id" />
+                                                <input type="hidden" name="doctorId" value="@doctorId" />
+                                                <input type="hidden" name="status" value="@status" />
+                                                <button class="btn btn-sm btn-success">Approve</button>
+                                            </form>
+                                            <form asp-action="RejectLeave" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="leaveId" value="@item.Id" />
+                                                <input type="hidden" name="doctorId" value="@doctorId" />
+                                                <input type="hidden" name="status" value="@status" />
+                                                <button class="btn btn-sm btn-outline-danger">Reject</button>
+                                            </form>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No action</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

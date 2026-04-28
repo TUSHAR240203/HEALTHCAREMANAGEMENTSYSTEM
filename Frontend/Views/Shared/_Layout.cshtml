@@ -46,10 +46,12 @@
                 {
                     <a class="side-link @(currentPath.StartsWith("/Patients") ? "active" : "")" asp-controller="Patients" asp-action="Index"><i class="bi bi-people"></i><span>Patients</span></a>
                     <a class="side-link @(currentPath.StartsWith("/Reception") ? "active" : "")" asp-controller="Reception" asp-action="SearchPatients"><i class="bi bi-headset"></i><span>Reception</span></a>
+                    <a class="side-link @(currentPath.StartsWith("/Reception/Queue") ? "active" : "")" asp-controller="Reception" asp-action="Queue" asp-route-departmentId="1"><i class="bi bi-list-ol"></i><span>Queue</span></a>
                 }
                 @if (isAdmin || isReception || isDoctor)
                 {
                     <a class="side-link @(currentPath.StartsWith("/Doctors") ? "active" : "")" asp-controller="Doctors" asp-action="Index"><i class="bi bi-heart-pulse"></i><span>Doctors</span></a>
+                    <a class="side-link @(currentPath.StartsWith("/Doctors/Leaves") ? "active" : "")" asp-controller="Doctors" asp-action="Leaves"><i class="bi bi-calendar-x"></i><span>Doctor Leaves</span></a>
                 }
                 @if (isAdmin || isReception || isDoctor || isPatient)
                 {

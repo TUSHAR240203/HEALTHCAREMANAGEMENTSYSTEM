@@ -208,12 +208,51 @@ public class ReceptionService : IReceptionService
 
     public async Task<CheckInResponseDto> CheckInAsync(CheckInRequestDto request)
     {
-        var patient = await _patientsApiClient.GetPatientSummaryAsync(request.PatientId);
-        if (patient == null)
-            throw new ArgumentException("Patient not found.");
+        if (request.PatientId <= 0)
+        {
+            throw new InvalidOperationException("Patient is required for check-in.");
+        }
 
-        var queueDate = DateOnly.FromDateTime(request.CheckInTimeUtc);
-        var nextToken = await _queueRepository.GetNextTokenNumberAsync(request.DepartmentId, queueDate);
+        if (request.AppointmentId <= 0)
+        {
+            throw new InvalidOperationException("Appointment is required for check-in.");
+        }
+
+        if (request.DoctorId <= 0)
+        {
+            throw new InvalidOperationException("Doctor is required for check-in.");
+        }
+
+        if (request.DepartmentId <= 0)
+        {
+            throw new InvalidOperationException("Department is required for check-in.");
+        }
+
+        var queueDate = request.QueueDate == default
+            ? DateOnly.FromDateTime(DateTime.Today)
+            : request.QueueDate;
+
+        var checkInTimeUtc = request.CheckInTimeUtc == default
+            ? DateTime.UtcNow
+            : request.CheckInTimeUtc;
+
+        var patient = await _patientsApiClient.GetPatientSummaryAsync(request.PatientId);
+
+        if (patient == null)
+        {
+            throw new InvalidOperationException("Patient not found.");
+        }
+
+        var existingToken = await _queueRepository.GetByAppointmentIdAsync(request.AppointmentId);
+
+        if (existingToken != null)
+        {
+            throw new InvalidOperationException("This appointment is already checked in.");
+        }
+
+        var nextToken = await _queueRepository.GetNextTokenNumberAsync(
+            request.DepartmentId,
+            queueDate);
 
         var checkIn = new PatientCheckIn
         {
@@ -222,13 +261,15 @@ public class ReceptionService : IReceptionService
             AppointmentId = request.AppointmentId,
             DoctorId = request.DoctorId,
             DepartmentId = request.DepartmentId,
-            CheckInTimeUtc = request.CheckInTimeUtc,
+            CheckInTimeUtc = checkInTimeUtc,
             TokenNumber = nextToken,
-            Status = "CheckedIn"
+            Status = "CheckedIn",
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+            IsDeleted = false
         };
 
         await _checkInRepository.AddAsync(checkIn);
-        await _checkInRepository.SaveChangesAsync();
 
         var queueToken = new QueueToken
         {
@@ -240,10 +281,15 @@ public class ReceptionService : IReceptionService
             PatientName = patient.FullName,
             AppointmentId = request.AppointmentId,
             DoctorId = request.DoctorId,
-            Status = "Waiting"
+            Status = "Waiting",
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+            IsDeleted = false
         };
 
         await _queueRepository.AddAsync(queueToken);
+
+        await _checkInRepository.SaveChangesAsync();
         await _queueRepository.SaveChangesAsync();
 
         return new CheckInResponseDto
@@ -296,5 +342,56 @@ public class ReceptionService : IReceptionService
                 Status = x.Status
             }).ToList()
         };
+    }
+    public async Task<List<TodayAppointmentForCheckInDto>> GetTodayAppointmentsForCheckInAsync(DateOnly date)
+    {
+        var result = await _appointmentsApiClient.SearchAsync(new AppointmentSearchRequestDto
+        {
+            AppointmentDate = date,
+            PageNumber = 1,
+            PageSize = 100
+        });
+
+        var appointments = result.Appointments
+            .Where(x =>
+                string.Equals(x.Status, "Scheduled", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Status, "Booked", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.SlotStartTime)
+            .ToList();
+
+        var list = new List<TodayAppointmentForCheckInDto>();
+
+        foreach (var appointment in appointments)
+        {
+            string? patientName = null;
+
+            try
+            {
+                var patient = await _patientsApiClient.GetPatientSummaryAsync(appointment.PatientId);
+                patientName = patient?.FullName;
+            }
+            catch
+            {
+                patientName = $"Patient #{appointment.PatientId}";
+            }
+
+            list.Add(new TodayAppointmentForCheckInDto
+            {
+                AppointmentId = appointment.Id,
+                PatientId = appointment.PatientId,
+                PatientName = patientName,
+                UHID = appointment.UHID,
+                DoctorId = appointment.DoctorId,
+                DoctorName = appointment.DoctorName,
+                DepartmentId = appointment.DepartmentId,
+                DepartmentName = appointment.DepartmentName,
+                AppointmentDate = appointment.AppointmentDate,
+                SlotStartTime = appointment.SlotStartTime,
+                SlotEndTime = appointment.SlotEndTime,
+                Status = appointment.Status
+            });
+        }
+
+        return list;
     }
 }

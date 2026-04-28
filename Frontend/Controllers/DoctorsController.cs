@@ -63,6 +63,89 @@ namespace Frontend.Controllers
             return View(doctor);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Leaves(int? doctorId, string? status)
+        {
+            var role = HttpContext.Session.GetString("Role") ?? string.Empty;
+            if (string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase) && !doctorId.HasValue)
+            {
+                return View(new List<DoctorLeaveResponseDto>());
+            }
+
+            var leaves = doctorId.HasValue
+                ? await _doctorGatewayService.GetLeavesByDoctorAsync(doctorId.Value)
+                : await _doctorGatewayService.GetLeavesAsync(status);
+
+            ViewBag.DoctorId = doctorId;
+            ViewBag.Status = status;
+            return View(leaves);
+        }
+
+        [HttpGet]
+        [RequireRole("Doctor", "Admin")]
+        public IActionResult RequestLeave(int? doctorId)
+        {
+            return View(new CreateDoctorLeaveViewModel
+            {
+                DoctorId = doctorId ?? 0,
+                LeaveDate = DateOnly.FromDateTime(DateTime.Today)
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole("Doctor", "Admin")]
+        public async Task<IActionResult> RequestLeave(CreateDoctorLeaveViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            try
+            {
+                await _doctorGatewayService.RequestLeaveAsync(model);
+                TempData["Success"] = "Leave request submitted. Admin approval is required before it affects availability.";
+                return RedirectToAction(nameof(Leaves), new { doctorId = model.DoctorId });
+            }
+            catch (ApiException ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+                return View(model);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole("Admin")]
+        public async Task<IActionResult> ApproveLeave(int leaveId, int? doctorId, string? status)
+        {
+            try
+            {
+                await _doctorGatewayService.ApproveLeaveAsync(leaveId, HttpContext.Session.GetString("FullName") ?? "Admin");
+                TempData["Success"] = "Doctor leave approved.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+            return RedirectToAction(nameof(Leaves), new { doctorId, status });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole("Admin")]
+        public async Task<IActionResult> RejectLeave(int leaveId, int? doctorId, string? status)
+        {
+            try
+            {
+                await _doctorGatewayService.RejectLeaveAsync(leaveId, HttpContext.Session.GetString("FullName") ?? "Admin");
+                TempData["Success"] = "Doctor leave rejected.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+            return RedirectToAction(nameof(Leaves), new { doctorId, status });
+        }
+
         private async Task<string?> SaveDoctorPhotoAsync(IFormFile? file)
         {
             if (file == null || file.Length == 0) return null;

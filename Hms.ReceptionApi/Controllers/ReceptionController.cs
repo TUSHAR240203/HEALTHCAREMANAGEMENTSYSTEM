@@ -103,10 +103,18 @@ public class ReceptionController : ControllerBase
     [HttpPost("checkin")]
     public async Task<IActionResult> CheckIn([FromBody] CheckInRequestDto request)
     {
-        var result = await _receptionService.CheckInAsync(request);
+        try
+        {
+            var result = await _receptionService.CheckInAsync(request);
 
-        return Ok(
-            ApiResponse<object>.Ok(result, "Patient checked in successfully."));
+            return Ok(
+                ApiResponse<object>.Ok(result, "Patient checked in successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(
+                ApiResponse<object>.Fail(ex.Message));
+        }
     }
 
     [HttpGet("checkin/{checkInId:int}")]
@@ -174,4 +182,28 @@ public class ReceptionController : ControllerBase
         return Ok(
             ApiResponse<object>.Ok(result, "Payment added successfully."));
     }
+    [HttpGet("appointments/today")]
+    public async Task<IActionResult> GetTodayAppointmentsForCheckIn([FromQuery] DateOnly date)
+    {
+        try
+        {
+            var result = await _receptionService.GetTodayAppointmentsForCheckInAsync(date);
+
+            return Ok(
+                ApiResponse<object>.Ok(result, "Today appointments fetched successfully."));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500,
+                ApiResponse<object>.Fail(
+                    "Could not load today's appointments.",
+                    new
+                    {
+                        Error = ex.Message,
+                        InnerError = ex.InnerException?.Message,
+                        StackTrace = ex.StackTrace
+                    }));
+        }
+    }
+
 }

@@ -55,11 +55,14 @@ public class QueueService : IQueueService
     public async Task<QueueActionResponseDto?> CallNextAsync(int departmentId, DateOnly date)
     {
         var current = await _queueRepository.GetCurrentAsync(departmentId, date);
+
         if (current != null)
-            throw new InvalidOperationException("A token is already active in this department.");
+            throw new InvalidOperationException("A patient is already active in this department. Complete, skip, or cancel the current patient first.");
 
         var next = await _queueRepository.GetNextWaitingAsync(departmentId, date);
-        if (next == null) return null;
+
+        if (next == null)
+            return null;
 
         next.Status = "Called";
         next.CalledAtUtc = DateTime.UtcNow;
@@ -74,10 +77,12 @@ public class QueueService : IQueueService
     public async Task<QueueActionResponseDto?> StartAsync(int queueTokenId)
     {
         var token = await _queueRepository.GetByIdAsync(queueTokenId);
-        if (token == null) return null;
+
+        if (token == null)
+            return null;
 
         if (token.Status != "Called")
-            throw new InvalidOperationException("Only called tokens can be started.");
+            throw new InvalidOperationException("Only called patients can be started.");
 
         token.Status = "InProgress";
         token.StartedAtUtc = DateTime.UtcNow;
@@ -92,14 +97,18 @@ public class QueueService : IQueueService
     public async Task<QueueActionResponseDto?> CompleteAsync(int queueTokenId, CompleteQueueTokenRequestDto request)
     {
         var token = await _queueRepository.GetByIdAsync(queueTokenId);
-        if (token == null) return null;
 
-        if (token.Status != "InProgress" && token.Status != "Called")
-            throw new InvalidOperationException("Only active tokens can be completed.");
+        if (token == null)
+            return null;
+
+        if (token.Status != "Called" && token.Status != "InProgress")
+            throw new InvalidOperationException("Only called or in-progress patients can be completed.");
 
         token.Status = "Completed";
         token.CompletedAtUtc = DateTime.UtcNow;
-        token.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        token.Notes = string.IsNullOrWhiteSpace(request.Notes)
+            ? null
+            : request.Notes.Trim();
         token.UpdatedAtUtc = DateTime.UtcNow;
 
         await _queueRepository.UpdateAsync(token);
@@ -111,10 +120,12 @@ public class QueueService : IQueueService
     public async Task<QueueActionResponseDto?> SkipAsync(int queueTokenId)
     {
         var token = await _queueRepository.GetByIdAsync(queueTokenId);
-        if (token == null) return null;
+
+        if (token == null)
+            return null;
 
         if (token.Status != "Called")
-            throw new InvalidOperationException("Only called tokens can be skipped.");
+            throw new InvalidOperationException("Only called patients can be skipped.");
 
         token.Status = "Skipped";
         token.SkippedAtUtc = DateTime.UtcNow;
@@ -129,10 +140,12 @@ public class QueueService : IQueueService
     public async Task<QueueActionResponseDto?> RecallAsync(int queueTokenId)
     {
         var token = await _queueRepository.GetByIdAsync(queueTokenId);
-        if (token == null) return null;
+
+        if (token == null)
+            return null;
 
         if (token.Status != "Skipped")
-            throw new InvalidOperationException("Only skipped tokens can be recalled.");
+            throw new InvalidOperationException("Only skipped patients can be recalled.");
 
         token.Status = "Called";
         token.CalledAtUtc = DateTime.UtcNow;
@@ -147,14 +160,21 @@ public class QueueService : IQueueService
     public async Task<QueueActionResponseDto?> CancelAsync(int queueTokenId, CancelQueueTokenRequestDto request)
     {
         var token = await _queueRepository.GetByIdAsync(queueTokenId);
-        if (token == null) return null;
+
+        if (token == null)
+            return null;
 
         if (token.Status == "Completed")
-            throw new InvalidOperationException("Completed token cannot be cancelled.");
+            throw new InvalidOperationException("Completed patients cannot be cancelled.");
+
+        if (token.Status == "Cancelled")
+            throw new InvalidOperationException("This token is already cancelled.");
 
         token.Status = "Cancelled";
         token.CancelledAtUtc = DateTime.UtcNow;
-        token.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        token.Notes = string.IsNullOrWhiteSpace(request.Notes)
+            ? null
+            : request.Notes.Trim();
         token.UpdatedAtUtc = DateTime.UtcNow;
 
         await _queueRepository.UpdateAsync(token);
@@ -176,4 +196,5 @@ public class QueueService : IQueueService
             Message = message
         };
     }
+
 }
