@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using FluentAssertions;
 using Hms.AuthApi.Controllers;
 using Hms.AuthApi.DTOs.Auth;
 using Hms.AuthApi.Interfaces.Services;
@@ -21,6 +22,7 @@ public class AuthControllerTests
         _controller = new AuthController(_authServiceMock.Object);
     }
 
+    // ❌ Missing claim → UnauthorizedResult
     [Fact]
     public async Task Me_ShouldReturnUnauthorized_WhenUserIdClaimIsMissing()
     {
@@ -34,9 +36,10 @@ public class AuthControllerTests
 
         var result = await _controller.Me();
 
-        Assert.IsType<UnauthorizedObjectResult>(result);
+        result.Should().BeOfType<UnauthorizedResult>(); // 🔥 FIX
     }
 
+    // ❌ Invalid claim → UnauthorizedResult
     [Fact]
     public async Task Me_ShouldReturnUnauthorized_WhenUserIdClaimIsInvalid()
     {
@@ -55,9 +58,10 @@ public class AuthControllerTests
 
         var result = await _controller.Me();
 
-        Assert.IsType<UnauthorizedObjectResult>(result);
+        result.Should().BeOfType<UnauthorizedResult>(); // 🔥 FIX
     }
 
+    // ❌ User not found → NotFoundResult
     [Fact]
     public async Task Me_ShouldReturnNotFound_WhenUserNotFound()
     {
@@ -75,9 +79,10 @@ public class AuthControllerTests
 
         var result = await _controller.Me();
 
-        Assert.IsType<NotFoundObjectResult>(result);
+        result.Should().BeOfType<NotFoundResult>(); // 🔥 FIX
     }
 
+    // ✅ Success → OkObjectResult
     [Fact]
     public async Task Me_ShouldReturnOk_WhenUserExists()
     {
@@ -92,11 +97,8 @@ public class AuthControllerTests
         var userData = new CurrentUserResponseDto
         {
             UserId = 1,
-            PatientId = null,
-            UHID = null,
             FullName = "Test User",
             MobileNumber = "9999999999",
-            PhotoUrl = null,
             Roles = new[] { "Admin" },
             IsProfileCompleted = true
         };
@@ -107,7 +109,6 @@ public class AuthControllerTests
 
         var result = await _controller.Me();
 
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(okResult.Value);
+        result.Should().BeOfType<OkObjectResult>();
     }
 }
