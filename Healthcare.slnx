@@ -6,5 +6,6 @@
   <Project Path="Hms.AuthApi/Hms.AuthApi.csproj" />
   <Project Path="Hms.BillingApi/Hms.BillingApi.csproj" />
   <Project Path="Hms.PatientsApi/Hms.PatientsApi.csproj" />
+  <Project Path="Hms.ReceptionApi.Tests/Hms.ReceptionApi.Tests.csproj" />
   <Project Path="Hms.ReceptionApi/Hms.ReceptionApi.csproj" />
 </Solution>
