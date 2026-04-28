@@ -10,6 +10,7 @@ public interface IAuthService
     Task<AuthResponseDto> StaffOtpLoginAsync(StaffOtpLoginRequestDto request);
     Task<AuthResponseDto> StaffLoginAsync(StaffLoginRequestDto request);
     Task<AuthResponseDto> UpdateAuthPreferenceAsync(int userId, AuthPreferenceRequestDto request);
+
     Task<CurrentUserResponseDto?> GetCurrentUserAsync(int userId);
     Task<CurrentUserResponseDto?> UpdateProfilePhotoAsync(int userId, string photoUrl);
     Task<UserAdminResponseDto> CreateStaffUserAsync(CreateStaffUserRequestDto request);

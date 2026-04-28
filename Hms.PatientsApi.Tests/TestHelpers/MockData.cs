@@ -16,7 +16,6 @@ public static class MockData
             Gender = Gender.Male,
             MobileNumber = "9999999999",
             Email = "tushar@gmail.com",
-            //BloodGroup = "B+",
             PortalAccessEnabled = true
         };
     }
@@ -44,17 +43,21 @@ public static class MockData
         {
             Id = 1,
             UHID = "UHID001",
+            PatientIdentifier = "PAT001",          // 🔥 CRITICAL FIX (required by EF)
+
             FirstName = "Tushar",
             LastName = "Sharma",
-            //FullName = "Tushar Sharma",
             DateOfBirth = new DateOnly(2003, 2, 24),
             Gender = Gender.Male,
             MobileNumber = "9999999999",
             Email = "tushar@gmail.com",
             BloodGroup = "B+",
+
             PortalAccessEnabled = true,
             PortalActivated = false,
-            Status = PatientStatus.Active
+            Status = PatientStatus.Active,
+
+            CreatedAtUtc = DateTime.UtcNow         // ✅ good practice
         };
     }
 
