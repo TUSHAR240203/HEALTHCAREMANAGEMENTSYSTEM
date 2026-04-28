@@ -1,73 +1,100 @@
+@using Microsoft.AspNetCore.Http
 @{
-    ViewData["Title"] = "HMS Portal";
+    ViewData["Title"] = "Dashboard";
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var isLoggedIn = !string.IsNullOrWhiteSpace(Context.Session.GetString("AccessToken"));
+    var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+    var isReception = string.Equals(role, "Receptionist", StringComparison.OrdinalIgnoreCase);
+    var isDoctor = string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase);
+    var isPatient = string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
+    var name = Context.Session.GetString("FullName") ?? (isLoggedIn ? role : "Guest");
+    var patientId = Context.Session.GetInt32("PatientId") ?? 0;
+    var profileCompletion = Context.Session.GetInt32("ProfileCompletion") ?? 0;
+    if (isPatient && profileCompletion <= 0) profileCompletion = 25;
 }
 
 <div class="hero-panel mb-4">
-    <div class="row align-items-center g-4">
+    <div class="row align-items-center g-4 position-relative">
         <div class="col-lg-7">
-            <span class="badge bg-light text-primary mb-3">Healthcare Operations</span>
-            <h1 class="display-5 fw-bold mb-3">Hospital Management Portal</h1>
-            <p class="lead mb-4">A polished, role-ready interface for patient onboarding, appointments, billing, and reception workflows.</p>
+            <span class="badge-soft mb-3"><i class="bi bi-stars"></i> Professional hospital workspace</span>
+            <h1 class="display-5 fw-black mb-3">@(isLoggedIn ? $"Welcome, {name}" : "Hospital Management Portal")</h1>
+            <p class="lead mb-4">Role-based access for Admin, Doctor, Receptionist and Patient with OTP/JWT authentication through your API Gateway.</p>
             <div class="d-flex flex-wrap gap-3 quick-links">
-                <a asp-controller="Account" asp-action="ActivatePortal" class="btn btn-light text-primary">Activate Patient Portal</a>
-                <a asp-controller="Account" asp-action="Login" class="btn btn-outline-light">Patient Login</a>
+                @if (!isLoggedIn)
+                {
+                    <a asp-controller="Account" asp-action="StaffLogin" class="btn btn-light text-primary"><i class="bi bi-person-badge me-2"></i>Staff Login</a>
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-outline-light"><i class="bi bi-phone me-2"></i>Patient OTP Login</a>
+                }
+                else
+                {
+                    @if (isPatient)
+                    {
+                        <a asp-controller="Account" asp-action="CompleteProfile" class="btn btn-light text-primary"><i class="bi bi-person-circle me-2"></i>Complete Profile</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Profile" class="btn btn-light text-primary"><i class="bi bi-person-circle me-2"></i>My Profile</a>
+                    }
+                    <a asp-controller="Account" asp-action="AuthPreference" class="btn btn-outline-light"><i class="bi bi-shield-lock me-2"></i>Auth Settings</a>
+                }
             </div>
         </div>
         <div class="col-lg-5">
             <div class="row g-3">
-                <div class="col-6"><div class="stat-card"><span class="stat-label">Patient Access</span><span class="stat-value">OTP</span></div></div>
-                <div class="col-6"><div class="stat-card"><span class="stat-label">Appointments</span><span class="stat-value">Live</span></div></div>
-                <div class="col-6"><div class="stat-card"><span class="stat-label">Billing</span><span class="stat-value">Smart</span></div></div>
-                <div class="col-6"><div class="stat-card"><span class="stat-label">Reception</span><span class="stat-value">Fast</span></div></div>
+                <div class="col-6"><div class="stat-card"><span class="stat-label">Gateway</span><span class="stat-value">Live</span></div></div>
+                <div class="col-6"><div class="stat-card"><span class="stat-label">Role</span><span class="stat-value">@(string.IsNullOrWhiteSpace(role) ? "Guest" : role)</span></div></div>
+                <div class="col-6"><div class="stat-card"><span class="stat-label">Auth</span><span class="stat-value">OTP/JWT</span></div></div>
+                <div class="col-6"><div class="stat-card"><span class="stat-label">Portal</span><span class="stat-value">Secure</span></div></div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <div class="card h-100 border-0">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="brand-mark"><i class="bi bi-person-plus"></i></div>
-                    <div>
-                        <h3 class="h5 mb-1">Portal Activation</h3>
-                        <p class="section-subtitle">First-time patient access</p>
-                    </div>
-                </div>
-                <p class="text-muted">Start secure OTP-based portal activation for new patients in a guided flow.</p>
-                <a asp-controller="Account" asp-action="ActivatePortal" class="btn btn-primary">Open Activation</a>
-            </div>
-        </div>
+@if (!isLoggedIn)
+{
+    <div class="row g-4">
+        <div class="col-lg-6"><div class="dashboard-tile"><div class="tile-icon mb-3"><i class="bi bi-person-badge"></i></div><h3>Staff access</h3><p class="text-muted">Admin, Doctor and Receptionist login first with OTP, then choose password/JWT, OTP or both.</p><a asp-controller="Account" asp-action="StaffLogin" class="btn btn-primary">Open Staff Login</a></div></div>
+        <div class="col-lg-6"><div class="dashboard-tile"><div class="tile-icon mb-3"><i class="bi bi-phone"></i></div><h3>Patient access</h3><p class="text-muted">Patients login by Patient ID, registered mobile number and OTP without activation verification.</p><a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Open Patient Login</a></div></div>
     </div>
-    <div class="col-lg-4">
-        <div class="card h-100 border-0">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="brand-mark"><i class="bi bi-calendar2-check"></i></div>
-                    <div>
-                        <h3 class="h5 mb-1">Appointments</h3>
-                        <p class="section-subtitle">Scheduling and tracking</p>
-                    </div>
-                </div>
-                <p class="text-muted">Manage appointment search, creation, details, and workflow actions from one place.</p>
-                <a asp-controller="Appointments" asp-action="Index" class="btn btn-outline-primary">View Appointments</a>
-            </div>
-        </div>
+}
+else if (isAdmin)
+{
+    <div class="row g-4">
+        <div class="col-md-6 col-xl-3"><a asp-controller="StaffUsers" asp-action="Index" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-person-gear"></i></div><h3 class="h5">Staff Users</h3><p class="text-muted mb-0">Create Admin, Doctor and Receptionist login accounts.</p></a></div>
+        <div class="col-md-6 col-xl-3"><a asp-controller="Doctors" asp-action="Index" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-heart-pulse"></i></div><h3 class="h5">Doctors</h3><p class="text-muted mb-0">Create and view doctor professional profiles.</p></a></div>
+        <div class="col-md-6 col-xl-3"><a asp-controller="Patients" asp-action="Index" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-people"></i></div><h3 class="h5">Patients</h3><p class="text-muted mb-0">Search, update and manage patient records.</p></a></div>
+        <div class="col-md-6 col-xl-3"><a asp-controller="Billing" asp-action="ByPatient" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-receipt"></i></div><h3 class="h5">Billing</h3><p class="text-muted mb-0">Invoices and payment collection.</p></a></div>
     </div>
-    <div class="col-lg-4">
-        <div class="card h-100 border-0">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="brand-mark"><i class="bi bi-receipt-cutoff"></i></div>
-                    <div>
-                        <h3 class="h5 mb-1">Billing & Reception</h3>
-                        <p class="section-subtitle">Operational efficiency</p>
-                    </div>
-                </div>
-                <p class="text-muted">Access patient search, check-in, queue support, invoice creation, and payment capture tools.</p>
-                <a asp-controller="Billing" asp-action="ByPatient" class="btn btn-outline-primary">Open Billing</a>
-            </div>
-        </div>
+}
+else if (isReception)
+{
+    <div class="row g-4">
+        <div class="col-md-6 col-xl-4"><a asp-controller="Reception" asp-action="RegisterPatient" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-person-plus"></i></div><h3 class="h5">Register Patient</h3><p class="text-muted mb-0">Create patients and start front-desk workflows.</p></a></div>
+        <div class="col-md-6 col-xl-4"><a asp-controller="Reception" asp-action="BookAppointment" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-calendar-plus"></i></div><h3 class="h5">Book Appointment</h3><p class="text-muted mb-0">Book visits and manage check-in.</p></a></div>
+        <div class="col-md-6 col-xl-4"><a asp-controller="Reception" asp-action="Queue" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-list-ol"></i></div><h3 class="h5">Queue</h3><p class="text-muted mb-0">Call, start, skip and complete queue tokens.</p></a></div>
     </div>
-</div>
+}
+else if (isDoctor)
+{
+    <div class="row g-4">
+        <div class="col-md-6"><a asp-controller="Appointments" asp-action="Index" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-calendar2-check"></i></div><h3 class="h5">Appointments</h3><p class="text-muted mb-0">View appointments and complete consultations.</p></a></div>
+        <div class="col-md-6"><a asp-controller="Doctors" asp-action="Index" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-person-vcard"></i></div><h3 class="h5">Doctor Directory</h3><p class="text-muted mb-0">Review doctor profile information.</p></a></div>
+    </div>
+}
+else if (isPatient)
+{
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <a asp-controller="Account" asp-action="CompleteProfile" class="dashboard-tile profile-action-tile d-block text-reset">
+                <div class="mini-progress-ring mb-3" style="--pct:@profileCompletion">
+                    <div class="mini-ring-inner"><strong>@profileCompletion%</strong><span>profile</span></div>
+                </div>
+                <h3 class="h5">Complete Profile</h3>
+                <p class="text-muted mb-0">Add photo, emergency contact, address and insurance details.</p>
+            </a>
+        </div>
+        <div class="col-lg-4"><a asp-controller="Appointments" asp-action="PatientBook" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-calendar2-plus"></i></div><h3 class="h5">Book Appointment</h3><p class="text-muted mb-0">Choose doctor and free slot like a booking grid.</p></a></div>
+        <div class="col-lg-4"><a asp-controller="Appointments" asp-action="ByPatient" asp-route-patientId="@patientId" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-calendar-heart"></i></div><h3 class="h5">My Appointments</h3><p class="text-muted mb-0">Track upcoming and past visits.</p></a></div>
+        <div class="col-lg-4"><a asp-controller="Billing" asp-action="ByPatient" asp-route-patientId="@patientId" class="dashboard-tile d-block text-reset"><div class="tile-icon mb-3"><i class="bi bi-receipt"></i></div><h3 class="h5">My Bills</h3><p class="text-muted mb-0">View invoices and payment history.</p></a></div>
+    </div>
+}

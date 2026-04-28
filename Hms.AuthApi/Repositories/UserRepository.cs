@@ -16,12 +16,48 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByMobileAsync(string mobileNumber)
     {
-        return await _context.Users.FirstOrDefaultAsync(x => x.MobileNumber == mobileNumber && !x.IsDeleted);
+        return await _context.Users
+            .FirstOrDefaultAsync(x => x.MobileNumber == mobileNumber && !x.IsDeleted);
+    }
+
+    public async Task<User?> GetByMobileWithRolesAsync(string mobileNumber)
+    {
+        return await _context.Users
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.MobileNumber == mobileNumber && !x.IsDeleted);
     }
 
     public async Task<User?> GetByIdAsync(int userId)
     {
-        return await _context.Users.FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted);
+        return await _context.Users
+            .FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted);
+    }
+
+    public async Task<User?> GetByIdWithRolesAsync(int userId)
+    {
+        return await _context.Users
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted);
+    }
+
+    public async Task<User?> GetByLoginIdWithRolesAsync(string loginId)
+    {
+        return await _context.Users
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.LoginId == loginId && !x.IsDeleted);
+    }
+
+    public async Task<List<User>> GetAllWithRolesAsync()
+    {
+        return await _context.Users
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Where(x => !x.IsDeleted)
+            .OrderBy(x => x.Id)
+            .ToListAsync();
     }
 
     public async Task AddAsync(User user)

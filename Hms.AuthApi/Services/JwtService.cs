@@ -16,7 +16,10 @@ public class JwtService : IJwtService
         _configuration = configuration;
     }
 
-    public (string Token, DateTime ExpiresAtUtc) GenerateToken(User user, PatientUserLink? link)
+    public (string Token, DateTime ExpiresAtUtc) GenerateToken(
+        User user,
+        PatientUserLink? link,
+        IReadOnlyCollection<string> roles)
     {
         var issuer = _configuration["Jwt:Issuer"]!;
         var audience = _configuration["Jwt:Audience"]!;
@@ -29,9 +32,13 @@ public class JwtService : IJwtService
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.MobilePhone, user.MobileNumber),
-            new(ClaimTypes.Role, user.Role)
+            new(ClaimTypes.MobilePhone, user.MobileNumber)
         };
+
+        foreach (var role in roles.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         if (link != null)
         {

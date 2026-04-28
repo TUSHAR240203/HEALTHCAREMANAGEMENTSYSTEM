@@ -1,0 +1,99 @@
+@model Frontend.Models.Patients.CreatePatientRequestDto
+@{
+    ViewData["Title"] = "Patient Registration";
+}
+
+<div class="auth-shell patient-register-shell">
+    <div class="container-fluid px-0">
+        <div class="row justify-content-center">
+            <div class="col-xxl-10">
+                <div class="auth-card overflow-hidden">
+                    <div class="row g-0">
+                        <div class="col-lg-5">
+                            <div class="auth-aside h-100">
+                                <span class="badge-soft mb-3"><i class="bi bi-person-plus"></i> New patient</span>
+                                <h1 class="h2 fw-bold mb-3">Create your patient portal account</h1>
+                                <p class="text-white-50">Register yourself once, then use the generated Patient ID and your mobile number to login by OTP.</p>
+                                <ul class="step-list">
+                                    <li><span class="step-bullet">1</span><div><strong>Fill basic details</strong><div class="text-white-50">Name, DOB, gender and mobile number.</div></div></li>
+                                    <li><span class="step-bullet">2</span><div><strong>Get Patient ID</strong><div class="text-white-50">The portal shows your ID after registration.</div></div></li>
+                                    <li><span class="step-bullet">3</span><div><strong>Login with OTP</strong><div class="text-white-50">No activation OTP required.</div></div></li>
+                                </ul>
+                                <div class="glass-note mt-4">
+                                    <i class="bi bi-shield-check me-2"></i>
+                                    Your portal access will be enabled automatically.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-7">
+                            <div class="auth-form-panel">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                                    <div>
+                                        <h2 class="mb-1">Patient registration</h2>
+                                        <p class="text-muted mb-0">Create a patient record for portal login.</p>
+                                    </div>
+                                    <a asp-action="Login" class="btn btn-outline-primary"><i class="bi bi-box-arrow-in-right me-1"></i> Already registered?</a>
+                                </div>
+
+                                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                                <form asp-action="Register" method="post" class="row g-3">
+                                    @Html.AntiForgeryToken()
+                                    <input asp-for="PortalAccessEnabled" type="hidden" value="true" />
+
+                                    <div class="col-md-6">
+                                        <label asp-for="FirstName" class="form-label"></label>
+                                        <input asp-for="FirstName" class="form-control" placeholder="First name" />
+                                        <span asp-validation-for="FirstName" class="text-danger small"></span>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label asp-for="LastName" class="form-label"></label>
+                                        <input asp-for="LastName" class="form-control" placeholder="Last name" />
+                                        <span asp-validation-for="LastName" class="text-danger small"></span>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label asp-for="DateOfBirth" class="form-label"></label>
+                                        <input asp-for="DateOfBirth" type="date" class="form-control" />
+                                        <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label asp-for="Gender" class="form-label"></label>
+                                        <select asp-for="Gender" class="form-select">
+                                            <option value="">Select gender</option>
+                                            <option value="1">Male</option>
+                                            <option value="2">Female</option>
+                                            <option value="3">Other</option>
+                                        </select>
+                                        <span asp-validation-for="Gender" class="text-danger small"></span>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label asp-for="MobileNumber" class="form-label"></label>
+                                        <input asp-for="MobileNumber" class="form-control" placeholder="10 digit mobile" />
+                                        <span asp-validation-for="MobileNumber" class="text-danger small"></span>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label asp-for="Email" class="form-label"></label>
+                                        <input asp-for="Email" class="form-control" placeholder="email@example.com" />
+                                        <span asp-validation-for="Email" class="text-danger small"></span>
+                                    </div>
+
+                                    <div class="col-12 d-grid d-sm-flex gap-2 mt-2">
+                                        <button type="submit" class="btn btn-primary btn-lg flex-fill"><i class="bi bi-person-check me-2"></i>Register & Get Patient ID</button>
+                                        <a asp-action="Login" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

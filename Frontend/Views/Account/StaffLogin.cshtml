@@ -1,0 +1,100 @@
+@model Frontend.Models.Auth.StaffLoginViewModel
+@{
+    ViewData["Title"] = "Staff Login";
+}
+
+<div class="auth-shell">
+    <div class="container-fluid px-0">
+        <div class="row justify-content-center">
+            <div class="col-xxl-10">
+                <div class="auth-card">
+                    <div class="row g-0">
+                        <div class="col-lg-5">
+                            <div class="auth-aside">
+                                <span class="badge-soft mb-3"><i class="bi bi-person-badge"></i> Staff secure access</span>
+                                <h1 class="h2 fw-bold mb-3">Admin, Doctor & Receptionist login</h1>
+                                <p class="text-white-50">First-time users login with OTP. After that, they can keep OTP, password/JWT, or both.</p>
+                                <ul class="step-list">
+                                    <li><span class="step-bullet">1</span><div><strong>Send OTP</strong><div class="text-white-50">Use login ID or registered mobile.</div></div></li>
+                                    <li><span class="step-bullet">2</span><div><strong>Verify code</strong><div class="text-white-50">Read OTP from Auth API console while testing.</div></div></li>
+                                    <li><span class="step-bullet">3</span><div><strong>Choose auth</strong><div class="text-white-50">Enable OTP, password/JWT or both.</div></div></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-lg-7">
+                            <div class="auth-form-panel">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                                    <div>
+                                        <h2 class="mb-1">Staff login</h2>
+                                        <p class="text-muted mb-0">Professional access for hospital staff roles.</p>
+                                    </div>
+                                    <a asp-action="Login" class="btn btn-outline-primary"><i class="bi bi-phone me-1"></i> Patient Login</a>
+                                </div>
+                                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                                <div class="row g-4">
+                                    <div class="col-xl-6">
+                                        <div class="content-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="fw-bold mb-3"><i class="bi bi-key me-2 text-primary"></i>Password / JWT</h5>
+                                                <form asp-action="StaffLogin" method="post" class="row g-3">
+                                                    @Html.AntiForgeryToken()
+                                                    <div class="col-12">
+                                                        <label asp-for="LoginId" class="form-label"></label>
+                                                        <input asp-for="LoginId" class="form-control" placeholder="admin001 or 9876543210" />
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label asp-for="Password" class="form-label"></label>
+                                                        <div class="input-group">
+                                                            <input asp-for="Password" id="staffPasswordInput" class="form-control" placeholder="Password" />
+                                                            <button type="button" class="btn btn-outline-secondary" data-password-toggle="staffPasswordInput" title="Show/hide password"><i class="bi bi-eye"></i></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 d-grid">
+                                                        <button type="submit" name="submitButton" value="password" class="btn btn-primary"><i class="bi bi-box-arrow-in-right me-2"></i>Login with password</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xl-6">
+                                        <div class="content-card h-100">
+                                            <div class="card-body">
+                                                <h5 class="fw-bold mb-3"><i class="bi bi-shield-check me-2 text-primary"></i>OTP login</h5>
+                                                <form asp-action="StaffLogin" method="post" class="row g-3">
+                                                    @Html.AntiForgeryToken()
+                                                    <div class="col-12">
+                                                        <label asp-for="MobileNumber" class="form-label">Login ID or mobile number</label>
+                                                        <input asp-for="MobileNumber" class="form-control" placeholder="admin001 or 9876543210" />
+                                                    </div>
+                                                    @if (Model.OtpSent)
+                                                    {
+                                                        <div class="col-12">
+                                                            <label asp-for="OtpCode" class="form-label"></label>
+                                                            <input asp-for="OtpCode" class="form-control" placeholder="Enter OTP" />
+                                                        </div>
+                                                        <div class="col-12 d-grid gap-2">
+                                                            <button type="submit" name="submitButton" value="verifyOtp" class="btn btn-primary">Verify OTP & Login</button>
+                                                            <button type="submit" name="submitButton" value="sendOtp" class="btn btn-outline-primary">Resend OTP</button>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="col-12 d-grid">
+                                                            <button type="submit" name="submitButton" value="sendOtp" class="btn btn-outline-primary">Send OTP</button>
+                                                        </div>
+                                                    }
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

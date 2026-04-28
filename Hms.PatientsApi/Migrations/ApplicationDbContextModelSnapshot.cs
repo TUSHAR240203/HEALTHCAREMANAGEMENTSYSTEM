@@ -22,6 +22,58 @@ namespace Hms.PatientsApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Hms.PatientsApi.Entities.MobileNumberChangeRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ExistingOwnerPatientId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsConsumed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NewMobileNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("OtpCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("VerifiedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId", "NewMobileNumber", "IsConsumed");
+
+                    b.ToTable("MobileNumberChangeRequests", (string)null);
+                });
+
             modelBuilder.Entity("Hms.PatientsApi.Entities.Patient", b =>
                 {
                     b.Property<int>("Id")
@@ -47,10 +99,6 @@ namespace Hms.PatientsApi.Migrations
                         .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Country")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -81,11 +129,6 @@ namespace Hms.PatientsApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
@@ -98,6 +141,9 @@ namespace Hms.PatientsApi.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsProfileCompleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("LastName")
@@ -117,6 +163,14 @@ namespace Hms.PatientsApi.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PatientIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("PortalAccessEnabled")
                         .HasColumnType("bit");
@@ -146,6 +200,9 @@ namespace Hms.PatientsApi.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MobileNumber");
+
+                    b.HasIndex("PatientIdentifier")
+                        .IsUnique();
 
                     b.HasIndex("UHID")
                         .IsUnique();

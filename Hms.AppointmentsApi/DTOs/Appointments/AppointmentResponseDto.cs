@@ -15,6 +15,7 @@ public class AppointmentResponseDto
     public DateOnly AppointmentDate { get; set; }
     public TimeOnly SlotStartTime { get; set; }
     public TimeOnly SlotEndTime { get; set; }
+    public int DurationMinutes { get; set; }
 
     public string VisitType { get; set; } = default!;
     public string? ReasonForVisit { get; set; }

@@ -6,7 +6,7 @@ using Frontend.Models.Api;
 
 namespace Frontend.Services
 {
-    public class AppointmentApiService: IAppointmentApiService
+    public class AppointmentApiService : IAppointmentApiService
     {
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerOptions _jsonOptions;
@@ -24,9 +24,8 @@ namespace Frontend.Services
 
         public async Task<AppointmentSearchResponseDto> SearchAsync(AppointmentSearchRequestDto request)
         {
-            return await PostAsync<AppointmentSearchRequestDto, AppointmentSearchResponseDto>(
-                "gateway/appointments/search", request)
-                ?? new AppointmentSearchResponseDto();
+            return await PostAsync<AppointmentSearchRequestDto, AppointmentSearchResponseDto>("gateway/appointments/search", request)
+                   ?? new AppointmentSearchResponseDto();
         }
 
         public async Task<AppointmentResponseDto?> GetByIdAsync(int id)
@@ -48,27 +47,23 @@ namespace Frontend.Services
 
         public async Task<AppointmentResponseDto> CreateAsync(CreateAppointmentRequestDto request)
         {
-            return await PostAsync<CreateAppointmentRequestDto, AppointmentResponseDto>(
-    "gateway/appointments", request)
-    ?? throw new ApiException("No response from API.", 500);
+            return await PostAsync<CreateAppointmentRequestDto, AppointmentResponseDto>("gateway/appointments", request)
+                   ?? throw new ApiException("No response from Appointments API.", 500);
         }
 
         public async Task<AppointmentResponseDto?> RescheduleAsync(int id, RescheduleAppointmentRequestDto request)
         {
-            return await PutAsync<RescheduleAppointmentRequestDto, AppointmentResponseDto>(
-                $"gateway/appointments/{id}/reschedule", request, true);
+            return await PutAsync<RescheduleAppointmentRequestDto, AppointmentResponseDto>($"gateway/appointments/{id}/reschedule", request, true);
         }
 
         public async Task<AppointmentResponseDto?> CancelAsync(int id, CancelAppointmentRequestDto request)
         {
-            return await PutAsync<CancelAppointmentRequestDto, AppointmentResponseDto>(
-                $"gateway/appointments/{id}/cancel", request, true);
+            return await PutAsync<CancelAppointmentRequestDto, AppointmentResponseDto>($"gateway/appointments/{id}/cancel", request, true);
         }
 
         public async Task<AppointmentResponseDto?> CompleteAsync(int id, CompleteAppointmentRequestDto request)
         {
-            return await PutAsync<CompleteAppointmentRequestDto, AppointmentResponseDto>(
-                $"gateway/appointments/{id}/complete", request, true);
+            return await PutAsync<CompleteAppointmentRequestDto, AppointmentResponseDto>($"gateway/appointments/{id}/complete", request, true);
         }
 
         private async Task<TResponse?> GetAsync<TResponse>(string url, bool allowNotFound = false)
@@ -93,10 +88,7 @@ namespace Frontend.Services
 
         private StringContent CreateJsonContent<TRequest>(TRequest request)
         {
-            return new StringContent(
-                JsonSerializer.Serialize(request, _jsonOptions),
-                Encoding.UTF8,
-                "application/json");
+            return new StringContent(JsonSerializer.Serialize(request, _jsonOptions), Encoding.UTF8, "application/json");
         }
 
         private async Task<TResponse?> ReadResponseAsync<TResponse>(HttpResponseMessage response, bool allowNotFound)
@@ -107,18 +99,41 @@ namespace Frontend.Services
             var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
-            {
-                throw new ApiException(
-                    string.IsNullOrWhiteSpace(body)
-                        ? $"API request failed with status code {(int)response.StatusCode}."
-                        : body,
-                    (int)response.StatusCode);
-            }
+                throw new ApiException(ExtractMessage(body, $"API request failed with status code {(int)response.StatusCode}."), (int)response.StatusCode);
 
             if (string.IsNullOrWhiteSpace(body))
                 return default;
 
+            try
+            {
+                using var document = JsonDocument.Parse(body);
+                var root = document.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data))
+                    return data.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? default : data.Deserialize<TResponse>(_jsonOptions);
+            }
+            catch (JsonException)
+            {
+            }
+
             return JsonSerializer.Deserialize<TResponse>(body, _jsonOptions);
+        }
+
+        private static string ExtractMessage(string body, string fallback)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return fallback;
+            try
+            {
+                using var document = JsonDocument.Parse(body);
+                var root = document.RootElement;
+                if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+                    return message.GetString() ?? fallback;
+                if (root.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
+                    return title.GetString() ?? fallback;
+                if (root.TryGetProperty("errors", out var errors))
+                    return errors.ToString();
+            }
+            catch { }
+            return body;
         }
     }
 }

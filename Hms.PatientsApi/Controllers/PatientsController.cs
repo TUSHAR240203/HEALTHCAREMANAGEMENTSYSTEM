@@ -1,4 +1,4 @@
-﻿using Hms.PatientsApi.DTOs.Patients;
+using Hms.PatientsApi.DTOs.Patients;
 using Hms.PatientsApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -52,6 +52,20 @@ public class PatientsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("{id:int}/mobile-number/send-otp")]
+    public async Task<IActionResult> SendMobileNumberChangeOtp(int id, [FromBody] RequestMobileNumberChangeOtpDto request)
+    {
+        var result = await _patientService.SendMobileNumberChangeOtpAsync(id, request);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/mobile-number/verify-otp")]
+    public async Task<IActionResult> VerifyMobileNumberChangeOtp(int id, [FromBody] VerifyMobileNumberChangeOtpDto request)
+    {
+        var result = await _patientService.VerifyMobileNumberChangeOtpAsync(id, request);
+        return Ok(result);
+    }
+
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -71,5 +85,14 @@ public class PatientsController : ControllerBase
         var deleted = await _patientService.SoftDeleteAsync(id);
         if (!deleted) return NotFound();
         return NoContent();
+    }
+    [HttpPut("{id:int}/complete-profile")]
+    public async Task<IActionResult> CompleteProfile(
+    int id,
+    [FromBody] CompletePatientProfileRequestDto request)
+    {
+        var result = await _patientService.CompleteProfileAsync(id, request);
+        if (result == null) return NotFound();
+        return Ok(result);
     }
 }

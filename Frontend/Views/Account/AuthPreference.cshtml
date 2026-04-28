@@ -1,0 +1,68 @@
+@model Frontend.Models.Auth.AuthPreferenceViewModel
+@{
+    ViewData["Title"] = "Authentication Settings";
+    var isPatient = string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase);
+}
+<div class="row justify-content-center">
+    <div class="col-xl-8">
+        <div class="hero-panel mb-4">
+            <span class="badge-soft mb-3"><i class="bi bi-shield-lock"></i> First login setup</span>
+            <h1 class="h2 fw-bold mb-2">Choose how you want to login</h1>
+            <p class="mb-0">@(isPatient ? "Patient portal uses OTP login only for secure password-free access." : "Enable OTP, password login, or both. At least one login method must stay active.")</p>
+        </div>
+        <div class="content-card">
+            <div class="card-body p-4 p-lg-5">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <form asp-action="AuthPreference" method="post" class="row g-4">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-6">
+                        <div class="dashboard-tile h-100">
+                            <div class="d-flex align-items-center justify-content-between gap-3">
+                                <div><div class="tile-icon mb-3"><i class="bi bi-phone"></i></div><h3 class="h5">OTP login</h3><p class="text-muted mb-0">Login with one-time password sent to mobile.</p></div>
+                                <div class="form-check form-switch"><input asp-for="EnableOtpLogin" class="form-check-input" /></div>
+                            </div>
+                        </div>
+                    </div>
+                    @if (!isPatient)
+                    {
+                        <div class="col-md-6">
+                            <div class="dashboard-tile h-100">
+                                <div class="d-flex align-items-center justify-content-between gap-3">
+                                    <div><div class="tile-icon mb-3"><i class="bi bi-key"></i></div><h3 class="h5">Password login</h3><p class="text-muted mb-0">Login with Login ID and password.</p></div>
+                                    <div class="form-check form-switch"><input asp-for="EnablePasswordLogin" class="form-check-input" /></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LoginId" class="form-label"></label>
+                            <input asp-for="LoginId" class="form-control" placeholder="Mobile number or username" />
+                            <div class="form-text text-muted">Required only if enabling password login for first time.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" class="form-control" placeholder="Set or update password" />
+                            <div class="form-text text-muted">Leave empty if you are keeping existing password.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <input asp-for="EnableOtpLogin" type="hidden" value="true" />
+                        <input asp-for="EnablePasswordLogin" type="hidden" value="false" />
+                        <div class="col-md-6">
+                            <div class="dashboard-tile h-100 patient-otp-note">
+                                <div class="tile-icon mb-3"><i class="bi bi-shield-check"></i></div>
+                                <h3 class="h5">Password-free patient access</h3>
+                                <p class="text-muted mb-0">Patients continue with mobile OTP. No password or JWT option is shown in the patient portal.</p>
+                            </div>
+                        </div>
+                    }
+                    <div class="col-12 d-grid d-sm-flex gap-2 justify-content-end">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary">Cancel</a>
+                        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check2-circle me-2"></i>Save and continue</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

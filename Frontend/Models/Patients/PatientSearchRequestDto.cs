@@ -1,4 +1,4 @@
-namespace Hms.Web.Models.Patients
+namespace Frontend.Models.Patients
 {
     public class PatientSearchRequestDto
     {

@@ -1,0 +1,27 @@
+@model Frontend.Models.Admin.CreateStaffUserViewModel
+@{
+    ViewData["Title"] = "Create Staff User";
+}
+<div class="row justify-content-center">
+    <div class="col-xl-8">
+        <div class="hero-panel mb-4"><span class="badge-soft mb-3"><i class="bi bi-plus-circle"></i> New login account</span><h1 class="h2 fw-bold">Create staff user</h1><p class="mb-0">This creates the login account. Doctor professional details are created separately in Doctors.</p></div>
+        <div class="content-card">
+            <div class="card-body p-4">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <form asp-action="Create" method="post" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-6"><label asp-for="LoginId" class="form-label"></label><input asp-for="LoginId" class="form-control" placeholder="9876543210 or admin001" /><span asp-validation-for="LoginId" class="text-danger small"></span></div>
+                    <div class="col-md-6"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" placeholder="Temporary password" /><span asp-validation-for="Password" class="text-danger small"></span></div>
+                    <div class="col-md-6"><label asp-for="Role" class="form-label"></label><select asp-for="Role" class="form-select"><option>Doctor</option><option>Receptionist</option><option>Admin</option></select></div>
+                    <div class="col-md-6"><label asp-for="MobileNumber" class="form-label"></label><input asp-for="MobileNumber" class="form-control" placeholder="Registered mobile" /><span asp-validation-for="MobileNumber" class="text-danger small"></span></div>
+                    <div class="col-md-12"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" placeholder="name@hospital.com" /><span asp-validation-for="Email" class="text-danger small"></span></div>
+                    <div class="col-md-4"><div class="form-check form-switch"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label"></label></div></div>
+                    <div class="col-md-4"><div class="form-check form-switch"><input asp-for="EnableOtpLogin" class="form-check-input" /><label asp-for="EnableOtpLogin" class="form-check-label"></label></div></div>
+                    <div class="col-md-4"><div class="form-check form-switch"><input asp-for="EnablePasswordLogin" class="form-check-input" /><label asp-for="EnablePasswordLogin" class="form-check-label"></label></div></div>
+                    <div class="col-12 d-flex justify-content-end gap-2"><a asp-action="Index" class="btn btn-outline-primary">Back</a><button type="submit" class="btn btn-primary">Create user</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

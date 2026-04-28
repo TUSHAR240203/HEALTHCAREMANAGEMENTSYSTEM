@@ -1,17 +1,17 @@
+using FluentValidation;
 using Hms.ReceptionApi.DTOs;
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Entities;
 using Hms.ReceptionApi.Interfaces.Clients;
 using Hms.ReceptionApi.Interfaces.Repository;
 using Hms.ReceptionApi.Interfaces.Services;
-
+using Hms.ReceptionApi.Validators;
 namespace Hms.ReceptionApi.Services;
 
 public class ReceptionService : IReceptionService
 {
     private readonly IPatientsApiClient _patientsApiClient;
     private readonly IAppointmentsApiClient _appointmentsApiClient;
-    private readonly IAuthApiClient _authApiClient;
     private readonly ICheckInRepository _checkInRepository;
     private readonly IQueueRepository _queueRepository;
     private readonly IBillingApiClient _billingApiClient;
@@ -19,14 +19,12 @@ public class ReceptionService : IReceptionService
     public ReceptionService(
         IPatientsApiClient patientsApiClient,
         IAppointmentsApiClient appointmentsApiClient,
-        IAuthApiClient authApiClient,
         IBillingApiClient billingApiClient,
         ICheckInRepository checkInRepository,
         IQueueRepository queueRepository)
     {
         _patientsApiClient = patientsApiClient;
         _appointmentsApiClient = appointmentsApiClient;
-        _authApiClient = authApiClient;
         _billingApiClient = billingApiClient;
         _checkInRepository = checkInRepository;
         _queueRepository = queueRepository;
@@ -111,10 +109,8 @@ public class ReceptionService : IReceptionService
     {
         var patient = await _patientsApiClient.RegisterPatientAsync(request);
 
-        if (request.PortalAccessEnabled && request.SendPortalActivationSms)
-        {
-            await _authApiClient.SendPortalActivationAsync(patient.PatientId);
-        }
+        // Portal activation OTP was removed. Patient portal user is created automatically
+        // when the patient requests their first login OTP.
 
         return patient;
     }
@@ -154,20 +150,9 @@ public class ReceptionService : IReceptionService
         };
     }
 
-    public async Task ResendPortalActivationAsync(int patientId, ResendPortalActivationRequestDto request)
+    public Task ResendPortalActivationAsync(int patientId, ResendPortalActivationRequestDto request)
     {
-        var patient = await _patientsApiClient.GetPatientSummaryAsync(patientId);
-
-        if (patient == null)
-            throw new ArgumentException("Patient not found.");
-
-        if (!patient.PortalAccessEnabled)
-            throw new InvalidOperationException("Portal access is not enabled for this patient.");
-
-        if (patient.PortalActivated)
-            throw new InvalidOperationException("Patient portal is already activated.");
-
-        await _authApiClient.SendPortalActivationAsync(patientId);
+        throw new NotSupportedException("Portal activation OTP was removed. Use patient send-login-otp for first-time and later logins.");
     }
 
     public async Task<BookAppointmentResponseDto> BookAppointmentAsync(BookAppointmentRequestDto request)
@@ -176,9 +161,17 @@ public class ReceptionService : IReceptionService
         if (patient == null)
             throw new ArgumentException("Patient not found.");
 
+
+        //IValidator<BookAppointmentRequestDto> validator1 = new BookAppointmentRequestDtoValidator();
+        /////BookAppointmentRequestDtoValidator validator = new BookAppointmentRequestDtoValidator();
+        ///var res = await validator1.ValidateAsync(request);
+        //if (!res.IsValid)
+        //{
+        //   throw new ValidationException(res.Errors);
+        //}
         var appointmentRequest = new AppointmentCreateRequestDto
         {
-            PatientId = patient.PatientId,
+            PatientId = patient.PatientId,   
             UHID = patient.UHID,
             DoctorId = request.DoctorId,
             DoctorName = $"Doctor {request.DoctorId}",

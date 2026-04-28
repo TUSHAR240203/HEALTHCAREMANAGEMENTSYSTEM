@@ -1,3 +1,4 @@
+using Hms.AuthApi.Common;
 using Hms.AuthApi.DTOs.Auth;
 using Hms.AuthApi.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +16,16 @@ public class PatientPortalAuthController : ControllerBase
         _authService = authService;
     }
 
-    [HttpPost("send-portal-activation")]
-    public async Task<IActionResult> SendPortalActivation([FromBody] SendPatientPortalActivationRequestDto request)
+    [HttpPost("send-login-otp")]
+    public async Task<IActionResult> SendLoginOtp([FromBody] SendPatientPortalActivationRequestDto request)
     {
         await _authService.SendPortalActivationAsync(request);
-        return Ok(new { message = "Portal activation OTP sent successfully." });
+
+        return Ok(new ApiResponse<object>(
+            true,
+            "Portal activation OTP sent successfully.",
+            null
+        ));
     }
 
     [HttpPost("verify-otp")]
@@ -30,10 +36,15 @@ public class PatientPortalAuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> PatientLogin([FromBody] PatientLoginRequestDto request)
+    public async Task<IActionResult> PatientLogin([FromBody] LoginRequestDto request)
     {
         var result = await _authService.PatientLoginAsync(request);
-        return Ok(result);
+
+        return Ok(new ApiResponse<object>(
+            true,
+            "Login successful.",
+            result
+        ));
     }
     [HttpPost("send-login-otp")]
     public async Task<IActionResult> SendLoginOtp([FromBody] SendPatientPortalActivationRequestDto request)
