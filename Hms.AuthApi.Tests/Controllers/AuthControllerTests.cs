@@ -49,7 +49,7 @@ public class AuthControllerTests
         {
             HttpContext = new DefaultHttpContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"))
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"))
             }
         };
 
@@ -89,7 +89,17 @@ public class AuthControllerTests
             }
         };
 
-        var userData = new CurrentUserResponseDto();
+        var userData = new CurrentUserResponseDto
+        {
+            UserId = 1,
+            PatientId = null,
+            UHID = null,
+            FullName = "Test User",
+            MobileNumber = "9999999999",
+            PhotoUrl = null,
+            Roles = new[] { "Admin" },
+            IsProfileCompleted = true
+        };
 
         _authServiceMock
             .Setup(x => x.GetCurrentUserAsync(1))
@@ -97,6 +107,7 @@ public class AuthControllerTests
 
         var result = await _controller.Me();
 
-        Assert.IsType<OkObjectResult>(result);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
     }
 }

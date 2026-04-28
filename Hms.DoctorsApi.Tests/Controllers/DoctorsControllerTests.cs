@@ -6,6 +6,7 @@ using Hms.DoctorsApi.Interfaces.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using Xunit;
 
 namespace Hms.DoctorsApi.Tests.Controllers;
 
