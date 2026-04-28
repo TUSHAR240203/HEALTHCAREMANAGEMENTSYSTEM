@@ -27,6 +27,10 @@ namespace Frontend.Controllers
         [RequireRole("Admin", "Receptionist")]
         public async Task<IActionResult> CreateInvoice(CreateInvoiceRequestDto request)
         {
+            request.Items = request.Items
+                .Where(x => !string.IsNullOrWhiteSpace(x.ServiceName) && x.Price > 0 && x.Quantity > 0)
+                .ToList();
+
             if (!ModelState.IsValid) return View(request);
             try
             {

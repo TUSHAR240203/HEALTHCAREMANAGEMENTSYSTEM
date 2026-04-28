@@ -29,6 +29,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.Email)
             .HasMaxLength(150);
 
+        builder.Property(x => x.PhotoUrl)
+            .HasMaxLength(500);
+
         builder.Property(x => x.IsActive)
             .HasDefaultValue(true);
 

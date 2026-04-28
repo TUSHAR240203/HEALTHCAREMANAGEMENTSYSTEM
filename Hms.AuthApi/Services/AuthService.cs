@@ -153,7 +153,29 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByIdWithRolesAsync(userId);
         if (user == null) return null;
         var link = await _patientUserLinkRepository.GetByUserIdAsync(userId);
-        return new CurrentUserResponseDto { UserId = user.Id, PatientId = link?.PatientId, UHID = link?.UHID, MobileNumber = user.MobileNumber, Roles = user.UserRoles.Select(x => x.Role.Name).Distinct().ToArray() };
+        return new CurrentUserResponseDto
+        {
+            UserId = user.Id,
+            PatientId = link?.PatientId,
+            UHID = link?.UHID,
+            FullName = user.LoginId,
+            MobileNumber = user.MobileNumber,
+            PhotoUrl = user.PhotoUrl,
+            Roles = user.UserRoles.Select(x => x.Role.Name).Distinct().ToArray(),
+            IsProfileCompleted = true
+        };
+    }
+
+    public async Task<CurrentUserResponseDto?> UpdateProfilePhotoAsync(int userId, string photoUrl)
+    {
+        if (userId <= 0) return null;
+        var user = await _userRepository.GetByIdWithRolesAsync(userId);
+        if (user == null) return null;
+
+        user.PhotoUrl = photoUrl;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+        await _userRepository.SaveChangesAsync();
+        return await GetCurrentUserAsync(userId);
     }
 
     public async Task<UserAdminResponseDto> CreateStaffUserAsync(CreateStaffUserRequestDto request)
@@ -203,7 +225,7 @@ public class AuthService : IAuthService
     {
         var roles = user.UserRoles.Select(x => x.Role.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var tokenResult = _jwtService.GenerateToken(user, link, roles);
-        return new AuthResponseDto { UserId = user.Id, PatientId = link?.PatientId ?? 0, UHID = link?.UHID ?? string.Empty, FullName = fullName ?? string.Empty, MobileNumber = user.MobileNumber, Roles = roles, AccessToken = tokenResult.Token, ExpiresAtUtc = tokenResult.ExpiresAtUtc, IsProfileCompleted = isProfileCompleted, IsPasswordLoginEnabled = user.IsPasswordLoginEnabled, IsOtpLoginEnabled = user.IsOtpLoginEnabled, IsFirstLoginCompleted = user.IsFirstLoginCompleted };
+        return new AuthResponseDto { UserId = user.Id, PatientId = link?.PatientId ?? 0, UHID = link?.UHID ?? string.Empty, FullName = fullName ?? user.LoginId ?? string.Empty, MobileNumber = user.MobileNumber, Roles = roles, AccessToken = tokenResult.Token, ExpiresAtUtc = tokenResult.ExpiresAtUtc, IsProfileCompleted = isProfileCompleted, IsPasswordLoginEnabled = user.IsPasswordLoginEnabled, IsOtpLoginEnabled = user.IsOtpLoginEnabled, IsFirstLoginCompleted = user.IsFirstLoginCompleted, PhotoUrl = user.PhotoUrl };
     }
 
     private static UserAdminResponseDto ToAdminDto(User user) => new() { UserId = user.Id, LoginId = user.LoginId, MobileNumber = user.MobileNumber, Email = user.Email, IsActive = user.IsActive, Roles = user.UserRoles.Select(x => x.Role.Name).Distinct().ToArray(), IsPasswordLoginEnabled = user.IsPasswordLoginEnabled, IsOtpLoginEnabled = user.IsOtpLoginEnabled, IsFirstLoginCompleted = user.IsFirstLoginCompleted };

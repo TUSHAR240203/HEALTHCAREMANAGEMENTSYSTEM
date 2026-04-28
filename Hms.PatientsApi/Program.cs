@@ -8,16 +8,24 @@ using Hms.PatientsApi.Repositories;
 using Hms.PatientsApi.Services;
 using Hms.PatientsApi.Validators;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddControllers();
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(
+        "Logs/patients-api-log-.txt",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7
+    )
+    .CreateLogger();
 
-builder.Services
-    .AddFluentValidationAutoValidation()
-    .AddValidatorsFromAssemblyContaining<CreatePatientRequestValidator>();
+builder.Host.UseSerilog();
 
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -29,7 +37,7 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 
 var app = builder.Build();
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {
@@ -38,6 +46,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
 app.UseAuthorization();
+
 app.MapControllers();
+
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.Run();

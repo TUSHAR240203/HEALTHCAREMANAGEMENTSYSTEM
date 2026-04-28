@@ -171,7 +171,7 @@ public class AppointmentsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(int id, DateOnly? rescheduleDate)
+    public async Task<IActionResult> Details(int id, DateOnly? rescheduleDate, int? rescheduleDoctorId)
     {
         try
         {
@@ -183,12 +183,16 @@ public class AppointmentsController : Controller
             }
 
             var chosenRescheduleDate = rescheduleDate ?? DateOnly.FromDateTime(DateTime.Today);
+            var doctors = await _doctorGatewayService.GetAllAsync(true);
+            var selectedRescheduleDoctorId = rescheduleDoctorId.GetValueOrDefault(appointment.DoctorId);
             var doctor = await _doctorGatewayService.GetByIdAsync(appointment.DoctorId);
             var patient = await _patientGatewayService.GetByIdAsync(appointment.PatientId);
             var model = new AppointmentDetailsViewModel
             {
                 Appointment = appointment,
                 Doctor = doctor,
+                Doctors = doctors,
+                RescheduleDoctorId = selectedRescheduleDoctorId,
                 Patient = patient,
                 Message = TempData["SuccessMessage"]?.ToString(),
                 ErrorMessage = TempData["ErrorMessage"]?.ToString(),
@@ -198,7 +202,7 @@ public class AppointmentsController : Controller
                     NewSlotStartTime = appointment.SlotStartTime,
                     NewSlotEndTime = appointment.SlotEndTime
                 },
-                FreeSlots = await BuildSlotsAsync(appointment.DoctorId, chosenRescheduleDate, appointment.Id)
+                FreeSlots = await BuildSlotsAsync(selectedRescheduleDoctorId, chosenRescheduleDate, selectedRescheduleDoctorId == appointment.DoctorId ? appointment.Id : null)
             };
 
             return View(model);
@@ -253,6 +257,7 @@ public class AppointmentsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole("Admin", "Doctor")]
     public async Task<IActionResult> Complete(int id, CompleteAppointmentRequestDto request)
     {
         try

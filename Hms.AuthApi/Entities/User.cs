@@ -10,6 +10,7 @@ public class User : BaseEntity
     public bool IsPasswordLoginEnabled { get; set; } = false;
     public bool IsOtpLoginEnabled { get; set; } = true;
     public bool IsFirstLoginCompleted { get; set; } = false;
+    public string? PhotoUrl { get; set; }
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }
