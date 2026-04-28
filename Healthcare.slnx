@@ -1,9 +1,10 @@
 <Solution>
+  <Project Path="Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
+
   <Project Path="Frontend/Frontend.csproj" Id="fbebe9e7-3ce3-44f7-9a73-ae4c519baea7">
     <Build Solution="Debug|*" Project="false" />
   </Project>
   <Project Path="HealthcareGateway/HealthcareGateway.csproj" />
-  <Project Path="Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
   <Project Path="Hms.AuthApi.Tests/Hms.AuthApi.Tests.csproj">
     <Build Solution="Debug|*" Project="false" />
   </Project>
