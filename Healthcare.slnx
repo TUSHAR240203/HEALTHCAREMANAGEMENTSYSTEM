@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
   <Project Path="Hms.DoctorsApi/Hms.DoctorsApi.csproj" />
+
   <Folder Name="/Tests/">
     <Project Path="Hms.AuthApi.Tests/Hms.AuthApi.Tests.csproj">
       <Build Solution="Debug|*" Project="false" />
@@ -12,6 +13,7 @@
       <Build Solution="Debug|*" Project="false" />
     </Project>
   </Folder>
+
   <Project Path="Frontend/Frontend.csproj" />
   <Project Path="HealthcareGateway/HealthcareGateway.csproj" />
   <Project Path="Hms.AuthApi/Hms.AuthApi.csproj" />
