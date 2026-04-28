@@ -4,6 +4,7 @@ using Hms.AuthApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hms.AuthApi.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    partial class AuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260425043514_new1init")]
+    partial class new1init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -157,8 +160,6 @@ namespace Hms.AuthApi.Migrations
                         {
                             Id = 1,
                             CreatedAtUtc = new DateTime(2026, 4, 25, 4, 35, 12, 634, DateTimeKind.Utc).AddTicks(6388),
-
-                      //      CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(8937),
                             IsDeleted = false,
                             Name = "Admin",
                             NormalizedName = "ADMIN"
@@ -167,7 +168,6 @@ namespace Hms.AuthApi.Migrations
                         {
                             Id = 2,
                             CreatedAtUtc = new DateTime(2026, 4, 25, 4, 35, 12, 634, DateTimeKind.Utc).AddTicks(6419),
-                      //      CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9089),
                             IsDeleted = false,
                             Name = "Patient",
                             NormalizedName = "PATIENT"
@@ -176,7 +176,6 @@ namespace Hms.AuthApi.Migrations
                         {
                             Id = 3,
                             CreatedAtUtc = new DateTime(2026, 4, 25, 4, 35, 12, 634, DateTimeKind.Utc).AddTicks(6422),
-                      //      CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9096),
                             IsDeleted = false,
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
@@ -185,8 +184,6 @@ namespace Hms.AuthApi.Migrations
                         {
                             Id = 4,
                             CreatedAtUtc = new DateTime(2026, 4, 25, 4, 35, 12, 634, DateTimeKind.Utc).AddTicks(6424),
-
-                       //     CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9101),
                             IsDeleted = false,
                             Name = "Receptionist",
                             NormalizedName = "RECEPTIONIST"
@@ -241,10 +238,6 @@ namespace Hms.AuthApi.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("PasswordHash")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("PhotoUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
