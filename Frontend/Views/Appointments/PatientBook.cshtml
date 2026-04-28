@@ -36,19 +36,30 @@
                 }
                 else
                 {
-                    <div class="doctor-choice-grid">
+                    <div class="doctor-search-panel">
+                        <label class="form-label" for="doctorSearch">Search doctor</label>
+                        <div class="doctor-search-box">
+                            <i class="bi bi-search"></i>
+                            <input id="doctorSearch" class="form-control" type="search" placeholder="Search by doctor name or speciality" autocomplete="off" />
+                        </div>
+                    </div>
+                    <div class="doctor-choice-grid doctor-choice-list" id="doctorChoiceList">
                         @foreach (var doctor in Model.Doctors)
                         {
                             var did = "doctor_" + doctor.Id;
-                            <input type="radio" class="doctor-radio" name="doctorId" id="@did" value="@doctor.Id" checked="@(doctor.Id == Model.DoctorId)" />
-                            <label class="doctor-choice-card" for="@did">
-                                @if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl)) { <img src="@doctor.PhotoUrl" alt="@doctor.FullName" /> } else { <span class="doctor-avatar-fallback"><i class="bi bi-person-badge"></i></span> }
-                                <span class="doctor-choice-name">@doctor.FullName</span>
-                                <small>@doctor.Specialization</small>
-                                <em>@doctor.DepartmentName</em>
-                            </label>
+                            var searchText = $"{doctor.FullName} {doctor.Specialization} {doctor.DepartmentName}";
+                            <div class="doctor-choice-item" data-doctor-search="@searchText.ToLowerInvariant()">
+                                <input type="radio" class="doctor-radio" name="doctorId" id="@did" value="@doctor.Id" checked="@(doctor.Id == Model.DoctorId)" />
+                                <label class="doctor-choice-card compact" for="@did">
+                                    @if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl)) { <img src="@doctor.PhotoUrl" alt="@doctor.FullName" /> } else { <span class="doctor-avatar-fallback"><i class="bi bi-person-badge"></i></span> }
+                                    <span class="doctor-choice-name">@doctor.FullName</span>
+                                    <small>.Specialization</small>
+                                    <em>.DepartmentName</em>
+                                </label>
+                            </div>
                         }
                     </div>
+                    <div class="empty-state d-none" id="doctorNoResults"><h3>No matching doctor</h3><p>Try another name or speciality.</p></div>
                 }
             </div>
             <div class="col-md-8 col-lg-4">
@@ -75,7 +86,7 @@
         <div class="col-lg-8">
             <div class="card border-0">
                 <div class="card-header">
-                    <h2 class="h5 mb-1">Available Time Slots</h2>
+                    <h2 class="h5 mb-1">Time Slots  (Model.SelectedDoctor != null) { <text>for .SelectedDoctor.FullName</text> }</h2>
                     <p class="text-muted mb-0">Select one available slot for @Model.AppointmentDate.ToString("dd MMM yyyy").</p>
                 </div>
                 <div class="card-body p-4">
@@ -139,4 +150,30 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const search = document.getElementById('doctorSearch');
+            const list = document.getElementById('doctorChoiceList');
+            const noResults = document.getElementById('doctorNoResults');
+            const getForm = list?.closest('form');
+
+            search?.addEventListener('input', () => {
+                const value = search.value.trim().toLowerCase();
+                let visibleCount = 0;
+                list?.querySelectorAll('.doctor-choice-item').forEach(item => {
+                    const match = item.dataset.doctorSearch.includes(value);
+                    item.classList.toggle('d-none', !match);
+                    if (match) visibleCount++;
+                });
+                noResults?.classList.toggle('d-none', visibleCount > 0);
+            });
+
+            list?.querySelectorAll('input[name="doctorId"]').forEach(input => {
+                input.addEventListener('change', () => {
+                    getForm?.classList.add('doctor-switching');
+                    window.setTimeout(() => getForm?.submit(), 180);
+                });
+            });
+        })();
+    </script>
 }

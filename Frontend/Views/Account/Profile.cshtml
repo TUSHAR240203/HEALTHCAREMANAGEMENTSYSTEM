@@ -31,11 +31,34 @@
             }
             else
             {
-                <a asp-action="AuthPreference" class="btn btn-light text-primary"><i class="bi bi-shield-lock me-2"></i>Auth Settings</a>
+                <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                    <label class="btn btn-light text-primary mb-0" for="staffPhotoUpload"><i class="bi bi-camera me-2"></i>Upload Photo</label>
+                    <a asp-action="AuthPreference" class="btn btn-outline-light"><i class="bi bi-shield-lock me-2"></i>Auth Settings</a>
+                </div>
             }
         </div>
     </div>
 </div>
+@if (!isPatient)
+{
+    <div class="content-card mb-4">
+        <div class="card-body p-4">
+            <form asp-action="UploadStaffPhoto" method="post" enctype="multipart/form-data" id="staffPhotoForm" class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                @Html.AntiForgeryToken()
+                <div>
+                    <h2 class="h5 fw-bold mb-1">Staff Profile Photo</h2>
+                    <p class="text-muted mb-0">Upload a JPG, PNG, or WEBP photo. It will appear here and in the top-right profile avatar for Admin, Receptionist, and other staff accounts.</p>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <input type="file" id="staffPhotoUpload" name="photo" accept="image/*" class="d-none" />
+                    <label class="btn btn-outline-primary mb-0" for="staffPhotoUpload"><i class="bi bi-image me-2"></i>Choose Photo</label>
+                    <button type="submit" class="btn btn-primary" id="staffPhotoSubmit" disabled><i class="bi bi-cloud-arrow-up me-2"></i>Save Photo</button>
+                    <span class="text-muted small">Max 2 MB</span>
+                </div>
+            </form>
+        </div>
+    </div>
+}
 <div class="content-card">
     <div class="card-body p-4">
         <div class="row g-3">
@@ -53,3 +76,32 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const input = document.getElementById('staffPhotoUpload');
+            const submit = document.getElementById('staffPhotoSubmit');
+            input?.addEventListener('change', () => {
+                const file = input.files?.[0];
+                if (!file) return;
+
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Photo must be 2 MB or smaller.');
+                    input.value = "";
+                    submit?.setAttribute('disabled', 'disabled');
+                    return;
+                }
+
+                submit?.removeAttribute('disabled');
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.querySelectorAll('.profile-preview-photo, .avatar-clickable').forEach(holder => {
+                        holder.innerHTML = `<img src="${e.target.result}" alt="Profile photo" class="w-100 h-100 rounded-circle object-fit-cover" />`;
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
+        })();
+    </script>
+}

@@ -11,6 +11,7 @@ public interface IAuthService
     Task<AuthResponseDto> StaffLoginAsync(StaffLoginRequestDto request);
     Task<AuthResponseDto> UpdateAuthPreferenceAsync(int userId, AuthPreferenceRequestDto request);
     Task<CurrentUserResponseDto?> GetCurrentUserAsync(int userId);
+    Task<CurrentUserResponseDto?> UpdateProfilePhotoAsync(int userId, string photoUrl);
     Task<UserAdminResponseDto> CreateStaffUserAsync(CreateStaffUserRequestDto request);
     Task<IReadOnlyList<UserAdminResponseDto>> GetUsersAsync();
     Task<UserAdminResponseDto?> SetUserActiveStatusAsync(int userId, bool isActive);

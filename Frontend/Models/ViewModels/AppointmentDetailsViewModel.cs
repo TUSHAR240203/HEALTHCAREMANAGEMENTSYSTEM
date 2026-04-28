@@ -8,6 +8,8 @@ public class AppointmentDetailsViewModel
 {
     public AppointmentResponseDto Appointment { get; set; } = new();
     public DoctorResponseDto? Doctor { get; set; }
+    public List<DoctorResponseDto> Doctors { get; set; } = new();
+    public int RescheduleDoctorId { get; set; }
     public PatientResponseDto? Patient { get; set; }
     public RescheduleAppointmentRequestDto Reschedule { get; set; } = new();
     public string SelectedSlot { get; set; } = string.Empty;

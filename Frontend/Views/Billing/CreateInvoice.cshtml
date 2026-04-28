@@ -3,43 +3,208 @@
     ViewData["Title"] = "Create Invoice";
 }
 
-<div class="page-header">
+<div class="page-header billing-header">
     <div>
+        <span class="badge-soft"><i class="bi bi-receipt"></i> Reception billing</span>
         <h1>Create Invoice</h1>
-        <p class="page-subtitle">Generate a billing record while keeping all existing backend integrations intact.</p>
+        <p class="page-subtitle">Build the complete invoice first: consultation fee, lab tests, scans, medicines, and custom services.</p>
     </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-xl-7 col-lg-9">
+<form asp-action="CreateInvoice" method="post" id="invoiceForm">
+    @Html.AntiForgeryToken()
+
+    <div class="invoice-builder-grid">
         <div class="card border-0">
-            <div class="card-body p-4 p-lg-5">
-                <form asp-action="CreateInvoice" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label asp-for="PatientId" class="form-label"></label>
-                            <input asp-for="PatientId" class="form-control" placeholder="Enter patient id" />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="UHID" class="form-label"></label>
-                            <input asp-for="UHID" class="form-control" placeholder="Enter UHID" />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="AppointmentId" class="form-label"></label>
-                            <input asp-for="AppointmentId" class="form-control" placeholder="Linked appointment id" />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="ConsultationFee" class="form-label"></label>
-                            <input asp-for="ConsultationFee" class="form-control" placeholder="Consultation fee" />
+            <div class="card-header">
+                <h2 class="h5 mb-1">Patient & Visit</h2>
+                <p class="section-subtitle mb-0">Consultation fee is added as an invoice line automatically by Billing API.</p>
+            </div>
+            <div class="card-body p-4">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="PatientId" class="form-label">Patient ID</label>
+                        <input asp-for="PatientId" class="form-control" placeholder="Enter patient id" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="UHID" class="form-label">UHID</label>
+                        <input asp-for="UHID" class="form-control" placeholder="Enter UHID" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="AppointmentId" class="form-label">Appointment ID</label>
+                        <input asp-for="AppointmentId" class="form-control" placeholder="Completed appointment id" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ConsultationFee" class="form-label">Consultation Fee</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input asp-for="ConsultationFee" class="form-control money-input" placeholder="0.00" data-consultation-fee />
                         </div>
                     </div>
-                    <div class="mt-4 d-flex flex-wrap gap-2">
-                        <button type="submit" class="btn btn-primary">Create Invoice</button>
-                        <a asp-action="ByPatient" class="btn btn-outline-secondary">View Patient Invoices</a>
-                    </div>
-                </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="invoice-total-card">
+            <span>Live Total</span>
+            <strong id="invoiceTotal">₹0.00</strong>
+            <small>Includes consultation fee and selected items.</small>
+            <button type="submit" class="btn btn-primary w-100 mt-3"><i class="bi bi-file-earmark-check me-2"></i>Generate Invoice</button>
+            <a asp-action="ByPatient" class="btn btn-outline-primary w-100 mt-2">View Patient Invoices</a>
+        </div>
+    </div>
+
+    <div class="card border-0 mt-4">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h2 class="h5 mb-1">Add Tests & Services</h2>
+                <p class="section-subtitle mb-0">Search common services or add custom items. Amount updates instantly.</p>
+            </div>
+            <div class="invoice-search-box">
+                <i class="bi bi-search"></i>
+                <input type="search" id="serviceSearch" class="form-control" placeholder="Search tests, scans, services..." />
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <div class="service-catalog" id="serviceCatalog">
+                <button type="button" class="service-chip" data-name="CBC Blood Test" data-price="350">CBC Blood Test <span>₹350</span></button>
+                <button type="button" class="service-chip" data-name="Blood Sugar Test" data-price="180">Blood Sugar <span>₹180</span></button>
+                <button type="button" class="service-chip" data-name="Lipid Profile" data-price="800">Lipid Profile <span>₹800</span></button>
+                <button type="button" class="service-chip" data-name="Liver Function Test" data-price="900">LFT <span>₹900</span></button>
+                <button type="button" class="service-chip" data-name="Kidney Function Test" data-price="850">KFT <span>₹850</span></button>
+                <button type="button" class="service-chip" data-name="Thyroid Profile" data-price="700">Thyroid Profile <span>₹700</span></button>
+                <button type="button" class="service-chip" data-name="Urine Routine" data-price="250">Urine Routine <span>₹250</span></button>
+                <button type="button" class="service-chip" data-name="ECG" data-price="500">ECG <span>₹500</span></button>
+                <button type="button" class="service-chip" data-name="X-Ray" data-price="700">X-Ray <span>₹700</span></button>
+                <button type="button" class="service-chip" data-name="Ultrasound" data-price="1500">Ultrasound <span>₹1500</span></button>
+                <button type="button" class="service-chip" data-name="Dressing" data-price="300">Dressing <span>₹300</span></button>
+                <button type="button" class="service-chip" data-name="Injection Service" data-price="150">Injection <span>₹150</span></button>
+            </div>
+
+            <div class="custom-item-row mt-4">
+                <input type="text" id="customServiceName" class="form-control" placeholder="Custom service name" />
+                <input type="number" id="customServicePrice" class="form-control" min="0" step="0.01" placeholder="Price" />
+                <input type="number" id="customServiceQty" class="form-control" min="1" step="1" value="1" placeholder="Qty" />
+                <button type="button" class="btn btn-outline-primary" id="addCustomItem"><i class="bi bi-plus-circle me-1"></i>Add</button>
             </div>
         </div>
     </div>
-</div>
+
+    <div class="card border-0 mt-4">
+        <div class="card-header">
+            <h2 class="h5 mb-1">Invoice Items</h2>
+            <p class="section-subtitle mb-0">Receptionist can add multiple line items before generating the invoice.</p>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table professional-table align-middle mb-0" id="invoiceItemsTable">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th style="width:140px">Price</th>
+                            <th style="width:120px">Qty</th>
+                            <th style="width:140px">Amount</th>
+                            <th style="width:80px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceItemsBody">
+                        @for (var i = 0; i < Model.Items.Count; i++)
+                        {
+                            <tr>
+                                <td><input name="Items[@i].ServiceName" value="@Model.Items[i].ServiceName" class="form-control item-name" /></td>
+                                <td><input name="Items[@i].Price" value="@Model.Items[i].Price" class="form-control item-price" type="number" min="0" step="0.01" /></td>
+                                <td><input name="Items[@i].Quantity" value="@Model.Items[i].Quantity" class="form-control item-qty" type="number" min="1" step="1" /></td>
+                                <td class="item-amount fw-bold">₹0.00</td>
+                                <td><button type="button" class="btn btn-sm btn-outline-danger remove-item"><i class="bi bi-trash"></i></button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div id="invoiceEmptyState" class="empty-state">
+                <h3>No extra items added</h3>
+                <p>Select a common test or add a custom service above.</p>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const body = document.getElementById('invoiceItemsBody');
+            const total = document.getElementById('invoiceTotal');
+            const empty = document.getElementById('invoiceEmptyState');
+            const consultationFee = document.querySelector('[data-consultation-fee]');
+            const money = value => '₹' + (Number(value || 0)).toFixed(2);
+
+            function reindex() {
+                [...body.querySelectorAll('tr')].forEach((row, index) => {
+                    row.querySelector('.item-name').name = `Items[${index}].ServiceName`;
+                    row.querySelector('.item-price').name = `Items[${index}].Price`;
+                    row.querySelector('.item-qty').name = `Items[${index}].Quantity`;
+                });
+            }
+
+            function refresh() {
+                let sum = Number(consultationFee.value || 0);
+                [...body.querySelectorAll('tr')].forEach(row => {
+                    const price = Number(row.querySelector('.item-price').value || 0);
+                    const qty = Number(row.querySelector('.item-qty').value || 1);
+                    const amount = price * qty;
+                    row.querySelector('.item-amount').textContent = money(amount);
+                    sum += amount;
+                });
+                total.textContent = money(sum);
+                empty.classList.toggle('d-none', body.children.length > 0);
+                reindex();
+            }
+
+            function addItem(name, price, qty = 1) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input class="form-control item-name" value="${name.replaceAll('"', '&quot;')}" /></td>
+                    <td><input class="form-control item-price" type="number" min="0" step="0.01" value="${price}" /></td>
+                    <td><input class="form-control item-qty" type="number" min="1" step="1" value="${qty}" /></td>
+                    <td class="item-amount fw-bold">₹0.00</td>
+                    <td><button type="button" class="btn btn-sm btn-outline-danger remove-item"><i class="bi bi-trash"></i></button></td>`;
+                body.appendChild(row);
+                refresh();
+            }
+
+            document.querySelectorAll('.service-chip').forEach(chip => chip.addEventListener('click', () => {
+                addItem(chip.dataset.name, chip.dataset.price, 1);
+            }));
+
+            document.getElementById('addCustomItem')?.addEventListener('click', () => {
+                const name = document.getElementById('customServiceName');
+                const price = document.getElementById('customServicePrice');
+                const qty = document.getElementById('customServiceQty');
+                if (!name.value.trim() || Number(price.value || 0) <= 0) return;
+                addItem(name.value.trim(), price.value, qty.value || 1);
+                name.value = ''; price.value = ''; qty.value = 1;
+            });
+
+            document.addEventListener('input', e => {
+                if (e.target.matches('.item-price,.item-qty,[data-consultation-fee]')) refresh();
+                if (e.target.id === 'serviceSearch') {
+                    const q = e.target.value.toLowerCase();
+                    document.querySelectorAll('.service-chip').forEach(chip => {
+                        chip.classList.toggle('d-none', !chip.dataset.name.toLowerCase().includes(q));
+                    });
+                }
+            });
+
+            document.addEventListener('click', e => {
+                const btn = e.target.closest('.remove-item');
+                if (!btn) return;
+                btn.closest('tr').remove();
+                refresh();
+            });
+
+            refresh();
+        })();
+    </script>
+}

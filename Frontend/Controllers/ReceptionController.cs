@@ -145,6 +145,7 @@ namespace Frontend.Controllers
             {
                 var queueDate = date ?? DateOnly.FromDateTime(DateTime.Today);
                 var result = await _receptionApiService.GetQueueAsync(departmentId, queueDate);
+                ViewBag.CurrentQueue = await _receptionApiService.GetCurrentQueueAsync(departmentId, queueDate);
                 return View(result);
             }
             catch (ApiException ex)
@@ -152,6 +153,60 @@ namespace Frontend.Controllers
                 TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(SearchPatients));
             }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CallNext(int departmentId, DateOnly date)
+        {
+            try { await _receptionApiService.CallNextAsync<object>(departmentId, date); TempData["Success"] = "Next patient called."; }
+            catch (ApiException ex) { TempData["Error"] = ex.Message; }
+            return RedirectToAction(nameof(Queue), new { departmentId, date });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> StartToken(int queueTokenId, int departmentId, DateOnly date)
+        {
+            try { await _receptionApiService.StartTokenAsync<object>(queueTokenId); TempData["Success"] = "Consultation started."; }
+            catch (ApiException ex) { TempData["Error"] = ex.Message; }
+            return RedirectToAction(nameof(Queue), new { departmentId, date });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CompleteToken(int queueTokenId, int departmentId, DateOnly date, string? notes)
+        {
+            try { await _receptionApiService.CompleteTokenAsync<object>(queueTokenId, new CompleteQueueTokenRequestDto { Notes = notes }); TempData["Success"] = "Patient completed."; }
+            catch (ApiException ex) { TempData["Error"] = ex.Message; }
+            return RedirectToAction(nameof(Queue), new { departmentId, date });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SkipToken(int queueTokenId, int departmentId, DateOnly date)
+        {
+            try { await _receptionApiService.SkipTokenAsync<object>(queueTokenId); TempData["Success"] = "Patient skipped."; }
+            catch (ApiException ex) { TempData["Error"] = ex.Message; }
+            return RedirectToAction(nameof(Queue), new { departmentId, date });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecallToken(int queueTokenId, int departmentId, DateOnly date)
+        {
+            try { await _receptionApiService.RecallTokenAsync<object>(queueTokenId); TempData["Success"] = "Patient recalled."; }
+            catch (ApiException ex) { TempData["Error"] = ex.Message; }
+            return RedirectToAction(nameof(Queue), new { departmentId, date });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelToken(int queueTokenId, int departmentId, DateOnly date, string? notes)
+        {
+            try { await _receptionApiService.CancelTokenAsync<object>(queueTokenId, new CancelQueueTokenRequestDto { Notes = notes }); TempData["Success"] = "Token cancelled."; }
+            catch (ApiException ex) { TempData["Error"] = ex.Message; }
+            return RedirectToAction(nameof(Queue), new { departmentId, date });
         }
     }
 }

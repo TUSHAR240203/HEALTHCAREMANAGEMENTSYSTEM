@@ -115,7 +115,16 @@
                             }
                             else
                             {
-                                <a class="avatar avatar-clickable" asp-controller="Account" asp-action="Profile" title="View profile"><span>@avatarText</span></a>
+                                <a class="avatar avatar-clickable" asp-controller="Account" asp-action="Profile" title="View profile">
+                                    @if (!string.IsNullOrWhiteSpace(photoUrl))
+                                    {
+                                        <img src="@photoUrl" alt="Profile photo" />
+                                    }
+                                    else
+                                    {
+                                        <span>@avatarText</span>
+                                    }
+                                </a>
                             }
                             <span class="d-none d-md-block"><strong>@(displayName ?? role)</strong><small>@role • @mobileNumber@if (isPatient && profileCompletion > 0) { <text> • @profileCompletion% profile</text> }</small></span>
                         </div>

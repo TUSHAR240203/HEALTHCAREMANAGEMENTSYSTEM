@@ -37,6 +37,7 @@ namespace Frontend.Services
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+                NormalizePhotoUrl(data);
                 return (true, data, "Login successful.");
             }
             var error = await ReadErrorAsync(response);
@@ -57,6 +58,7 @@ namespace Frontend.Services
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+                NormalizePhotoUrl(data);
                 return (true, data, "Login successful.");
             }
             var error = await ReadErrorAsync(response);
@@ -72,6 +74,7 @@ namespace Frontend.Services
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+                NormalizePhotoUrl(data);
                 return (true, data, "Authentication preference saved.");
             }
             var error = await ReadErrorAsync(response);
@@ -85,6 +88,7 @@ namespace Frontend.Services
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+                NormalizePhotoUrl(data);
                 return (true, data, "Login successful.");
             }
 
@@ -102,7 +106,87 @@ namespace Frontend.Services
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            return await response.Content.ReadFromJsonAsync<CurrentUserResponseDto>();
+            var user = await response.Content.ReadFromJsonAsync<CurrentUserResponseDto>();
+            NormalizePhotoUrl(user);
+            return user;
+        }
+
+        public async Task<(bool Success, CurrentUserResponseDto? Data, string Message)> UploadMyPhotoAsync(string token, IFormFile photo)
+        {
+            if (photo == null || photo.Length == 0)
+                return (false, null, "Please select a photo to upload.");
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "gateway/auth/me/photo");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var form = new MultipartFormDataContent();
+            using var stream = photo.OpenReadStream();
+            using var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(photo.ContentType ?? "application/octet-stream");
+            form.Add(fileContent, "photo", photo.FileName);
+            request.Content = form;
+
+            var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorAsync(response);
+                return (false, null, error);
+            }
+
+            var data = await response.Content.ReadFromJsonAsync<CurrentUserResponseDto>();
+            NormalizePhotoUrl(data);
+            return (true, data, "Profile photo uploaded successfully.");
+        }
+
+        public async Task<(bool Success, CurrentUserResponseDto? Data, string Message)> UpdateMyPhotoUrlAsync(string token, string photoUrl)
+        {
+            if (string.IsNullOrWhiteSpace(photoUrl))
+                return (false, null, "Photo URL is required.");
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, "gateway/auth/me/photo-url");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Content = JsonContent.Create(new { photoUrl });
+
+            var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorAsync(response);
+                return (false, null, error);
+            }
+
+            var data = await response.Content.ReadFromJsonAsync<CurrentUserResponseDto>();
+            NormalizePhotoUrl(data);
+            return (true, data, "Profile photo uploaded successfully.");
+        }
+
+        private void NormalizePhotoUrl(AuthResponseDto? user)
+        {
+            if (user == null || string.IsNullOrWhiteSpace(user.PhotoUrl)) return;
+            user.PhotoUrl = NormalizePhotoUrl(user.PhotoUrl);
+        }
+
+        private void NormalizePhotoUrl(CurrentUserResponseDto? user)
+        {
+            if (user == null || string.IsNullOrWhiteSpace(user.PhotoUrl)) return;
+            user.PhotoUrl = NormalizePhotoUrl(user.PhotoUrl);
+        }
+
+        private string NormalizePhotoUrl(string photoUrl)
+        {
+            if (string.IsNullOrWhiteSpace(photoUrl)) return photoUrl;
+            if (photoUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                photoUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                photoUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                return photoUrl;
+
+            if (photoUrl.StartsWith("/gateway/", StringComparison.OrdinalIgnoreCase) ||
+                photoUrl.StartsWith("gateway/", StringComparison.OrdinalIgnoreCase))
+            {
+                var baseUri = _httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
+                return $"{baseUri}/{photoUrl.TrimStart('/')}";
+            }
+
+            return photoUrl;
         }
 
         private static async Task<string> ReadErrorAsync(HttpResponseMessage response)

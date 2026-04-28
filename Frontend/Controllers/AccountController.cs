@@ -91,7 +91,9 @@ namespace Frontend.Controllers
             if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("AccessToken")))
                 return RedirectToAction(nameof(StaffLogin));
 
-            return View(new AuthPreferenceViewModel { EnableOtpLogin = true });
+            var role = HttpContext.Session.GetString("Role");
+            var isPatient = string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
+            return View(new AuthPreferenceViewModel { EnableOtpLogin = true, EnablePasswordLogin = !isPatient });
         }
 
         [HttpPost]
@@ -100,6 +102,16 @@ namespace Frontend.Controllers
         {
             var token = HttpContext.Session.GetString("AccessToken");
             if (string.IsNullOrWhiteSpace(token)) return RedirectToAction(nameof(StaffLogin));
+
+            var role = HttpContext.Session.GetString("Role");
+            var isPatient = string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
+            if (isPatient)
+            {
+                model.EnableOtpLogin = true;
+                model.EnablePasswordLogin = false;
+                model.LoginId = null;
+                model.Password = null;
+            }
 
             if (!model.EnableOtpLogin && !model.EnablePasswordLogin)
             {
@@ -257,6 +269,7 @@ namespace Frontend.Controllers
             if (model.PhotoFile != null && model.PhotoFile.Length > 0)
             {
                 var saved = await SavePatientPhotoAsync(model.PhotoFile, patientId);
+
                 if (saved != null) model.PhotoUrl = saved;
             }
 
@@ -304,10 +317,42 @@ namespace Frontend.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            user.PhotoUrl = HttpContext.Session.GetString("PhotoUrl");
+            if (string.IsNullOrWhiteSpace(user.PhotoUrl))
+                user.PhotoUrl = HttpContext.Session.GetString("PhotoUrl");
+            else
+                HttpContext.Session.SetString("PhotoUrl", user.PhotoUrl);
+
             user.IsProfileCompleted = string.Equals(HttpContext.Session.GetString("IsProfileCompleted"), "true", StringComparison.OrdinalIgnoreCase);
             return View(user);
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadStaffPhoto(IFormFile photo)
+        {
+            var token = HttpContext.Session.GetString("AccessToken");
+            if (string.IsNullOrWhiteSpace(token)) return RedirectToAction(nameof(StaffLogin));
+
+            var role = HttpContext.Session.GetString("Role");
+            var savedPhotoUrl = await SaveStaffPhotoAsync(photo, role);
+            if (string.IsNullOrWhiteSpace(savedPhotoUrl))
+            {
+                TempData["Error"] = "Please upload a valid JPG, PNG, or WEBP photo up to 2 MB.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            var result = await _authGatewayService.UpdateMyPhotoUrlAsync(token, savedPhotoUrl);
+            if (!result.Success || result.Data == null)
+            {
+                TempData["Error"] = result.Message;
+                return RedirectToAction(nameof(Profile));
+            }
+
+            HttpContext.Session.SetString("PhotoUrl", result.Data.PhotoUrl ?? savedPhotoUrl);
+            TempData["Success"] = "Profile photo uploaded successfully.";
+            return RedirectToAction(nameof(Profile));
+        }
+
 
         private async Task SetAuthSessionAsync(AuthResponseDto data)
         {
@@ -398,6 +443,33 @@ namespace Frontend.Controllers
             HttpContext.Session.Clear();
             TempData["Success"] = "Logged out successfully.";
             return RedirectToAction(nameof(Login));
+        }
+
+        private async Task<string?> SaveStaffPhotoAsync(IFormFile? file, string? role)
+        {
+            if (file == null || file.Length == 0 || file.Length > 2 * 1024 * 1024) return null;
+
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            if (!allowed.Contains(extension)) return null;
+
+            var folder = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
+                ? "admins"
+                : string.Equals(role, "Receptionist", StringComparison.OrdinalIgnoreCase)
+                    ? "receptionists"
+                    : "staff";
+
+            var uploadsRoot = Path.Combine(_environment.WebRootPath, "uploads", folder);
+            Directory.CreateDirectory(uploadsRoot);
+
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var fileName = $"{folder}_{userId}_{Guid.NewGuid():N}{extension}";
+            var path = Path.Combine(uploadsRoot, fileName);
+
+            await using var stream = System.IO.File.Create(path);
+            await file.CopyToAsync(stream);
+
+            return $"/uploads/{folder}/{fileName}";
         }
 
         private async Task<string?> SavePatientPhotoAsync(IFormFile file, int patientId)
