@@ -19,20 +19,13 @@ public class PatientPortalAuthController : ControllerBase
     [HttpPost("send-login-otp")]
     public async Task<IActionResult> SendLoginOtp([FromBody] SendPatientPortalActivationRequestDto request)
     {
-        await _authService.SendPortalActivationAsync(request);
+        await _authService.SendLoginOtpAsync(request.PatientId, request.MobileNumber);
 
         return Ok(new ApiResponse<object>(
             true,
-            "Portal activation OTP sent successfully.",
+            "Login OTP sent successfully.",
             null
         ));
-    }
-
-    [HttpPost("verify-otp")]
-    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequestDto request)
-    {
-        var result = await _authService.VerifyOtpAndActivateAsync(request);
-        return Ok(result);
     }
 
     [HttpPost("login")]
@@ -45,11 +38,5 @@ public class PatientPortalAuthController : ControllerBase
             "Login successful.",
             result
         ));
-    }
-    [HttpPost("send-login-otp")]
-    public async Task<IActionResult> SendLoginOtp([FromBody] SendPatientPortalActivationRequestDto request)
-    {
-        await _authService.SendLoginOtpAsync(request.PatientId);
-        return Ok(new { message = "Login OTP sent successfully." });
     }
 }

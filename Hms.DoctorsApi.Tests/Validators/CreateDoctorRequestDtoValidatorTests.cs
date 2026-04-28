@@ -1,6 +1,7 @@
 using FluentValidation.TestHelper;
 using Hms.DoctorsApi.Tests.TestHelpers;
 using Hms.DoctorsApi.Validators;
+using Xunit;
 
 namespace Hms.DoctorsApi.Tests.Validators;
 

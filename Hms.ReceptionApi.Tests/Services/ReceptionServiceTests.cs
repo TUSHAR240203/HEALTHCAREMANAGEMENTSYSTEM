@@ -1,3 +1,4 @@
+using Hms.ReceptionApi.DTOs;
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Entities;
 using Hms.ReceptionApi.Interfaces.Clients;
@@ -12,7 +13,6 @@ public class ReceptionServiceTests
 {
     private readonly Mock<IPatientsApiClient> _patientsApiClientMock = new();
     private readonly Mock<IAppointmentsApiClient> _appointmentsApiClientMock = new();
-    private readonly Mock<IAuthApiClient> _authApiClientMock = new();
     private readonly Mock<IBillingApiClient> _billingApiClientMock = new();
     private readonly Mock<ICheckInRepository> _checkInRepositoryMock = new();
     private readonly Mock<IQueueRepository> _queueRepositoryMock = new();
@@ -22,7 +22,6 @@ public class ReceptionServiceTests
         return new ReceptionService(
             _patientsApiClientMock.Object,
             _appointmentsApiClientMock.Object,
-            _authApiClientMock.Object,
             _billingApiClientMock.Object,
             _checkInRepositoryMock.Object,
             _queueRepositoryMock.Object
@@ -99,6 +98,15 @@ public class ReceptionServiceTests
     }
 
     [Fact]
+    public async Task GetPatientSummaryAsync_ShouldThrow_WhenPatientIdInvalid()
+    {
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.GetPatientSummaryAsync(0));
+    }
+
+    [Fact]
     public async Task VerifyPatientAsync_ShouldReturnVerifiedTrue_WhenMobileMatches()
     {
         var service = CreateService();
@@ -115,29 +123,41 @@ public class ReceptionServiceTests
         var result = await service.VerifyPatientAsync(1, request);
 
         Assert.True(result.Verified);
+        Assert.Equal("Patient identity verified.", result.Message);
     }
 
     [Fact]
-    public async Task ResendPortalActivationAsync_ShouldCallAuthApi_WhenValid()
+    public async Task VerifyPatientAsync_ShouldReturnVerifiedFalse_WhenPatientNotFound()
     {
         var service = CreateService();
 
-        var patient = GetPatient();
-        patient.PortalAccessEnabled = true;
-        patient.PortalActivated = false;
+        var request = new VerifyPatientRequestDto
+        {
+            MobileNumber = "9999999999"
+        };
 
         _patientsApiClientMock
             .Setup(x => x.GetPatientSummaryAsync(1))
-            .ReturnsAsync(patient);
+            .ReturnsAsync((ReceptionPatientSummaryDto?)null);
+
+        var result = await service.VerifyPatientAsync(1, request);
+
+        Assert.False(result.Verified);
+        Assert.Equal("Patient not found.", result.Message);
+    }
+
+    [Fact]
+    public async Task ResendPortalActivationAsync_ShouldThrowNotSupportedException()
+    {
+        var service = CreateService();
 
         var request = new ResendPortalActivationRequestDto
         {
             SendBy = "sms"
         };
 
-        await service.ResendPortalActivationAsync(1, request);
-
-        _authApiClientMock.Verify(x => x.SendPortalActivationAsync(1), Times.Once);
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            service.ResendPortalActivationAsync(1, request));
     }
 
     [Fact]
@@ -154,6 +174,7 @@ public class ReceptionServiceTests
             SlotStartTime = new TimeOnly(10, 0),
             SlotEndTime = new TimeOnly(10, 30),
             VisitType = "OPD",
+            ReasonForVisit = "Fever",
             IsTeleConsultation = false
         };
 
@@ -164,12 +185,38 @@ public class ReceptionServiceTests
             .ReturnsAsync(GetPatient());
 
         _appointmentsApiClientMock
-            .Setup(x => x.BookAppointmentAsync(It.IsAny<Hms.ReceptionApi.DTOs.AppointmentCreateRequestDto>()))
+            .Setup(x => x.BookAppointmentAsync(It.IsAny<AppointmentCreateRequestDto>()))
             .ReturnsAsync(appointment);
 
         var result = await service.BookAppointmentAsync(request);
 
         Assert.Equal(1, result.PatientId);
+        Assert.Equal("Booked", result.Status);
+    }
+
+    [Fact]
+    public async Task BookAppointmentAsync_ShouldThrow_WhenPatientNotFound()
+    {
+        var service = CreateService();
+
+        var request = new BookAppointmentRequestDto
+        {
+            PatientId = 1,
+            DoctorId = 1,
+            DepartmentId = 1,
+            AppointmentDate = DateOnly.FromDateTime(DateTime.Today),
+            SlotStartTime = new TimeOnly(10, 0),
+            SlotEndTime = new TimeOnly(10, 30),
+            VisitType = "OPD",
+            IsTeleConsultation = false
+        };
+
+        _patientsApiClientMock
+            .Setup(x => x.GetPatientSummaryAsync(1))
+            .ReturnsAsync((ReceptionPatientSummaryDto?)null);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.BookAppointmentAsync(request));
     }
 
     [Fact]
@@ -184,6 +231,27 @@ public class ReceptionServiceTests
     }
 
     [Fact]
+    public async Task RescheduleAppointmentAsync_ShouldReturnAppointment_WhenValid()
+    {
+        var service = CreateService();
+
+        var request = new RescheduleAppointmentRequestDto
+        {
+            NewAppointmentDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+            NewSlotStartTime = new TimeOnly(11, 0),
+            NewSlotEndTime = new TimeOnly(11, 30)
+        };
+
+        _appointmentsApiClientMock
+            .Setup(x => x.RescheduleAppointmentAsync(1, request))
+            .ReturnsAsync(GetAppointment());
+
+        var result = await service.RescheduleAppointmentAsync(1, request);
+
+        Assert.Equal(1, result.Id);
+    }
+
+    [Fact]
     public async Task CancelAppointmentAsync_ShouldThrow_WhenAppointmentIdInvalid()
     {
         var service = CreateService();
@@ -192,6 +260,25 @@ public class ReceptionServiceTests
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             service.CancelAppointmentAsync(0, request));
+    }
+
+    [Fact]
+    public async Task CancelAppointmentAsync_ShouldReturnAppointment_WhenValid()
+    {
+        var service = CreateService();
+
+        var request = new CancelAppointmentRequestDto
+        {
+            Reason = "Patient requested cancellation"
+        };
+
+        _appointmentsApiClientMock
+            .Setup(x => x.CancelAppointmentAsync(1, request))
+            .ReturnsAsync(GetAppointment());
+
+        var result = await service.CancelAppointmentAsync(1, request);
+
+        Assert.Equal(1, result.Id);
     }
 
     [Fact]
@@ -222,7 +309,31 @@ public class ReceptionServiceTests
         Assert.Equal(1, result.TokenNumber);
 
         _checkInRepositoryMock.Verify(x => x.AddAsync(It.IsAny<PatientCheckIn>()), Times.Once);
+        _checkInRepositoryMock.Verify(x => x.SaveChangesAsync(), Times.Once);
         _queueRepositoryMock.Verify(x => x.AddAsync(It.IsAny<QueueToken>()), Times.Once);
+        _queueRepositoryMock.Verify(x => x.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CheckInAsync_ShouldThrow_WhenPatientNotFound()
+    {
+        var service = CreateService();
+
+        var request = new CheckInRequestDto
+        {
+            PatientId = 1,
+            AppointmentId = 1,
+            DoctorId = 1,
+            DepartmentId = 1,
+            CheckInTimeUtc = DateTime.UtcNow
+        };
+
+        _patientsApiClientMock
+            .Setup(x => x.GetPatientSummaryAsync(1))
+            .ReturnsAsync((ReceptionPatientSummaryDto?)null);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CheckInAsync(request));
     }
 
     [Fact]
@@ -240,6 +351,70 @@ public class ReceptionServiceTests
     }
 
     [Fact]
+    public async Task GetCheckInByIdAsync_ShouldReturnCheckIn_WhenFound()
+    {
+        var service = CreateService();
+
+        var checkIn = new PatientCheckIn
+        {
+            Id = 1,
+            PatientId = 1,
+            UHID = "UHID001",
+            AppointmentId = 1,
+            DoctorId = 1,
+            DepartmentId = 1,
+            CheckInTimeUtc = DateTime.UtcNow,
+            TokenNumber = 1,
+            Status = "CheckedIn"
+        };
+
+        _checkInRepositoryMock
+            .Setup(x => x.GetByIdAsync(1))
+            .ReturnsAsync(checkIn);
+
+        var result = await service.GetCheckInByIdAsync(1);
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.CheckInId);
+        Assert.Equal("CheckedIn", result.Status);
+    }
+
+    [Fact]
+    public async Task GetDepartmentQueueAsync_ShouldReturnQueue()
+    {
+        var service = CreateService();
+
+        var date = DateOnly.FromDateTime(DateTime.Today);
+
+        var queueItems = new List<QueueToken>
+        {
+            new QueueToken
+            {
+                Id = 1,
+                DepartmentId = 1,
+                QueueDate = date,
+                TokenNumber = 1,
+                PatientId = 1,
+                UHID = "UHID001",
+                PatientName = "Tushar Sharma",
+                AppointmentId = 1,
+                DoctorId = 1,
+                Status = "Waiting"
+            }
+        };
+
+        _queueRepositoryMock
+            .Setup(x => x.GetDepartmentQueueAsync(1, date))
+            .ReturnsAsync(queueItems);
+
+        var result = await service.GetDepartmentQueueAsync(1, date);
+
+        Assert.Equal(1, result.DepartmentId);
+        Assert.Single(result.Queue);
+        Assert.Equal("Tushar Sharma", result.Queue[0].PatientName);
+    }
+
+    [Fact]
     public async Task CreateInvoiceAsync_ShouldThrow_WhenPatientIdInvalid()
     {
         var service = CreateService();
@@ -250,6 +425,58 @@ public class ReceptionServiceTests
             AppointmentId = 1,
             ConsultationFee = 500
         };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateInvoiceAsync(request));
+    }
+
+    [Fact]
+    public async Task CreateInvoiceAsync_ShouldThrow_WhenAppointmentIdInvalid()
+    {
+        var service = CreateService();
+
+        var request = new CreateInvoiceRequestDto
+        {
+            PatientId = 1,
+            AppointmentId = 0,
+            ConsultationFee = 500
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateInvoiceAsync(request));
+    }
+
+    [Fact]
+    public async Task CreateInvoiceAsync_ShouldThrow_WhenConsultationFeeNegative()
+    {
+        var service = CreateService();
+
+        var request = new CreateInvoiceRequestDto
+        {
+            PatientId = 1,
+            AppointmentId = 1,
+            ConsultationFee = -1
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateInvoiceAsync(request));
+    }
+
+    [Fact]
+    public async Task CreateInvoiceAsync_ShouldThrow_WhenPatientNotFound()
+    {
+        var service = CreateService();
+
+        var request = new CreateInvoiceRequestDto
+        {
+            PatientId = 1,
+            AppointmentId = 1,
+            ConsultationFee = 500
+        };
+
+        _patientsApiClientMock
+            .Setup(x => x.GetPatientSummaryAsync(1))
+            .ReturnsAsync((ReceptionPatientSummaryDto?)null);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             service.CreateInvoiceAsync(request));
@@ -291,6 +518,75 @@ public class ReceptionServiceTests
     }
 
     [Fact]
+    public async Task GetInvoiceByIdAsync_ShouldReturnInvoice_WhenValid()
+    {
+        var service = CreateService();
+
+        _billingApiClientMock
+            .Setup(x => x.GetInvoiceByIdAsync(1))
+            .ReturnsAsync(GetInvoice());
+
+        var result = await service.GetInvoiceByIdAsync(1);
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.Id);
+    }
+
+    [Fact]
+    public async Task GetInvoicesByPatientIdAsync_ShouldThrow_WhenPatientIdInvalid()
+    {
+        var service = CreateService();
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.GetInvoicesByPatientIdAsync(0));
+    }
+
+    [Fact]
+    public async Task GetInvoicesByPatientIdAsync_ShouldReturnInvoices_WhenValid()
+    {
+        var service = CreateService();
+
+        _billingApiClientMock
+            .Setup(x => x.GetInvoicesByPatientIdAsync(1))
+            .ReturnsAsync(new List<InvoiceResponseDto> { GetInvoice() });
+
+        var result = await service.GetInvoicesByPatientIdAsync(1);
+
+        Assert.Single(result);
+        Assert.Equal(1, result[0].PatientId);
+    }
+
+    [Fact]
+    public async Task AddInvoiceItemAsync_ShouldThrow_WhenInvoiceIdInvalid()
+    {
+        var service = CreateService();
+
+        var request = new AddInvoiceItemRequestDto
+        {
+            ServiceName = "X-Ray",
+            Amount = 500
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.AddInvoiceItemAsync(0, request));
+    }
+
+    [Fact]
+    public async Task AddInvoiceItemAsync_ShouldThrow_WhenServiceNameMissing()
+    {
+        var service = CreateService();
+
+        var request = new AddInvoiceItemRequestDto
+        {
+            ServiceName = "",
+            Amount = 500
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.AddInvoiceItemAsync(1, request));
+    }
+
+    [Fact]
     public async Task AddInvoiceItemAsync_ShouldThrow_WhenAmountInvalid()
     {
         var service = CreateService();
@@ -303,6 +599,71 @@ public class ReceptionServiceTests
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             service.AddInvoiceItemAsync(1, request));
+    }
+
+    [Fact]
+    public async Task AddInvoiceItemAsync_ShouldReturnInvoice_WhenValid()
+    {
+        var service = CreateService();
+
+        var request = new AddInvoiceItemRequestDto
+        {
+            ServiceName = "X-Ray",
+            Amount = 500
+        };
+
+        _billingApiClientMock
+            .Setup(x => x.AddInvoiceItemAsync(1, request))
+            .ReturnsAsync(GetInvoice());
+
+        var result = await service.AddInvoiceItemAsync(1, request);
+
+        Assert.Equal(1, result.Id);
+    }
+
+    [Fact]
+    public async Task AddPaymentAsync_ShouldThrow_WhenInvoiceIdInvalid()
+    {
+        var service = CreateService();
+
+        var request = new PaymentRequestDto
+        {
+            Amount = 500,
+            PaymentMode = "Cash"
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.AddPaymentAsync(0, request));
+    }
+
+    [Fact]
+    public async Task AddPaymentAsync_ShouldThrow_WhenAmountInvalid()
+    {
+        var service = CreateService();
+
+        var request = new PaymentRequestDto
+        {
+            Amount = 0,
+            PaymentMode = "Cash"
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.AddPaymentAsync(1, request));
+    }
+
+    [Fact]
+    public async Task AddPaymentAsync_ShouldThrow_WhenPaymentModeMissing()
+    {
+        var service = CreateService();
+
+        var request = new PaymentRequestDto
+        {
+            Amount = 500,
+            PaymentMode = ""
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.AddPaymentAsync(1, request));
     }
 
     [Fact]
