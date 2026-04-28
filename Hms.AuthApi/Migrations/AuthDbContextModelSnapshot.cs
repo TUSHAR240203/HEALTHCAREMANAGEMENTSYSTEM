@@ -156,7 +156,9 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAtUtc = new DateTime(2026, 4, 22, 7, 9, 23, 731, DateTimeKind.Utc).AddTicks(3029),
+                            CreatedAtUtc = new DateTime(2026, 4, 25, 4, 35, 12, 634, DateTimeKind.Utc).AddTicks(6388),
+
+                      //      CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(8937),
                             IsDeleted = false,
                             Name = "Admin",
                             NormalizedName = "ADMIN"
@@ -164,7 +166,8 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAtUtc = new DateTime(2026, 4, 22, 7, 9, 23, 731, DateTimeKind.Utc).AddTicks(3086),
+                            CreatedAtUtc = new DateTime(2026, 4, 25, 4, 35, 12, 634, DateTimeKind.Utc).AddTicks(6419),
+                      //      CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9089),
                             IsDeleted = false,
                             Name = "Patient",
                             NormalizedName = "PATIENT"
@@ -172,7 +175,8 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAtUtc = new DateTime(2026, 4, 22, 7, 9, 23, 731, DateTimeKind.Utc).AddTicks(3090),
+                            CreatedAtUtc = new DateTime(2026, 4, 25, 4, 35, 12, 634, DateTimeKind.Utc).AddTicks(6422),
+                      //      CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9096),
                             IsDeleted = false,
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
@@ -180,7 +184,9 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAtUtc = new DateTime(2026, 4, 22, 7, 9, 23, 731, DateTimeKind.Utc).AddTicks(3094),
+                            CreatedAtUtc = new DateTime(2026, 4, 25, 4, 35, 12, 634, DateTimeKind.Utc).AddTicks(6424),
+
+                       //     CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9101),
                             IsDeleted = false,
                             Name = "Receptionist",
                             NormalizedName = "RECEPTIONIST"
@@ -210,18 +216,48 @@ namespace Hms.AuthApi.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsFirstLoginCompleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOtpLoginEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsPasswordLoginEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LoginId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("MobileNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MobileNumber")
-                        .IsUnique();
+                    b.HasIndex("LoginId")
+                        .IsUnique()
+                        .HasFilter("[LoginId] IS NOT NULL");
+
+                    b.HasIndex("MobileNumber");
 
                     b.ToTable("Users", (string)null);
                 });

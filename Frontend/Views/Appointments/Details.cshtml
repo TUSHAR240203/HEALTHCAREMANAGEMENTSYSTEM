@@ -4,59 +4,76 @@
     ViewData["Title"] = "Appointment Details";
     var patientName = Model.Patient?.FullName ?? $"Patient #{Model.Appointment.PatientId}";
     var doctorName = Model.Doctor?.FullName ?? Model.Appointment.DoctorName ?? $"Doctor #{Model.Appointment.DoctorId}";
+    var isPatient = string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase);
+    var rescheduleDoctor = Model.Doctors.FirstOrDefault(d => d.Id == Model.RescheduleDoctorId) ?? Model.Doctor;
 }
-<div class="page-header">
+<div class="page-header appointment-detail-header">
     <div>
-        <h1>Appointment #@Model.Appointment.Id</h1>
-        <p class="page-subtitle">Patient, doctor, slot, status, and actions in one place.</p>
+        <span class="badge-soft text-white"><i class="bi bi-calendar2-check"></i> Appointment #@Model.Appointment.Id</span>
+        <h1 class="mt-3">Appointment Details</h1>
+        <p class="page-subtitle">Clear appointment summary, patient and doctor profile, and reschedule actions.</p>
     </div>
     <a asp-action="Index" class="btn btn-outline-primary">Back to Appointments</a>
 </div>
 @if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert alert-success">@Model.Message</div> }
 @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
 
-<div class="row g-4 mb-4">
-    <div class="col-lg-6">
-        <div class="content-card h-100 p-4">
-            <div class="doctor-summary">
-                @if (!string.IsNullOrWhiteSpace(Model.Patient?.PhotoUrl)) { <img src="@Model.Patient.PhotoUrl" class="avatar-large-img" /> } else { <div class="tile-icon"><i class="bi bi-person"></i></div> }
-                <div><small class="text-muted">Patient</small><h2 class="h5 mb-1">@patientName</h2><span>UHID: @Model.Appointment.UHID</span><small>Mobile: @(Model.Patient?.MobileNumber ?? "N/A")</small></div>
+<div class="content-card appointment-overview-card mb-4">
+    <div class="row g-0 align-items-stretch">
+        <div class="col-xl-4 appointment-profile-panel">
+            <div class="appointment-profile-photo">
+                @if (!string.IsNullOrWhiteSpace(Model.Patient?.PhotoUrl)) { <img src="@Model.Patient.PhotoUrl" alt="@patientName" /> } else { <span><i class="bi bi-person"></i></span> }
             </div>
+            <small>Patient</small>
+            <h2>@patientName</h2>
+            <p class="mb-1">UHID: @Model.Appointment.UHID</p>
+            <p class="mb-0">Mobile: @(Model.Patient?.MobileNumber ?? "N/A")</p>
         </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="content-card h-100 p-4">
-            <div class="doctor-summary">
-                @if (!string.IsNullOrWhiteSpace(Model.Doctor?.PhotoUrl)) { <img src="@Model.Doctor.PhotoUrl" class="avatar-large-img" /> } else { <div class="tile-icon"><i class="bi bi-heart-pulse"></i></div> }
-                <div><small class="text-muted">Doctor</small><h2 class="h5 mb-1">@doctorName</h2><span>@(Model.Doctor?.Specialization ?? "Specialization N/A")</span><small>@Model.Appointment.DepartmentName</small></div>
+        <div class="col-xl-4 appointment-profile-panel doctor-panel">
+            <div class="appointment-profile-photo">
+                @if (!string.IsNullOrWhiteSpace(Model.Doctor?.PhotoUrl)) { <img src="@Model.Doctor.PhotoUrl" alt="@doctorName" /> } else { <span><i class="bi bi-heart-pulse"></i></span> }
+            </div>
+            <small>Doctor</small>
+            <h2>@doctorName</h2>
+            <p class="mb-1">@(Model.Doctor?.Specialization ?? "Specialization N/A")</p>
+            <p class="mb-0">@Model.Appointment.DepartmentName</p>
+        </div>
+        <div class="col-xl-4 appointment-summary-panel">
+            <div class="status-chip status-@Model.Appointment.Status.ToString().ToLowerInvariant()">@Model.Appointment.Status</div>
+            <div class="summary-grid">
+                <div><span>Date</span><strong>@Model.Appointment.AppointmentDate.ToString("dd MMM yyyy")</strong></div>
+                <div><span>Time</span><strong>@Model.Appointment.SlotStartTime.ToString("hh:mm tt") - @Model.Appointment.SlotEndTime.ToString("hh:mm tt")</strong></div>
+                <div><span>Visit</span><strong>@Model.Appointment.VisitType</strong></div>
+                <div><span>Mode</span><strong>@(Model.Appointment.IsTeleConsultation ? "Tele-consultation" : "In-clinic")</strong></div>
+            </div>
+            <div class="reason-box mt-3">
+                <span>Reason for visit</span>
+                <p>@(string.IsNullOrWhiteSpace(Model.Appointment.ReasonForVisit) ? "N/A" : Model.Appointment.ReasonForVisit)</p>
             </div>
         </div>
     </div>
 </div>
 
-<div class="content-card p-4 mb-4">
-    <div class="row g-3">
-        <div class="col-md-3"><div class="profile-stat"><div class="label">Date</div><div class="value">@Model.Appointment.AppointmentDate.ToString("dd MMM yyyy")</div></div></div>
-        <div class="col-md-3"><div class="profile-stat"><div class="label">Time</div><div class="value">@Model.Appointment.SlotStartTime.ToString("hh:mm tt") - @Model.Appointment.SlotEndTime.ToString("hh:mm tt")</div></div></div>
-        <div class="col-md-3"><div class="profile-stat"><div class="label">Visit</div><div class="value">@Model.Appointment.VisitType</div></div></div>
-        <div class="col-md-3"><div class="profile-stat"><div class="label">Status</div><div class="value">@Model.Appointment.Status</div></div></div>
-        <div class="col-12"><strong>Reason:</strong> @(string.IsNullOrWhiteSpace(Model.Appointment.ReasonForVisit) ? "N/A" : Model.Appointment.ReasonForVisit)</div>
-    </div>
-</div>
-
-<div class="row g-4">
-    <div class="col-lg-5">
-        <div class="card border-0 h-100">
-            <div class="card-header"><h2 class="h5 mb-0">Reschedule like seat booking</h2></div>
+<div class="row g-4 appointment-actions-row">
+    <div class="@(isPatient ? "col-lg-8" : "col-xl-6")">
+        <div class="card border-0 h-100 professional-action-card">
+            <div class="card-header">
+                <h2 class="h5 mb-1"><i class="bi bi-calendar2-week me-2 text-primary"></i>Reschedule Appointment</h2>
+                <p class="text-muted mb-0">Booked slots are visible and locked, so patients can only choose free slots.</p>
+            </div>
             <div class="card-body p-4">
-                <div class="reschedule-movie-panel mb-3">
-                    <strong>@doctorName</strong>
-                    <div class="text-muted small">Pick a date, then choose one free slot. Booked slots stay visible but locked.</div>
-                </div>
-                <form asp-action="Details" method="get" class="mb-3">
+                <form asp-action="Details" method="get" class="row g-3 mb-4 align-items-end">
                     <input type="hidden" name="id" value="@Model.Appointment.Id" />
-                    <label class="form-label">Select date</label>
-                    <input name="rescheduleDate" type="date" class="form-control" value="@Model.Reschedule.NewAppointmentDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+                    <div class="col-md-7">
+                        <div class="selected-doctor-mini h-100">
+                            @if (!string.IsNullOrWhiteSpace(Model.Doctor?.PhotoUrl)) { <img src="@Model.Doctor.PhotoUrl" alt="@doctorName" /> } else { <span><i class="bi bi-person-badge"></i></span> }
+                            <div><strong>@doctorName</strong><small>@(Model.Doctor?.Specialization ?? "Specialization N/A")</small></div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Date</label>
+                        <input name="rescheduleDate" type="date" class="form-control" value="@Model.Reschedule.NewAppointmentDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+                    </div>
                 </form>
                 <form asp-action="Reschedule" asp-route-id="@Model.Appointment.Id" method="post">
                     @Html.AntiForgeryToken()
@@ -69,7 +86,7 @@
                             <label class="slot-pill @(slot.IsBooked ? "booked" : "available")" for="@sid">
                                 <i class="bi @(slot.IsBooked ? "bi-lock-fill" : "bi-check-circle")"></i>
                                 <span>@slot.Label</span>
-                                <small>@(slot.IsBooked ? "Booked" : "Free")</small>
+                                <small>@(slot.IsBooked ? "Booked" : "Available")</small>
                             </label>
                         }
                     </div>
@@ -80,10 +97,32 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-3">
-        <div class="card border-0 h-100"><div class="card-header"><h2 class="h5 mb-0">Cancel</h2></div><div class="card-body p-4"><form asp-action="Cancel" asp-route-id="@Model.Appointment.Id" method="post">@Html.AntiForgeryToken()<textarea asp-for="Cancel.Reason" class="form-control mb-3" rows="5" placeholder="Reason"></textarea><button class="btn btn-danger w-100">Cancel</button></form></div></div>
+    <div class="@(isPatient ? "col-lg-4" : "col-xl-3")">
+        <div class="card border-0 h-100 professional-action-card">
+            <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-x-circle me-2 text-danger"></i>Cancel Appointment</h2></div>
+            <div class="card-body p-4">
+                <p class="text-muted">Cancel only when you cannot attend this appointment.</p>
+                <form asp-action="Cancel" asp-route-id="@Model.Appointment.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <textarea asp-for="Cancel.Reason" class="form-control mb-3" rows="5" placeholder="Reason for cancellation"></textarea>
+                    <button class="btn btn-danger w-100">Cancel Appointment</button>
+                </form>
+            </div>
+        </div>
     </div>
-    <div class="col-lg-4">
-        <div class="card border-0 h-100"><div class="card-header"><h2 class="h5 mb-0">Complete</h2></div><div class="card-body p-4"><form asp-action="Complete" asp-route-id="@Model.Appointment.Id" method="post">@Html.AntiForgeryToken()<textarea asp-for="Complete.Notes" class="form-control mb-3" rows="5" placeholder="Consultation notes"></textarea><button class="btn btn-success w-100">Mark completed</button></form></div></div>
-    </div>
+    @if (!isPatient)
+    {
+        <div class="col-xl-3">
+            <div class="card border-0 h-100 professional-action-card">
+                <div class="card-header"><h2 class="h5 mb-0"><i class="bi bi-check2-circle me-2 text-success"></i>Complete</h2></div>
+                <div class="card-body p-4">
+                    <form asp-action="Complete" asp-route-id="@Model.Appointment.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <textarea asp-for="Complete.Notes" class="form-control mb-3" rows="5" placeholder="Consultation notes"></textarea>
+                        <button class="btn btn-success w-100">Mark Completed</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
 </div>

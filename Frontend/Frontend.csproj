@@ -10,4 +10,9 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.34.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\uploads\admins\" />
+    <Folder Include="wwwroot\uploads\receptionists\" />
+  </ItemGroup>
+
 </Project>
