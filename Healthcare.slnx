@@ -1,15 +1,23 @@
 <Solution>
-  <Project Path="Frontend/Frontend.csproj" Id="fbebe9e7-3ce3-44f7-9a73-ae4c519baea7">
-    <Build Solution="Debug|*" Project="false" />
-  </Project>
-  <Project Path="HealthcareGateway/HealthcareGateway.csproj" />
   <Project Path="Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
+  <Project Path="Hms.DoctorsApi/Hms.DoctorsApi.csproj" />
+
+  <Folder Name="/Tests/">
+    <Project Path="Hms.AuthApi.Tests/Hms.AuthApi.Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="Hms.BillingApi.Tests/Hms.BillingApi.Tests.csproj" />
+    <Project Path="Hms.DoctorsApi.Tests/Hms.DoctorsApi.Tests.csproj" />
+    <Project Path="Hms.PatientsApi.Tests/Hms.PatientsApi.Tests.csproj" />
+    <Project Path="Hms.ReceptionApi.Tests/Hms.ReceptionApi.Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
+
+  <Project Path="Frontend/Frontend.csproj" />
+  <Project Path="HealthcareGateway/HealthcareGateway.csproj" />
   <Project Path="Hms.AuthApi/Hms.AuthApi.csproj" />
-  <Project Path="Hms.BillingApi.Tests/Hms.BillingApi.Tests.csproj" />
   <Project Path="Hms.BillingApi/Hms.BillingApi.csproj" />
-  <Project Path="Hms.DoctorsApi/Hms.DoctorsApi.csproj">
-    <Build Solution="Debug|*" Project="false" />
-  </Project>
   <Project Path="Hms.PatientsApi/Hms.PatientsApi.csproj" />
   <Project Path="Hms.ReceptionApi/Hms.ReceptionApi.csproj" />
 </Solution>
