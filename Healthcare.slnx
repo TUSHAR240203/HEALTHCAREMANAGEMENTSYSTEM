@@ -8,7 +8,9 @@
     <Build Solution="Debug|*" Project="false" />
   </Project>
   <Project Path="Hms.AuthApi/Hms.AuthApi.csproj" />
-  <Project Path="Hms.BillingApi.Tests/Hms.BillingApi.Tests.csproj" />
+  <Project Path="Hms.BillingApi.Tests/Hms.BillingApi.Tests.csproj">
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
   <Project Path="Hms.BillingApi/Hms.BillingApi.csproj" />
   <Project Path="Hms.PatientsApi/Hms.PatientsApi.csproj" />
   <Project Path="Hms.ReceptionApi.Tests/Hms.ReceptionApi.Tests.csproj">
