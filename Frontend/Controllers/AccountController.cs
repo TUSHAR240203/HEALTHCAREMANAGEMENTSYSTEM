@@ -22,9 +22,14 @@ namespace Frontend.Controllers
         }
 
         [HttpGet]
-        public IActionResult StaffLogin()
+        public IActionResult StaffLogin(string? mobileNumber = null, bool otpSent = false)
         {
-            return View(new StaffLoginViewModel());
+            return View(new StaffLoginViewModel
+            {
+                MobileNumber = mobileNumber ?? string.Empty,
+                LoginId = mobileNumber ?? string.Empty,
+                OtpSent = otpSent
+            });
         }
 
         [HttpPost]
@@ -35,46 +40,66 @@ namespace Frontend.Controllers
 
             if (submitButton == "sendOtp")
             {
-                if (string.IsNullOrWhiteSpace(model.LoginId) &&
-                    string.IsNullOrWhiteSpace(model.MobileNumber))
+                var loginValue = !string.IsNullOrWhiteSpace(model.MobileNumber)
+                    ? model.MobileNumber.Trim()
+                    : model.LoginId?.Trim();
+
+                if (string.IsNullOrWhiteSpace(loginValue))
                 {
                     ModelState.AddModelError(string.Empty, "Login ID or mobile number is required.");
                     return View(model);
                 }
 
-                var loginValue = !string.IsNullOrWhiteSpace(model.LoginId)
-                    ? model.LoginId
-                    : model.MobileNumber;
-
                 var otpResult = await _authGatewayService.SendStaffLoginOtpAsync(loginValue);
 
-                if (!otpResult.Success)
+                var otpMessage = otpResult.Message ?? string.Empty;
+
+                var isOtpSuccess =
+                    otpResult.Success ||
+                    otpMessage.Contains("successfully", StringComparison.OrdinalIgnoreCase) ||
+                    otpMessage.Contains("OTP sent", StringComparison.OrdinalIgnoreCase) ||
+                    otpMessage.Contains("login OTP sent", StringComparison.OrdinalIgnoreCase);
+
+                if (!isOtpSuccess)
                 {
-                    ModelState.AddModelError(string.Empty, otpResult.Message);
+                    ModelState.AddModelError(string.Empty, otpMessage);
+                    model.OtpSent = false;
                     return View(model);
                 }
 
-                TempData["Success"] = "OTP sent successfully. Check the Auth API console output.";
+                ModelState.Clear();
+
                 model.OtpSent = true;
+                model.MobileNumber = loginValue;
+                model.LoginId = loginValue;
+
+                ViewBag.Success = string.IsNullOrWhiteSpace(otpMessage)
+                    ? "Staff login OTP sent successfully."
+                    : otpMessage;
+
                 return View(model);
             }
 
             if (submitButton == "verifyOtp")
             {
-                if (string.IsNullOrWhiteSpace(model.OtpCode) ||
-                    (string.IsNullOrWhiteSpace(model.LoginId) &&
-                     string.IsNullOrWhiteSpace(model.MobileNumber)))
+                var loginValue = !string.IsNullOrWhiteSpace(model.MobileNumber)
+                    ? model.MobileNumber.Trim()
+                    : model.LoginId?.Trim();
+
+                if (string.IsNullOrWhiteSpace(loginValue) ||
+                    string.IsNullOrWhiteSpace(model.OtpCode))
                 {
                     ModelState.AddModelError(string.Empty, "Login ID/mobile number and OTP are required.");
                     model.OtpSent = true;
+                    model.MobileNumber = loginValue ?? string.Empty;
                     return View(model);
                 }
 
                 result = await _authGatewayService.StaffOtpLoginAsync(new StaffOtpLoginRequestDto
                 {
-                    LoginId = model.LoginId,
-                    MobileNumber = model.MobileNumber,
-                    OtpCode = model.OtpCode
+                    LoginId = loginValue,
+                    MobileNumber = loginValue,
+                    OtpCode = model.OtpCode.Trim()
                 });
             }
             else
@@ -88,7 +113,7 @@ namespace Frontend.Controllers
 
                 result = await _authGatewayService.StaffLoginAsync(new StaffLoginRequestDto
                 {
-                    LoginId = model.LoginId,
+                    LoginId = model.LoginId.Trim(),
                     Password = model.Password
                 });
             }
@@ -288,8 +313,8 @@ namespace Frontend.Controllers
                 var request = new PatientLoginRequestDto
                 {
                     PatientId = model.PatientId,
-                    MobileNumber = model.MobileNumber,
-                    OtpCode = model.OtpCode
+                    MobileNumber = model.MobileNumber.Trim(),
+                    OtpCode = model.OtpCode.Trim()
                 };
 
                 var result = await _authGatewayService.LoginAsync(request);
@@ -305,10 +330,14 @@ namespace Frontend.Controllers
                 TempData["Success"] = "Login successful.";
 
                 if (!result.Data.IsFirstLoginCompleted)
+                {
                     return RedirectToAction(nameof(AuthPreference));
+                }
 
                 if (!result.Data.IsProfileCompleted)
+                {
                     return RedirectToAction(nameof(CompleteProfile));
+                }
 
                 return RedirectToAction("Dashboard", "PatientPortal");
             }
@@ -503,17 +532,30 @@ namespace Frontend.Controllers
             return RedirectToAction(nameof(StaffLogin));
         }
 
-private IActionResult RedirectAfterLogin(string? role)
-{
-    if (string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase))
-    {
-        return RedirectToAction("Dashboard", "PatientPortal");
-    }
+        private IActionResult RedirectAfterLogin(string? role)
+        {
+            if (string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase))
+            {
+                return RedirectToAction("Dashboard", "PatientPortal");
+            }
 
-    // Admin, Receptionist, Doctor and other staff roles use the existing
-    // role-aware Home dashboard.
-    return RedirectToAction("Index", "Home");
-}
+            return RedirectToAction("Index", "Home");
+        }
+
+        private static string? GetStaffOtpLoginValue(StaffLoginViewModel model)
+        {
+            if (!string.IsNullOrWhiteSpace(model.MobileNumber))
+            {
+                return model.MobileNumber.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.LoginId))
+            {
+                return model.LoginId.Trim();
+            }
+
+            return null;
+        }
 
         private async Task SetPatientAuthSessionAsync(AuthResponseDto data, int fallbackPatientId)
         {
