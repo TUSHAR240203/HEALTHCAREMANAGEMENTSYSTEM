@@ -4,6 +4,7 @@ using Hms.AppointmentsApi.Entities;
 using Hms.AppointmentsApi.Enums;
 using Hms.AppointmentsApi.Interfaces.Repository;
 using Hms.AppointmentsApi.Interfaces.Services;
+using Hms.AppointmentsApi.Interfaces.Clients;
 
 namespace Hms.AppointmentsApi.Services;
 
@@ -11,15 +12,38 @@ public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly IMapper _mapper;
+    private readonly IDoctorsApiClient _doctorsApiClient;
 
-    public AppointmentService(IAppointmentRepository appointmentRepository, IMapper mapper)
+    public AppointmentService(
+    IAppointmentRepository appointmentRepository,
+    IDoctorsApiClient doctorsApiClient,
+    IMapper mapper)
     {
         _appointmentRepository = appointmentRepository;
+        _doctorsApiClient = doctorsApiClient;
         _mapper = mapper;
     }
 
     public async Task<AppointmentResponseDto> CreateAsync(CreateAppointmentRequestDto request)
     {
+        var availability = await _doctorsApiClient.GetAvailabilityAsync(
+            request.DoctorId,
+            request.AppointmentDate,
+            request.IsTeleConsultation);
+
+        if (availability == null)
+            throw new InvalidOperationException("Unable to verify doctor availability.");
+
+        var selectedSlot = availability.Slots.FirstOrDefault(x =>
+            x.SlotStartTime == request.SlotStartTime &&
+            x.SlotEndTime == request.SlotEndTime);
+
+        if (selectedSlot == null || !selectedSlot.IsAvailable)
+        {
+            throw new InvalidOperationException(
+                availability.Message ?? "Selected appointment slot is not available.");
+        }
+
         var slotBooked = await _appointmentRepository.IsSlotBookedAsync(
             request.DoctorId,
             request.AppointmentDate,
@@ -87,6 +111,24 @@ public class AppointmentService : IAppointmentService
 
         if (appointment.Status == AppointmentStatus.Completed)
             throw new InvalidOperationException("Completed appointment cannot be rescheduled.");
+
+        var availability = await _doctorsApiClient.GetAvailabilityAsync(
+    appointment.DoctorId,
+    request.NewAppointmentDate,
+    appointment.IsTeleConsultation);
+
+        if (availability == null)
+            throw new InvalidOperationException("Unable to verify doctor availability.");
+
+        var selectedSlot = availability.Slots.FirstOrDefault(x =>
+            x.SlotStartTime == request.NewSlotStartTime &&
+            x.SlotEndTime == request.NewSlotEndTime);
+
+        if (selectedSlot == null || !selectedSlot.IsAvailable)
+        {
+            throw new InvalidOperationException(
+                availability.Message ?? "Selected appointment slot is not available.");
+        }
 
         var slotBooked = await _appointmentRepository.IsSlotBookedAsync(
             appointment.DoctorId,

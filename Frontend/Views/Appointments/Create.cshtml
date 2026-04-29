@@ -1,8 +1,8 @@
 @using Frontend.Models.ViewModels
 @model AdminAppointmentBookingViewModel
-
 @{
     ViewData["Title"] = "Create Appointment";
+    var availabilityMessage = ViewBag.AvailabilityMessage as string;
 }
 
 <div class="page-header">
@@ -82,18 +82,24 @@
 <form asp-action="Create" method="post">
     @Html.AntiForgeryToken()
 
-    <input type="hidden" name="DoctorId" value="@Model.DoctorId" />
-    <input type="hidden" name="AppointmentDate" value="@Model.AppointmentDate.ToString("yyyy-MM-dd")" />
+    <input asp-for="DoctorId" type="hidden" />
+    <input asp-for="AppointmentDate" type="hidden" value="@Model.AppointmentDate.ToString("yyyy-MM-dd")" />
 
     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    @if (!string.IsNullOrWhiteSpace(availabilityMessage))
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            @availabilityMessage
+        </div>
+    }
 
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card border-0">
                 <div class="card-header">
-                    <h2 class="h5 mb-0">
-                        Free slots for @Model.AppointmentDate.ToString("dd MMM yyyy")
-                    </h2>
+                    <h2 class="h5 mb-0">Free slots for @Model.AppointmentDate.ToString("dd MMM yyyy")</h2>
                 </div>
 
                 <div class="card-body p-4">
@@ -102,6 +108,17 @@
                         <div class="empty-state">
                             <h3>No active doctors</h3>
                             <p>Activate doctors first in Doctors module.</p>
+                        </div>
+                    }
+                    else if (!Model.Slots.Any())
+                    {
+                        <div class="empty-state">
+                            <h3>No available slots</h3>
+                            <p>
+                                @(string.IsNullOrWhiteSpace(availabilityMessage)
+                                                            ? "The selected doctor has no available slots for this date."
+                                                            : availabilityMessage)
+                            </p>
                         </div>
                     }
                     else
@@ -122,7 +139,7 @@
                                 <label class="slot-pill @(slot.IsBooked ? "booked" : "available")" for="@id">
                                     <i class="bi @(slot.IsBooked ? "bi-lock-fill" : "bi-check-circle")"></i>
                                     <span>@slot.Label</span>
-                                    <small>@(slot.IsBooked ? "Booked" : "Available")</small>
+                                    <small>@(slot.IsBooked ? "Unavailable" : "Available")</small>
                                 </label>
                             }
                         </div>
@@ -165,30 +182,26 @@
                     <div class="mb-3">
                         <label asp-for="PatientId" class="form-label"></label>
                         <input asp-for="PatientId" class="form-control" placeholder="Patient ID" />
-                        <span asp-validation-for="PatientId" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="UHID" class="form-label"></label>
                         <input asp-for="UHID" class="form-control" placeholder="UHID" />
-                        <span asp-validation-for="UHID" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="VisitType" class="form-label"></label>
                         <select asp-for="VisitType" class="form-select">
-                            <option value="OPD">OPD</option>
-                            <option value="New Visit">New Visit</option>
-                            <option value="Follow-up">Follow-up</option>
-                            <option value="Emergency">Emergency</option>
+                            <option>OPD</option>
+                            <option>New Visit</option>
+                            <option>Follow-up</option>
+                            <option>Emergency</option>
                         </select>
-                        <span asp-validation-for="VisitType" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="ReasonForVisit" class="form-label"></label>
                         <textarea asp-for="ReasonForVisit" class="form-control" rows="3"></textarea>
-                        <span asp-validation-for="ReasonForVisit" class="text-danger"></span>
                     </div>
 
                     <div class="form-check form-switch mb-4">
@@ -196,9 +209,18 @@
                         <label asp-for="IsTeleConsultation" class="form-check-label"></label>
                     </div>
 
-                    <button class="btn btn-primary w-100" type="submit">
+                    <button class="btn btn-primary w-100"
+                            type="submit"
+                            disabled="@(!Model.Slots.Any(s => !s.IsBooked))">
                         Book Appointment
                     </button>
+
+                    @if (!Model.Slots.Any(s => !s.IsBooked))
+                    {
+                        <div class="small text-muted mt-2">
+                            Booking is disabled because no available slot is selected for this doctor and date.
+                        </div>
+                    }
                 </div>
             </div>
         </div>

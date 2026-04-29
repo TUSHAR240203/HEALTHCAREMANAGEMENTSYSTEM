@@ -1,0 +1,109 @@
+﻿@model List<Frontend.Models.Doctors.DoctorScheduleResponseDto>
+@{
+    ViewData["Title"] = "My Schedule";
+    var doctorName = ViewBag.DoctorName as string;
+}
+
+<div class="page-header">
+    <div>
+        <span class="badge-soft">
+            <i class="bi bi-clock-history"></i> Schedule
+        </span>
+        <h1>My Schedule</h1>
+        <p class="page-subtitle">
+            Manage your weekly availability. Appointment slots are generated from this schedule.
+        </p>
+    </div>
+
+    <a asp-action="AddMySchedule" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Add Schedule
+    </a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(doctorName))
+{
+    <div class="alert alert-info">
+        Schedule for <strong>@doctorName</strong>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <h3>No schedule added</h3>
+        <p>Add your working hours so patients and reception can book appointments.</p>
+        <a asp-action="AddMySchedule" class="btn btn-primary">Add Schedule</a>
+    </div>
+}
+else
+{
+    <div class="card border-0 queue-board">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 professional-table">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Working Hours</th>
+                            <th>Break</th>
+                            <th>Slot Duration</th>
+                            <th>Max Patients</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var item in Model.OrderBy(x => x.DayOfWeek))
+                        {
+                            <tr>
+                                <td>@item.DayOfWeek</td>
+
+                                <td>
+                                    @item.StartTime.ToString("hh\\:mm tt")
+                                    -
+                                    @item.EndTime.ToString("hh\\:mm tt")
+                                </td>
+
+                                <td>
+                                    @if (item.BreakStartTime.HasValue && item.BreakEndTime.HasValue)
+                                    {
+                                        <span>
+                                            @item.BreakStartTime.Value.ToString("hh\\:mm tt")
+                                            -
+                                            @item.BreakEndTime.Value.ToString("hh\\:mm tt")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+
+                                <td>@item.SlotDurationMinutes min</td>
+
+                                <td>@(item.MaxPatientsPerDay?.ToString() ?? "No limit")</td>
+
+                                <td>
+                                    <span class="queue-status-pill small">
+                                        @(item.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+
+                                <td class="text-end">
+                                    <form asp-action="DeleteMySchedule" method="post" onsubmit="return confirm('Delete this schedule?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="scheduleId" value="@item.Id" />
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

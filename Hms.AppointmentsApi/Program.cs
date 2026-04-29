@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Text.Json.Serialization;
+using Hms.AppointmentsApi.Clients;
+using Hms.AppointmentsApi.Interfaces.Clients;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -38,6 +41,10 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
         return new BadRequestObjectResult(ApiResponse<object>.Fail("Validation failed.", errors));
     };
+});
+builder.Services.AddHttpClient<IDoctorsApiClient, DoctorsApiClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:DoctorsApi"]!);
 });
 
 builder.Services.AddEndpointsApiExplorer();

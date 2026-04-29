@@ -2,42 +2,175 @@
 @{
     ViewData["Title"] = "Create Doctor";
 }
-<div class="page-header"><div><h1>Create doctor profile</h1><p class="page-subtitle">Use the same email/mobile as the Auth staff user. Upload the photo from your device.</p></div></div>
+
+<div class="page-header">
+    <div>
+        <h1>Create doctor</h1>
+        <p class="page-subtitle">Create the doctor's login account and professional profile together.</p>
+    </div>
+</div>
+
 <div class="content-card">
     <div class="card-body p-4">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
         <form asp-action="Create" method="post" enctype="multipart/form-data" class="row g-4">
             @Html.AntiForgeryToken()
+
             <div class="col-lg-4">
                 <div class="photo-upload-panel sticky-summary">
                     <label asp-for="PhotoFile" class="form-label"></label>
                     <input asp-for="PhotoFile" type="file" accept="image/*" class="form-control" />
                     <span asp-validation-for="PhotoFile" class="text-danger small"></span>
+
                     <div class="small text-muted mt-2">Choose JPG, PNG, or WEBP from your device.</div>
+
                     <hr />
+
                     <label asp-for="PhotoUrl" class="form-label">Or image URL</label>
                     <input asp-for="PhotoUrl" class="form-control" placeholder="https://example.com/photo.jpg" />
+                    <span asp-validation-for="PhotoUrl" class="text-danger small"></span>
                 </div>
             </div>
+
             <div class="col-lg-8">
                 <div class="row g-3">
-                    <div class="col-md-6"><label asp-for="FullName" class="form-label"></label><input asp-for="FullName" class="form-control" /></div>
-                    <div class="col-md-6"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /></div>
-                    <div class="col-md-6"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
-                    <div class="col-md-6"><label asp-for="Gender" class="form-label"></label><select asp-for="Gender" class="form-select"><option>Male</option><option>Female</option><option>Other</option></select></div>
-                    <div class="col-md-6"><label asp-for="Qualification" class="form-label"></label><input asp-for="Qualification" class="form-control" placeholder="MBBS, MD" /></div>
-                    <div class="col-md-6"><label asp-for="Specialization" class="form-label"></label><input asp-for="Specialization" class="form-control" placeholder="Cardiology" /></div>
-                    <div class="col-md-4"><label asp-for="DepartmentId" class="form-label"></label><input asp-for="DepartmentId" class="form-control" /></div>
-                    <div class="col-md-8"><label asp-for="DepartmentName" class="form-label"></label><input asp-for="DepartmentName" class="form-control" /></div>
-                    <div class="col-md-4"><label asp-for="ConsultationFee" class="form-label"></label><input asp-for="ConsultationFee" class="form-control" /></div>
-                    <div class="col-md-4"><label asp-for="ExperienceYears" class="form-label"></label><input asp-for="ExperienceYears" class="form-control" /></div>
-                    <div class="col-md-4"><label asp-for="RoomNumber" class="form-label"></label><input asp-for="RoomNumber" class="form-control" /></div>
-                    <div class="col-md-8"><label asp-for="LicenseNumber" class="form-label"></label><input asp-for="LicenseNumber" class="form-control" /></div>
-                    <div class="col-md-4 d-flex align-items-end"><div class="form-check form-switch mb-2"><input asp-for="SupportsTeleConsultation" class="form-check-input" /><label asp-for="SupportsTeleConsultation" class="form-check-label"></label></div></div>
-                    <div class="col-12 d-flex justify-content-end gap-2"><a asp-action="Index" class="btn btn-outline-primary">Back</a><button class="btn btn-primary" type="submit">Save doctor</button></div>
+
+                    <div class="col-12">
+                        <h5 class="mb-2">Login Details</h5>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="LoginId" class="form-label"></label>
+                        <input asp-for="LoginId" class="form-control" placeholder="aditi.sharma" />
+                        <span asp-validation-for="LoginId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" placeholder="Temporary password" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsActive" class="form-check-input" />
+                            <label asp-for="IsActive" class="form-check-label"></label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input asp-for="EnablePasswordLogin" class="form-check-input" />
+                            <label asp-for="EnablePasswordLogin" class="form-check-label"></label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input asp-for="EnableOtpLogin" class="form-check-input" />
+                            <label asp-for="EnableOtpLogin" class="form-check-label"></label>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-3">
+                        <h5 class="mb-2">Doctor Details</h5>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" class="form-control" />
+                        <span asp-validation-for="Phone" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Gender" class="form-label"></label>
+                        <select asp-for="Gender" class="form-select">
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Qualification" class="form-label"></label>
+                        <input asp-for="Qualification" class="form-control" placeholder="MBBS, MD" />
+                        <span asp-validation-for="Qualification" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Specialization" class="form-label"></label>
+                        <input asp-for="Specialization" class="form-control" placeholder="Cardiology" />
+                        <span asp-validation-for="Specialization" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="DepartmentId" class="form-label"></label>
+                        <input asp-for="DepartmentId" class="form-control" />
+                        <span asp-validation-for="DepartmentId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label asp-for="DepartmentName" class="form-label"></label>
+                        <input asp-for="DepartmentName" class="form-control" />
+                        <span asp-validation-for="DepartmentName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="ConsultationFee" class="form-label"></label>
+                        <input asp-for="ConsultationFee" class="form-control" />
+                        <span asp-validation-for="ConsultationFee" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="ExperienceYears" class="form-label"></label>
+                        <input asp-for="ExperienceYears" class="form-control" />
+                        <span asp-validation-for="ExperienceYears" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="RoomNumber" class="form-label"></label>
+                        <input asp-for="RoomNumber" class="form-control" />
+                        <span asp-validation-for="RoomNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label asp-for="LicenseNumber" class="form-label"></label>
+                        <input asp-for="LicenseNumber" class="form-control" />
+                        <span asp-validation-for="LicenseNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check form-switch mb-2">
+                            <input asp-for="SupportsTeleConsultation" class="form-check-input" />
+                            <label asp-for="SupportsTeleConsultation" class="form-check-label"></label>
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <a asp-action="Index" class="btn btn-outline-primary">Back</a>
+                        <button class="btn btn-primary" type="submit">Create doctor</button>
+                    </div>
+
                 </div>
             </div>
         </form>
     </div>
 </div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

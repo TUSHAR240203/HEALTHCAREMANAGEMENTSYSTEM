@@ -33,17 +33,25 @@ namespace Frontend.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateStaffUserViewModel model)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (string.Equals(model.Role, "Doctor", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(model.Role),
+                    "Doctors must be created from Doctors → Create Doctor.");
+            }
+
+            if (!ModelState.IsValid)
+                return View(model);
 
             var token = HttpContext.Session.GetString("AccessToken") ?? string.Empty;
             var result = await _staffUserGatewayService.CreateAsync(token, model);
+
             if (!result.Success)
             {
                 ModelState.AddModelError(string.Empty, result.Message);
                 return View(model);
             }
 
-            TempData["Success"] = "Login account created. Create the matching doctor profile from Doctors if this is a doctor.";
+            TempData["Success"] = "Staff login account created successfully.";
             return RedirectToAction(nameof(Index));
         }
 

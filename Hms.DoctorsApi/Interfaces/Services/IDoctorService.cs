@@ -15,6 +15,7 @@ public interface IDoctorService
     Task<List<DoctorScheduleResponseDto>> GetSchedulesAsync(int doctorId);
     Task<DoctorScheduleResponseDto> AddScheduleAsync(int doctorId, CreateDoctorScheduleRequestDto request);
     Task<bool> DeleteScheduleAsync(int doctorId, int scheduleId);
+    Task<DoctorResponseDto?> GetByAuthUserIdAsync(int authUserId);
 
     Task<List<DoctorLeaveResponseDto>> GetLeavesAsync(int doctorId);
     Task<List<DoctorLeaveResponseDto>> GetLeavesAsync(string? status = null);
