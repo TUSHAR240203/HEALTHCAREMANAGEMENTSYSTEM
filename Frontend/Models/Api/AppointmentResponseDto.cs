@@ -16,6 +16,9 @@ public class AppointmentResponseDto
     public string? ReasonForVisit { get; set; }
     public bool IsTeleConsultation { get; set; }
     public AppointmentStatus Status { get; set; }
+    public string? StatusText { get; set; }
+    public string DisplayStatus => !string.IsNullOrWhiteSpace(StatusText) ? StatusText : Status.ToString();
+    public string StatusCssClass => DisplayStatus.Replace(" ", "-").ToLowerInvariant();
     public string? CancellationReason { get; set; }
     public string? CompletionNotes { get; set; }
     public DateTime CreatedAtUtc { get; set; }

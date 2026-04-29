@@ -38,7 +38,7 @@
                             <td>@item.DepartmentName</td>
                             <td>@item.AppointmentDate.ToString("dd MMM yyyy")</td>
                             <td>@item.SlotStartTime.ToString("hh\\:mm tt") - @item.SlotEndTime.ToString("hh\\:mm tt")</td>
-                            <td><span class="badge badge-@item.Status.ToString().ToLower()">@item.Status</span></td>
+                            <td><span class="badge badge-@item.StatusCssClass">@item.DisplayStatus</span></td>
                             <td><a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Details</a></td>
                         </tr>
                     }

@@ -55,6 +55,8 @@ public class DoctorsDbContext : DbContext
             entity.ToTable("DoctorLeaves");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Reason).HasMaxLength(250);
+            entity.Property(x => x.Status).HasMaxLength(20).HasDefaultValue("Pending");
+            entity.Property(x => x.ReviewedBy).HasMaxLength(150);
             entity.HasOne(x => x.Doctor)
                 .WithMany(x => x.Leaves)
                 .HasForeignKey(x => x.DoctorId)

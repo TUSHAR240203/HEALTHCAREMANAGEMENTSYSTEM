@@ -1,4 +1,5 @@
 using Hms.ReceptionApi.DTOs.Reception;
+using Hms.ReceptionApi.DTOs;
 
 namespace Hms.ReceptionApi.Interfaces.Services;
 
@@ -23,4 +24,6 @@ public interface IReceptionService
     Task<List<InvoiceResponseDto>> GetInvoicesByPatientIdAsync(int patientId);
     Task<InvoiceResponseDto> AddInvoiceItemAsync(int invoiceId, AddInvoiceItemRequestDto request);
     Task<InvoiceResponseDto> AddPaymentAsync(int invoiceId, PaymentRequestDto request);
+    Task<List<TodayAppointmentForCheckInDto>> GetTodayAppointmentsForCheckInAsync(DateOnly date);
+
 }

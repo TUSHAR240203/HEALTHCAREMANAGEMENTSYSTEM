@@ -84,9 +84,20 @@ public class DoctorRepository : IDoctorRepository
     public async Task<DoctorLeave?> GetLeaveByIdAsync(int doctorId, int leaveId)
         => await _context.DoctorLeaves.FirstOrDefaultAsync(x => x.DoctorId == doctorId && x.Id == leaveId);
 
+    public async Task<DoctorLeave?> GetLeaveByIdAsync(int leaveId)
+        => await _context.DoctorLeaves.FirstOrDefaultAsync(x => x.Id == leaveId);
+
     public async Task<List<DoctorLeave>> GetLeavesAsync(int doctorId)
         => await _context.DoctorLeaves.Where(x => x.DoctorId == doctorId).OrderByDescending(x => x.LeaveDate).ToListAsync();
 
+    public async Task<List<DoctorLeave>> GetLeavesAsync(string? status = null)
+    {
+        var query = _context.DoctorLeaves.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(x => x.Status == status);
+        return await query.OrderByDescending(x => x.LeaveDate).ThenByDescending(x => x.Id).ToListAsync();
+    }
+
     public async Task<bool> HasLeaveOnDateAsync(int doctorId, DateOnly date)
-        => await _context.DoctorLeaves.AnyAsync(x => x.DoctorId == doctorId && x.LeaveDate == date);
+        => await _context.DoctorLeaves.AnyAsync(x => x.DoctorId == doctorId && x.LeaveDate == date && x.Status == "Approved");
 }

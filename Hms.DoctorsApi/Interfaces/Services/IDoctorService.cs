@@ -17,7 +17,10 @@ public interface IDoctorService
     Task<bool> DeleteScheduleAsync(int doctorId, int scheduleId);
 
     Task<List<DoctorLeaveResponseDto>> GetLeavesAsync(int doctorId);
+    Task<List<DoctorLeaveResponseDto>> GetLeavesAsync(string? status = null);
     Task<DoctorLeaveResponseDto> AddLeaveAsync(int doctorId, CreateDoctorLeaveRequestDto request);
+    Task<DoctorLeaveResponseDto?> ApproveLeaveAsync(int leaveId, string? reviewedBy);
+    Task<DoctorLeaveResponseDto?> RejectLeaveAsync(int leaveId, string? reviewedBy);
     Task<bool> DeleteLeaveAsync(int doctorId, int leaveId);
 
     Task<DoctorAvailabilityResponseDto> GetAvailableSlotsAsync(int doctorId, DateOnly date, bool? isTeleConsultation);

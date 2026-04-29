@@ -92,7 +92,9 @@ namespace Frontend.Services
                 "application/json");
         }
 
-        private async Task<TResponse?> ReadResponseAsync<TResponse>(HttpResponseMessage response, bool allowNotFound)
+        private async Task<TResponse?> ReadResponseAsync<TResponse>(
+     HttpResponseMessage response,
+     bool allowNotFound)
         {
             if (allowNotFound && response.StatusCode == HttpStatusCode.NotFound)
                 return default;
@@ -102,16 +104,90 @@ namespace Frontend.Services
             if (!response.IsSuccessStatusCode)
             {
                 throw new ApiException(
-                    string.IsNullOrWhiteSpace(body)
-                        ? $"API request failed with status code {(int)response.StatusCode}."
-                        : body,
+                    ExtractErrorMessage(body, $"Request failed with status code {(int)response.StatusCode}."),
                     (int)response.StatusCode);
             }
 
             if (string.IsNullOrWhiteSpace(body))
                 return default;
 
-            return JsonSerializer.Deserialize<TResponse>(body, _jsonOptions);
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+
+            if (root.ValueKind == JsonValueKind.Object &&
+                root.TryGetProperty("data", out var data))
+            {
+                if (data.ValueKind == JsonValueKind.Null ||
+                    data.ValueKind == JsonValueKind.Undefined)
+                    return default;
+
+                return data.Deserialize<TResponse>(_jsonOptions);
+            }
+
+            return root.Deserialize<TResponse>(_jsonOptions);
         }
+
+        private static string ExtractErrorMessage(string body, string fallback)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return fallback;
+
+            try
+            {
+                using var document = JsonDocument.Parse(body);
+                var root = document.RootElement;
+
+                var message = root.TryGetProperty("message", out var messageElement)
+                    ? messageElement.GetString()
+                    : null;
+
+                var errors = root.TryGetProperty("errors", out var errorsElement)
+                    ? errorsElement.ToString()
+                    : null;
+
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    if (message.Contains("already checked in", StringComparison.OrdinalIgnoreCase))
+                        return "This patient is already checked in and already added to the queue.";
+
+                    if (message.Contains("already active", StringComparison.OrdinalIgnoreCase))
+                        return "A patient is already active in this department. Complete, skip, or cancel the current patient first.";
+
+                    if (message.Contains("Patient not found", StringComparison.OrdinalIgnoreCase))
+                        return "Patient not found. Please select a valid appointment.";
+
+                    if (message.Contains("Appointment is required", StringComparison.OrdinalIgnoreCase))
+                        return "Please select an appointment before check-in.";
+
+                    return message;
+                }
+
+                if (!string.IsNullOrWhiteSpace(errors) && errors != "null")
+                {
+                    if (errors.Contains("already checked in", StringComparison.OrdinalIgnoreCase))
+                        return "This patient is already checked in and already added to the queue.";
+
+                    return errors;
+                }
+            }
+            catch
+            {
+                // Return fallback/raw body below.
+            }
+
+            if (body.Contains("already checked in", StringComparison.OrdinalIgnoreCase))
+                return "This patient is already checked in and already added to the queue.";
+
+            return body;
+        }
+        public async Task<List<TodayAppointmentForCheckInDto>> GetTodayScheduledAppointmentsForCheckInAsync(DateOnly date)
+        {
+            var result = await GetAsync<List<TodayAppointmentForCheckInDto>>(
+                $"gateway/reception/appointments/today?date={date:yyyy-MM-dd}",
+                true);
+
+            return result ?? new List<TodayAppointmentForCheckInDto>();
+        }
+
     }
 }
