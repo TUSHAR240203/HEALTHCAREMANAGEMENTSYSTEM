@@ -138,19 +138,53 @@ public class DoctorService : IDoctorService
         return _mapper.Map<List<DoctorLeaveResponseDto>>(leaves);
     }
 
+    public async Task<List<DoctorLeaveResponseDto>> GetLeavesAsync(string? status = null)
+    {
+        var leaves = await _doctorRepository.GetLeavesAsync(status);
+        return _mapper.Map<List<DoctorLeaveResponseDto>>(leaves);
+    }
+
     public async Task<DoctorLeaveResponseDto> AddLeaveAsync(int doctorId, CreateDoctorLeaveRequestDto request)
     {
         await EnsureDoctorExistsAsync(doctorId);
         if (request.LeaveDate < DateOnly.FromDateTime(DateTime.UtcNow.Date))
             throw new ArgumentException("Leave date cannot be in the past.");
 
-        if (await _doctorRepository.HasLeaveOnDateAsync(doctorId, request.LeaveDate))
-            throw new InvalidOperationException("Doctor leave already exists for this date.");
+        var existingLeaves = await _doctorRepository.GetLeavesAsync(doctorId);
+        if (existingLeaves.Any(x => x.LeaveDate == request.LeaveDate && x.Status != "Rejected"))
+            throw new InvalidOperationException("A pending or approved leave already exists for this date.");
 
         var leave = _mapper.Map<DoctorLeave>(request);
         leave.DoctorId = doctorId;
+        leave.Status = "Pending";
 
         await _doctorRepository.AddLeaveAsync(leave);
+        await _doctorRepository.SaveChangesAsync();
+        return _mapper.Map<DoctorLeaveResponseDto>(leave);
+    }
+
+    public async Task<DoctorLeaveResponseDto?> ApproveLeaveAsync(int leaveId, string? reviewedBy)
+    {
+        var leave = await _doctorRepository.GetLeaveByIdAsync(leaveId);
+        if (leave == null) return null;
+
+        leave.Status = "Approved";
+        leave.ReviewedAtUtc = DateTime.UtcNow;
+        leave.ReviewedBy = string.IsNullOrWhiteSpace(reviewedBy) ? "Admin" : reviewedBy.Trim();
+        leave.UpdatedAtUtc = DateTime.UtcNow;
+        await _doctorRepository.SaveChangesAsync();
+        return _mapper.Map<DoctorLeaveResponseDto>(leave);
+    }
+
+    public async Task<DoctorLeaveResponseDto?> RejectLeaveAsync(int leaveId, string? reviewedBy)
+    {
+        var leave = await _doctorRepository.GetLeaveByIdAsync(leaveId);
+        if (leave == null) return null;
+
+        leave.Status = "Rejected";
+        leave.ReviewedAtUtc = DateTime.UtcNow;
+        leave.ReviewedBy = string.IsNullOrWhiteSpace(reviewedBy) ? "Admin" : reviewedBy.Trim();
+        leave.UpdatedAtUtc = DateTime.UtcNow;
         await _doctorRepository.SaveChangesAsync();
         return _mapper.Map<DoctorLeaveResponseDto>(leave);
     }

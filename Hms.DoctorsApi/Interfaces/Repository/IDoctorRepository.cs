@@ -19,6 +19,8 @@ public interface IDoctorRepository
 
     Task AddLeaveAsync(DoctorLeave leave);
     Task<DoctorLeave?> GetLeaveByIdAsync(int doctorId, int leaveId);
+    Task<DoctorLeave?> GetLeaveByIdAsync(int leaveId);
     Task<List<DoctorLeave>> GetLeavesAsync(int doctorId);
+    Task<List<DoctorLeave>> GetLeavesAsync(string? status = null);
     Task<bool> HasLeaveOnDateAsync(int doctorId, DateOnly date);
 }

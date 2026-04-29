@@ -24,7 +24,7 @@
                     <td>@item.AppointmentDate.ToString("dd-MMM-yyyy")</td>
                     <td>@item.SlotStartTime - @item.SlotEndTime</td>
                     <td>@item.PatientId / @item.UHID</td>
-                    <td>@item.Status</td>
+                    <td>@item.DisplayStatus</td>
                     <td><a asp-action="Details" asp-route-id="@item.Id">Details</a></td>
                 </tr>
             }

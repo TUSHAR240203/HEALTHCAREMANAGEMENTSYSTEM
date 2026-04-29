@@ -59,16 +59,36 @@ public class AppointmentsController : Controller
     public async Task<IActionResult> Create(AdminAppointmentBookingViewModel model)
     {
         if (!TryParseSlot(model.SelectedSlot, out var start, out var end))
+        {
             ModelState.AddModelError(nameof(model.SelectedSlot), "Please select a valid time slot.");
+        }
 
-        var hydrated = await BuildAdminBookingModelAsync(model.DoctorId, model.AppointmentDate, model.SelectedSlot);
+        var hydrated = await BuildAdminBookingModelAsync(
+            model.DoctorId,
+            model.AppointmentDate,
+            model.SelectedSlot);
+
         model.Doctors = hydrated.Doctors;
         model.Slots = hydrated.Slots;
 
         var doctor = model.Doctors.FirstOrDefault(d => d.Id == model.DoctorId);
-        if (doctor == null) ModelState.AddModelError(nameof(model.DoctorId), "Please select an active doctor.");
 
-        if (!ModelState.IsValid) return View(model);
+        if (doctor == null)
+        {
+            ModelState.AddModelError(nameof(model.DoctorId), "Please select an active doctor.");
+        }
+
+        var chosenSlot = model.Slots.FirstOrDefault(s => s.Value == model.SelectedSlot);
+
+        if (chosenSlot?.IsBooked == true)
+        {
+            ModelState.AddModelError(nameof(model.SelectedSlot), "This slot is already booked. Please choose another slot.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
 
         try
         {
@@ -80,19 +100,36 @@ public class AppointmentsController : Controller
                 DoctorName = doctor.FullName,
                 DepartmentId = doctor.DepartmentId,
                 DepartmentName = doctor.DepartmentName,
+
+                // IMPORTANT: this uses the selected calendar date
                 AppointmentDate = model.AppointmentDate,
+
                 SlotStartTime = start,
                 SlotEndTime = end,
                 VisitType = model.VisitType,
                 ReasonForVisit = model.ReasonForVisit,
                 IsTeleConsultation = model.IsTeleConsultation
             });
+
             TempData["SuccessMessage"] = $"Appointment #{created.Id} created successfully.";
-            return RedirectToAction(nameof(Details), new { id = created.Id });
+
+            return RedirectToAction(nameof(Details), new
+            {
+                id = created.Id
+            });
         }
         catch (ApiException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
+
+            var reload = await BuildAdminBookingModelAsync(
+                model.DoctorId,
+                model.AppointmentDate,
+                model.SelectedSlot);
+
+            model.Doctors = reload.Doctors;
+            model.Slots = reload.Slots;
+
             return View(model);
         }
     }
@@ -122,7 +159,7 @@ public class AppointmentsController : Controller
         if (string.IsNullOrWhiteSpace(model.UHID))
         {
             var patient = await _patientGatewayService.GetByIdAsync(model.PatientId);
-            model.UHID = patient?.Uhid ?? string.Empty;
+            model.UHID = patient?.UHID ?? string.Empty;
         }
 
         if (!TryParseSlot(model.SelectedSlot, out var start, out var end))
@@ -309,19 +346,32 @@ public class AppointmentsController : Controller
         }
     }
 
-    private async Task<AdminAppointmentBookingViewModel> BuildAdminBookingModelAsync(int? doctorId, DateOnly? appointmentDate, string? selectedSlot)
+    private async Task<AdminAppointmentBookingViewModel> BuildAdminBookingModelAsync(
+     int? doctorId,
+     DateOnly? appointmentDate,
+     string? selectedSlot)
     {
-        var doctors = (await _doctorGatewayService.GetAllAsync(true));
+        var doctors = await _doctorGatewayService.GetAllAsync(true);
+
+        // IMPORTANT: only default to today when no date was selected
         var date = appointmentDate ?? DateOnly.FromDateTime(DateTime.Today);
+
         var selectedDoctorId = doctorId.GetValueOrDefault();
-        if (selectedDoctorId <= 0 && doctors.Count > 0) selectedDoctorId = doctors[0].Id;
+
+        if (selectedDoctorId <= 0 && doctors.Count > 0)
+        {
+            selectedDoctorId = doctors[0].Id;
+        }
+
         return new AdminAppointmentBookingViewModel
         {
             DoctorId = selectedDoctorId,
             AppointmentDate = date,
             SelectedSlot = selectedSlot ?? string.Empty,
             Doctors = doctors,
-            Slots = selectedDoctorId > 0 ? await BuildSlotsAsync(selectedDoctorId, date) : new List<PatientSlotOption>()
+            Slots = selectedDoctorId > 0
+                ? await BuildSlotsAsync(selectedDoctorId, date)
+                : new List<PatientSlotOption>()
         };
     }
 
@@ -337,7 +387,7 @@ public class AppointmentsController : Controller
         if (patientId > 0 && string.IsNullOrWhiteSpace(uhid))
         {
             var patient = await _patientGatewayService.GetByIdAsync(patientId);
-            uhid = patient?.Uhid ?? string.Empty;
+            uhid = patient?.UHID ?? string.Empty;
         }
 
         return new PatientAppointmentBookingViewModel

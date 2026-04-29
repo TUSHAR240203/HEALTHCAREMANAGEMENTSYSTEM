@@ -219,11 +219,10 @@ public class PatientService : IPatientService
 
     public async Task<PatientSearchResponseDto> SearchAsync(PatientSearchRequestDto request)
     {
-        if (request == null)
-            throw new ArgumentException("Search request is required.");
+        request ??= new PatientSearchRequestDto();
 
         request.PageNumber = request.PageNumber <= 0 ? 1 : request.PageNumber;
-        request.PageSize = request.PageSize <= 0 ? 20 : request.PageSize;
+        request.PageSize = request.PageSize <= 0 ? 100 : request.PageSize;
         request.PageSize = request.PageSize > 100 ? 100 : request.PageSize;
 
         request.UHID = NormalizeNullable(request.UHID);
@@ -232,7 +231,6 @@ public class PatientService : IPatientService
 
         return await _patientRepository.SearchAsync(request);
     }
-
     public async Task<bool> SoftDeleteAsync(int id)
     {
         if (id <= 0)

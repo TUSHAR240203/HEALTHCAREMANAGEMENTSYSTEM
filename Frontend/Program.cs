@@ -30,6 +30,11 @@ namespace Frontend
                 .AddHttpMessageHandler<AuthHeaderHandler>();
             builder.Services.AddHttpClient<IBillingApiService, BillingApiService>(client => client.BaseAddress = new Uri(gatewayBaseUrl))
                 .AddHttpMessageHandler<AuthHeaderHandler>();
+            builder.Services.AddHttpClient<IReceptionApiService, ReceptionApiService>(client =>
+            {
+                client.BaseAddress = new Uri(gatewayBaseUrl);
+            })
+.AddHttpMessageHandler<AuthHeaderHandler>();
 
             builder.Services.AddSession(options =>
             {

@@ -1,82 +1,296 @@
+@using Microsoft.AspNetCore.Http
 @model Frontend.Models.Billing.InvoiceResponseDto
+
 @{
     ViewData["Title"] = "Invoice Details";
+
+    var invoiceId = Model.Id;
+    var totalAmount = Model.TotalAmount;
+    var paidAmount = Model.PaidAmount;
+    var balanceAmount = Model.BalanceAmount;
+
+    if (balanceAmount == 0 && totalAmount > paidAmount)
+    {
+        balanceAmount = totalAmount - paidAmount;
+    }
+
+    var role = Context.Session.GetString("Role");
+    var canManageBilling = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(role, "Receptionist", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="page-header">
     <div>
         <h1>Invoice Details</h1>
-        <p class="page-subtitle">Review invoice totals, line items, and payment history for invoice #@Model.Id.</p>
+        <p class="page-subtitle">
+            Review invoice totals, line items, and payment history for invoice #@Model.Id.
+        </p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-        <a asp-action="AddItem" asp-route-invoiceId="@Model.Id" class="btn btn-light text-primary">Add Item</a>
-        <a asp-action="AddPayment" asp-route-invoiceId="@Model.Id" class="btn btn-outline-light">Add Payment</a>
-    </div>
+    @if (canManageBilling)
+    {
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="AddItem"
+               asp-route-invoiceId="@Model.Id"
+               class="btn btn-light text-primary">
+                Add Item
+            </a>
+
+            <a asp-action="AddPayment"
+               asp-route-invoiceId="@Model.Id"
+               class="btn btn-outline-light">
+                Add Payment Page
+            </a>
+        </div>
+    }
 </div>
 
-<div class="card border-0">
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card border-0 mb-4">
     <div class="card-body p-4">
         <div class="info-grid">
-            <div class="info-card"><span class="info-label">Invoice Id</span><span class="info-value">@Model.Id</span></div>
-            <div class="info-card"><span class="info-label">Patient Id</span><span class="info-value">@Model.PatientId</span></div>
-            <div class="info-card"><span class="info-label">UHID</span><span class="info-value">@Model.UHID</span></div>
-            <div class="info-card"><span class="info-label">Appointment Id</span><span class="info-value">@Model.AppointmentId</span></div>
-            <div class="info-card"><span class="info-label">Total Amount</span><span class="info-value">@Model.TotalAmount</span></div>
-            <div class="info-card"><span class="info-label">Paid Amount</span><span class="info-value">@Model.PaidAmount</span></div>
-            <div class="info-card"><span class="info-label">Balance Amount</span><span class="info-value">@Model.BalanceAmount</span></div>
-            <div class="info-card"><span class="info-label">Status</span><span class="info-value">@Model.Status</span></div>
-            <div class="info-card"><span class="info-label">Created At (UTC)</span><span class="info-value">@Model.CreatedAtUtc</span></div>
+            <div class="info-card">
+                <span class="info-label">Invoice Id</span>
+                <span class="info-value">@Model.Id</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Patient Id</span>
+                <span class="info-value">@Model.PatientId</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">UHID</span>
+                <span class="info-value">@Model.UHID</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Appointment Id</span>
+                <span class="info-value">@Model.AppointmentId</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Total Amount</span>
+                <span class="info-value">₹@Model.TotalAmount</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Paid Amount</span>
+                <span class="info-value text-success">₹@Model.PaidAmount</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Balance Amount</span>
+                <span class="info-value text-danger">₹@balanceAmount</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Status</span>
+                <span class="info-value">@Model.Status</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Created At (UTC)</span>
+                <span class="info-value">@Model.CreatedAtUtc</span>
+            </div>
         </div>
     </div>
 </div>
 
+@if (canManageBilling)
+{
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h3 class="h5 mb-1">
+            <i class="bi bi-cash-coin text-success me-2"></i>
+            Receive Payment
+        </h3>
+        <p class="section-subtitle mb-0">
+            Receive full or partial payment against this invoice.
+        </p>
+    </div>
+
+    <div class="card-body p-4">
+        @if (balanceAmount <= 0)
+        {
+            <div class="alert alert-success mb-0">
+                This invoice is fully paid.
+            </div>
+        }
+        else
+        {
+            <form asp-controller="Billing"
+                  asp-action="ReceivePayment"
+                  method="post">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="invoiceId" value="@invoiceId" />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Amount</label>
+                        <input type="number"
+                               name="amount"
+                               class="form-control"
+                               step="0.01"
+                               min="1"
+                               max="@balanceAmount"
+                               value="@balanceAmount"
+                               required />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Payment Mode</label>
+                        <select name="paymentMode" class="form-select" required>
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="UPI">UPI</option>
+                            <option value="NetBanking">Net Banking</option>
+                            <option value="Insurance">Insurance</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Reference Number</label>
+                        <input type="text"
+                               name="referenceNumber"
+                               class="form-control"
+                               placeholder="Txn ID / UPI Ref / Card Ref" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes"
+                                  class="form-control"
+                                  rows="2"
+                                  placeholder="Optional payment notes"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i>
+                        Receive Payment
+                    </button>
+                </div>
+            </form>
+        }
+    </div>
+</div>
+
+}
+else
+{
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="alert alert-info mb-0">
+                Payments are handled by the billing desk. You can review invoice items, paid amount, balance, and payment history here.
+            </div>
+        </div>
+    </div>
+}
+
 <div class="row g-4">
     <div class="col-lg-6">
         <div class="card border-0 h-100">
-            <div class="card-header"><h3 class="h5 mb-1">Invoice Items</h3><p class="section-subtitle">Services added to this invoice</p></div>
+            <div class="card-header">
+                <h3 class="h5 mb-1">Invoice Items</h3>
+                <p class="section-subtitle">Services added to this invoice</p>
+            </div>
+
             <div class="card-body p-0">
                 @if (Model.Items != null && Model.Items.Any())
                 {
                     <div class="table-responsive">
                         <table class="table table-striped align-middle mb-0">
-                            <thead><tr><th>Id</th><th>Service Name</th><th>Price</th><th>Qty</th><th>Amount</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Id</th>
+                                    <th>Service Name</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+
                             <tbody>
-                            @foreach (var item in Model.Items)
-                            {
-                                <tr><td>@item.Id</td><td>@item.ServiceName</td><td>₹@item.Price</td><td>@item.Quantity</td><td>₹@item.Amount</td></tr>
-                            }
+                                @foreach (var item in Model.Items)
+                                {
+                                    <tr>
+                                        <td>@item.Id</td>
+                                        <td>@item.ServiceName</td>
+                                        <td>₹@item.Price</td>
+                                        <td>@item.Quantity</td>
+                                        <td>₹@item.Amount</td>
+                                    </tr>
+                                }
                             </tbody>
                         </table>
                     </div>
                 }
                 else
                 {
-                    <div class="p-4"><div class="alert alert-warning mb-0">No invoice items found.</div></div>
+                    <div class="p-4">
+                        <div class="alert alert-warning mb-0">
+                            No invoice items found.
+                        </div>
+                    </div>
                 }
             </div>
         </div>
     </div>
+
     <div class="col-lg-6">
         <div class="card border-0 h-100">
-            <div class="card-header"><h3 class="h5 mb-1">Payments</h3><p class="section-subtitle">Transactions received against this invoice</p></div>
+            <div class="card-header">
+                <h3 class="h5 mb-1">Payments</h3>
+                <p class="section-subtitle">Transactions received against this invoice</p>
+            </div>
+
             <div class="card-body p-0">
                 @if (Model.Payments != null && Model.Payments.Any())
                 {
                     <div class="table-responsive">
                         <table class="table table-striped align-middle mb-0">
-                            <thead><tr><th>Id</th><th>Amount</th><th>Payment Mode</th><th>Paid At (UTC)</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Id</th>
+                                    <th>Amount</th>
+                                    <th>Payment Mode</th>
+                                    <th>Paid At (UTC)</th>
+                                </tr>
+                            </thead>
+
                             <tbody>
-                            @foreach (var payment in Model.Payments)
-                            {
-                                <tr><td>@payment.Id</td><td>₹@payment.Amount</td><td>@payment.PaymentMethod</td><td>@payment.PaidAtUtc</td></tr>
-                            }
+                                @foreach (var payment in Model.Payments)
+                                {
+                                    <tr>
+                                        <td>@payment.Id</td>
+                                        <td>₹@payment.Amount</td>
+                                        <td>@payment.PaymentMethod</td>
+                                        <td>@payment.PaidAtUtc</td>
+                                    </tr>
+                                }
                             </tbody>
                         </table>
                     </div>
                 }
                 else
                 {
-                    <div class="p-4"><div class="alert alert-warning mb-0">No payments found.</div></div>
+                    <div class="p-4">
+                        <div class="alert alert-warning mb-0">
+                            No payments found.
+                        </div>
+                    </div>
                 }
             </div>
         </div>

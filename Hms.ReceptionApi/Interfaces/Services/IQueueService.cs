@@ -1,4 +1,5 @@
 ﻿using Hms.ReceptionApi.DTOs.Reception;
+using Hms.ReceptionApi.Entities;
 
 namespace Hms.ReceptionApi.Interfaces.Services;
 

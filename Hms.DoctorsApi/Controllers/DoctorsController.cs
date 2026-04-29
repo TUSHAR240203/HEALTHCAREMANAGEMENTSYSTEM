@@ -80,6 +80,27 @@ public class DoctorsController : ControllerBase
         return deleted ? Ok(Wrap<object?>(null, "Doctor schedule deleted successfully.")) : NotFound(Fail("Doctor schedule not found."));
     }
 
+    [HttpGet("leaves")]
+    public async Task<IActionResult> GetAllLeaves([FromQuery] string? status)
+    {
+        var result = await _doctorService.GetLeavesAsync(status);
+        return Ok(Wrap(result, "Doctor leaves fetched successfully."));
+    }
+
+    [HttpPut("leaves/{leaveId:int}/approve")]
+    public async Task<IActionResult> ApproveLeave(int leaveId, [FromQuery] string? reviewedBy)
+    {
+        var result = await _doctorService.ApproveLeaveAsync(leaveId, reviewedBy);
+        return result == null ? NotFound(Fail("Doctor leave not found.")) : Ok(Wrap(result, "Doctor leave approved successfully."));
+    }
+
+    [HttpPut("leaves/{leaveId:int}/reject")]
+    public async Task<IActionResult> RejectLeave(int leaveId, [FromQuery] string? reviewedBy)
+    {
+        var result = await _doctorService.RejectLeaveAsync(leaveId, reviewedBy);
+        return result == null ? NotFound(Fail("Doctor leave not found.")) : Ok(Wrap(result, "Doctor leave rejected successfully."));
+    }
+
     [HttpGet("{doctorId:int}/leaves")]
     public async Task<IActionResult> GetLeaves(int doctorId)
     {
@@ -91,7 +112,7 @@ public class DoctorsController : ControllerBase
     public async Task<IActionResult> AddLeave(int doctorId, [FromBody] CreateDoctorLeaveRequestDto request)
     {
         var result = await _doctorService.AddLeaveAsync(doctorId, request);
-        return Ok(Wrap(result, "Doctor leave added successfully."));
+        return Ok(Wrap(result, "Doctor leave request submitted for admin approval."));
     }
 
     [HttpDelete("{doctorId:int}/leaves/{leaveId:int}")]

@@ -532,4 +532,181 @@ html[data-theme="dark"] .user-chip { background: rgba(255,255,255,.04); }
     .invoice-search-box {
         min-width: 100%;
     }
+    /* =========================================================
+   Appointment Details Photo Fix
+   Prevents patient/doctor images from becoming huge
+   ========================================================= */
+
+    .appointment-details-page img,
+    .appointment-details img,
+    .appointment-card img,
+    .patient-card img,
+    .doctor-card img,
+    .details-card img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Main details wrapper */
+    .appointment-details-page,
+    .appointment-details {
+        width: 100%;
+    }
+
+    /* Top appointment details section */
+    .appointment-details-grid,
+    .appointment-summary-grid {
+        display: grid;
+        grid-template-columns: 280px 280px 1fr;
+        gap: 1.25rem;
+        align-items: stretch;
+    }
+
+    /* Patient and doctor profile cards */
+    .patient-card,
+    .doctor-card,
+    .appointment-person-card {
+        background: #ffffff;
+        border-radius: 22px;
+        padding: 1rem;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+        /* Patient/doctor large photo inside details */
+        .patient-card > img,
+        .doctor-card > img,
+        .appointment-person-card > img,
+        .patient-photo-large,
+        .doctor-photo-large {
+            width: 100%;
+            height: 220px;
+            max-height: 220px;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 18px;
+            display: block;
+            background: #f1f5f9;
+        }
+
+        /* Text below photo */
+        .patient-card h1,
+        .patient-card h2,
+        .patient-card h3,
+        .doctor-card h1,
+        .doctor-card h2,
+        .doctor-card h3,
+        .appointment-person-card h1,
+        .appointment-person-card h2,
+        .appointment-person-card h3 {
+            font-size: 1.35rem;
+            line-height: 1.2;
+            margin-top: 0.75rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .patient-card p,
+        .doctor-card p,
+        .appointment-person-card p {
+            margin-bottom: 0.25rem;
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+    /* Appointment status/details panel */
+    .appointment-info-card,
+    .appointment-meta-card {
+        background: #ffffff;
+        border-radius: 22px;
+        padding: 1.25rem;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+        .appointment-info-card img,
+        .appointment-meta-card img {
+            display: none !important;
+        }
+
+    /* Reschedule section image fix */
+    .reschedule-card img,
+    .reschedule-section img,
+    .card .slot-grid img {
+        display: none !important;
+    }
+
+    /* If any image appears inside form cards, stop it from becoming huge */
+    form img,
+    .sticky-summary img:not(.avatar-sm),
+    .card-body img:not(.avatar-sm):not(.doctor-choice-card img) {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        object-position: center;
+        border-radius: 50%;
+    }
+
+    /* Small avatars */
+    .avatar-sm,
+    .doctor-summary img,
+    .patient-summary img {
+        width: 56px !important;
+        height: 56px !important;
+        min-width: 56px !important;
+        max-width: 56px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        object-position: center !important;
+        display: block;
+    }
+
+    /* Doctor card image in appointment create page */
+    .doctor-choice-card img {
+        width: 86px !important;
+        height: 86px !important;
+        min-width: 86px !important;
+        max-width: 86px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        object-position: center !important;
+        display: block;
+    }
+
+    /* Prevent any full-width photo from breaking the appointment page */
+    .appointment-details-page .card > img,
+    .appointment-details-page .card-body > img,
+    .appointment-details .card > img,
+    .appointment-details .card-body > img {
+        width: 120px !important;
+        height: 120px !important;
+        object-fit: cover !important;
+        object-position: center !important;
+        border-radius: 18px !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .appointment-details-grid,
+        .appointment-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .patient-card > img,
+        .doctor-card > img,
+        .appointment-person-card > img,
+        .patient-photo-large,
+        .doctor-photo-large {
+            height: 240px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .patient-card > img,
+        .doctor-card > img,
+        .appointment-person-card > img,
+        .patient-photo-large,
+        .doctor-photo-large {
+            height: 180px;
+        }
+    }
 }

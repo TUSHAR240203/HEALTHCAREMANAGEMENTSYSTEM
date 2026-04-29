@@ -14,9 +14,9 @@
 
 <div class="booking-hero glass-panel">
     <div>
-        <span class="badge-soft"><i class="bi bi-clock-history"></i> Live slots</span>
-        <h2>Movie-style slot booking</h2>
-        <p>Doctor cards show name, speciality, department and photo. Pick one, then choose an available slot.</p>
+        <span class="badge-soft"><i class="bi bi-clock-history"></i> Live doctor slots</span>
+        <h2>Book your appointment</h2>
+        <p>Choose your doctor, check the selected date, and pick an available consultation slot.</p>
     </div>
     <div class="booking-patient-card">
         <span>Patient ID</span>
@@ -53,8 +53,8 @@
                                 <label class="doctor-choice-card compact" for="@did">
                                     @if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl)) { <img src="@doctor.PhotoUrl" alt="@doctor.FullName" /> } else { <span class="doctor-avatar-fallback"><i class="bi bi-person-badge"></i></span> }
                                     <span class="doctor-choice-name">@doctor.FullName</span>
-                                    <small>.Specialization</small>
-                                    <em>.DepartmentName</em>
+                                    <small>@(string.IsNullOrWhiteSpace(doctor.Specialization) ? "Specialization not available" : doctor.Specialization)</small>
+                                    <em>@(string.IsNullOrWhiteSpace(doctor.DepartmentName) ? "Department not available" : doctor.DepartmentName)</em>
                                 </label>
                             </div>
                         }
@@ -86,7 +86,13 @@
         <div class="col-lg-8">
             <div class="card border-0">
                 <div class="card-header">
-                    <h2 class="h5 mb-1">Time Slots  (Model.SelectedDoctor != null) { <text>for .SelectedDoctor.FullName</text> }</h2>
+                    <h2 class="h5 mb-1">
+                        Time Slots
+                        @if (Model.SelectedDoctor != null)
+                        {
+                            <span>for @Model.SelectedDoctor.FullName</span>
+                        }
+                    </h2>
                     <p class="text-muted mb-0">Select one available slot for @Model.AppointmentDate.ToString("dd MMM yyyy").</p>
                 </div>
                 <div class="card-body p-4">

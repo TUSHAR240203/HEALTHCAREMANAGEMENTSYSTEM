@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -36,7 +35,6 @@ namespace Frontend.Services
 
         public async Task<(bool Success, string Message, DoctorResponseDto? Data)> CreateAsync(CreateDoctorViewModel model)
         {
-            // Send only serializable fields — PhotoFile (IFormFile) is handled by the MVC layer.
             var dto = new
             {
                 fullName = model.FullName,
@@ -66,6 +64,29 @@ namespace Frontend.Services
             }
         }
 
+        public async Task<List<DoctorLeaveResponseDto>> GetLeavesAsync(string? status = null)
+        {
+            var url = string.IsNullOrWhiteSpace(status)
+                ? "gateway/doctors/leaves"
+                : $"gateway/doctors/leaves?status={Uri.EscapeDataString(status)}";
+            return await GetAsync<List<DoctorLeaveResponseDto>>(url) ?? new List<DoctorLeaveResponseDto>();
+        }
+
+        public async Task<List<DoctorLeaveResponseDto>> GetLeavesByDoctorAsync(int doctorId)
+            => await GetAsync<List<DoctorLeaveResponseDto>>($"gateway/doctors/{doctorId}/leaves") ?? new List<DoctorLeaveResponseDto>();
+
+        public async Task<DoctorLeaveResponseDto?> RequestLeaveAsync(CreateDoctorLeaveViewModel model)
+        {
+            var dto = new { leaveDate = model.LeaveDate, reason = model.Reason };
+            return await PostAsync<object, DoctorLeaveResponseDto>($"gateway/doctors/{model.DoctorId}/leaves", dto);
+        }
+
+        public async Task<DoctorLeaveResponseDto?> ApproveLeaveAsync(int leaveId, string? reviewedBy)
+            => await PutAsync<object, DoctorLeaveResponseDto>($"gateway/doctors/leaves/{leaveId}/approve?reviewedBy={Uri.EscapeDataString(reviewedBy ?? "Admin")}", new { });
+
+        public async Task<DoctorLeaveResponseDto?> RejectLeaveAsync(int leaveId, string? reviewedBy)
+            => await PutAsync<object, DoctorLeaveResponseDto>($"gateway/doctors/leaves/{leaveId}/reject?reviewedBy={Uri.EscapeDataString(reviewedBy ?? "Admin")}", new { });
+
         private async Task<TResponse?> GetAsync<TResponse>(string url, bool allowNotFound = false)
         {
             using var response = await _httpClient.GetAsync(url);
@@ -76,6 +97,13 @@ namespace Frontend.Services
         {
             using var content = new StringContent(JsonSerializer.Serialize(request, _jsonOptions), Encoding.UTF8, "application/json");
             using var response = await _httpClient.PostAsync(url, content);
+            return await ReadResponseAsync<TResponse>(response, false);
+        }
+
+        private async Task<TResponse?> PutAsync<TRequest, TResponse>(string url, TRequest request)
+        {
+            using var content = new StringContent(JsonSerializer.Serialize(request, _jsonOptions), Encoding.UTF8, "application/json");
+            using var response = await _httpClient.PutAsync(url, content);
             return await ReadResponseAsync<TResponse>(response, false);
         }
 

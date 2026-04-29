@@ -16,24 +16,61 @@ namespace Frontend.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index()
+        public async Task<IActionResult> Index(string? query, string? uhid, string? mobileNumber)
         {
-            return View(new PatientSearchViewModel());
+            var model = new PatientSearchViewModel
+            {
+                Query = query,
+                UHID = uhid,
+                MobileNumber = mobileNumber,
+                Results = new List<PatientResponseDto>()
+            };
+
+            try
+            {
+                var request = new PatientSearchRequestDto
+                {
+                    Query = string.IsNullOrWhiteSpace(query) ? null : query.Trim(),
+                    UHID = string.IsNullOrWhiteSpace(uhid) ? null : uhid.Trim(),
+                    MobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? null : mobileNumber.Trim()
+                };
+
+                var patients = await _patientGatewayService.SearchAsync(request);
+
+                model.Results = patients ?? new List<PatientResponseDto>();
+
+                foreach (var patient in model.Results)
+                {
+                    NormalizePatientId(patient);
+                }
+
+                ViewBag.HasSearched =
+                    !string.IsNullOrWhiteSpace(query) ||
+                    !string.IsNullOrWhiteSpace(uhid) ||
+                    !string.IsNullOrWhiteSpace(mobileNumber);
+
+                return View(model);
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+                model.Results = new List<PatientResponseDto>();
+                ViewBag.HasSearched = false;
+
+                return View(model);
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(PatientSearchViewModel model)
+        public IActionResult Index(PatientSearchViewModel model)
         {
-            var request = new PatientSearchRequestDto
+            return RedirectToAction(nameof(Index), new
             {
-                Query = model.Query,
-                UHID = model.UHID,
-                MobileNumber = model.MobileNumber
-            };
-
-            model.Results = await _patientGatewayService.SearchAsync(request);
-            return View(model);
+                query = model.Query,
+                uhid = model.UHID,
+                mobileNumber = model.MobileNumber
+            });
         }
 
         [HttpGet]
@@ -52,120 +89,266 @@ namespace Frontend.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var result = await _patientGatewayService.CreateAsync(model);
-
-            if (!result.Success)
+            try
             {
-                ModelState.AddModelError(string.Empty, result.Message);
+                var result = await _patientGatewayService.CreateAsync(model);
+
+                if (!result.Success)
+                {
+                    ModelState.AddModelError(string.Empty, result.Message);
+                    return View(model);
+                }
+
+                TempData["Success"] = result.Message;
+
+                if (result.Data != null)
+                {
+                    NormalizePatientId(result.Data);
+
+                    var patientId = result.Data.EffectivePatientId;
+
+                    if (patientId > 0)
+                    {
+                        return RedirectToAction(nameof(Details), new
+                        {
+                            id = patientId
+                        });
+                    }
+                }
+
+                return RedirectToAction(nameof(Index));
+            }
+            catch (ApiException ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
                 return View(model);
             }
-
-            TempData["Success"] = result.Message;
-
-            if (result.Data != null)
-                return RedirectToAction(nameof(Details), new { id = result.Data.Id });
-
-            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            var patient = await _patientGatewayService.GetByIdAsync(id);
-
-            if (patient == null)
+            if (id <= 0)
             {
-                TempData["Error"] = "Patient not found.";
+                TempData["Error"] = "Invalid patient id.";
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(patient);
+            try
+            {
+                var patient = await _patientGatewayService.GetByIdAsync(id);
+
+                if (patient == null)
+                {
+                    TempData["Error"] = "Patient not found.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                NormalizePatientId(patient);
+
+                return View(patient);
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var patient = await _patientGatewayService.GetByIdAsync(id);
-
-            if (patient == null)
+            if (id <= 0)
             {
-                TempData["Error"] = "Patient not found.";
+                TempData["Error"] = "Invalid patient id.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var names = patient.FullName?.Split(' ', 2);
-
-            var model = new UpdatePatientRequestDto
+            try
             {
-                FirstName = names?.Length > 0 ? names[0] : "",
-                LastName = names?.Length > 1 ? names[1] : "",
-                DateOfBirth = patient.DateOfBirth,
-                Gender = patient.Gender,
-                MobileNumber = patient.MobileNumber,
-                Email = patient.Email,
-                BloodGroup = patient.BloodGroup,
-                PortalAccessEnabled = patient.PortalAccessEnabled,
-                PortalActivated = patient.PortalActivated,
-                Status = patient.Status
-            };
+                var patient = await _patientGatewayService.GetByIdAsync(id);
 
-            ViewBag.PatientId = patient.Id;
-            ViewBag.Uhid = patient.Uhid;
+                if (patient == null)
+                {
+                    TempData["Error"] = "Patient not found.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-            return View(model);
+                NormalizePatientId(patient);
+
+                var patientId = patient.EffectivePatientId;
+                var names = patient.FullName?.Split(' ', 2);
+
+                var model = new UpdatePatientRequestDto
+                {
+                    FirstName = names?.Length > 0 ? names[0] : "",
+                    LastName = names?.Length > 1 ? names[1] : "",
+                    DateOfBirth = patient.DateOfBirth,
+                    Gender = patient.Gender,
+                    MobileNumber = patient.MobileNumber,
+                    Email = patient.Email,
+                    BloodGroup = patient.BloodGroup,
+                    PortalAccessEnabled = patient.PortalAccessEnabled,
+                    PortalActivated = patient.PortalActivated,
+                    Status = patient.Status
+                };
+
+                ViewBag.PatientId = patientId;
+                ViewBag.Uhid = patient.DisplayUHID;
+
+                return View(model);
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, UpdatePatientRequestDto model)
         {
+            if (id <= 0)
+            {
+                TempData["Error"] = "Invalid patient id.";
+                return RedirectToAction(nameof(Index));
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewBag.PatientId = id;
                 return View(model);
             }
 
-            var result = await _patientGatewayService.UpdateAsync(id, model);
-
-            if (!result.Success)
+            try
             {
-                ModelState.AddModelError(string.Empty, result.Message);
+                var result = await _patientGatewayService.UpdateAsync(id, model);
+
+                if (!result.Success)
+                {
+                    ModelState.AddModelError(string.Empty, result.Message);
+                    ViewBag.PatientId = id;
+                    return View(model);
+                }
+
+                TempData["Success"] = result.Message;
+
+                return RedirectToAction(nameof(Details), new
+                {
+                    id
+                });
+            }
+            catch (ApiException ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
                 ViewBag.PatientId = id;
                 return View(model);
             }
-
-            TempData["Success"] = result.Message;
-            return RedirectToAction(nameof(Details), new { id });
         }
 
         [HttpGet]
         public async Task<IActionResult> Delete(int id)
         {
-            var patient = await _patientGatewayService.GetByIdAsync(id);
-
-            if (patient == null)
+            if (id <= 0)
             {
-                TempData["Error"] = "Patient not found.";
+                TempData["Error"] = "Invalid patient id.";
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(patient);
+            try
+            {
+                var patient = await _patientGatewayService.GetByIdAsync(id);
+
+                if (patient == null)
+                {
+                    TempData["Error"] = "Patient not found.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                NormalizePatientId(patient);
+
+                return View(patient);
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var result = await _patientGatewayService.DeleteAsync(id);
-
-            if (!result.Success)
+            if (id <= 0)
             {
-                TempData["Error"] = result.Message;
-                return RedirectToAction(nameof(Details), new { id });
+                TempData["Error"] = "Invalid patient id.";
+                return RedirectToAction(nameof(Index));
             }
 
-            TempData["Success"] = result.Message;
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                var result = await _patientGatewayService.DeleteAsync(id);
+
+                if (!result.Success)
+                {
+                    TempData["Error"] = result.Message;
+
+                    return RedirectToAction(nameof(Details), new
+                    {
+                        id
+                    });
+                }
+
+                TempData["Success"] = result.Message;
+
+                return RedirectToAction(nameof(Index));
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+
+                return RedirectToAction(nameof(Details), new
+                {
+                    id
+                });
+            }
+        }
+
+        private static void NormalizePatientId(PatientResponseDto patient)
+        {
+            var effectiveId = patient.EffectivePatientId;
+
+            if (effectiveId > 0)
+            {
+                patient.Id = effectiveId;
+                patient.PatientId = effectiveId;
+            }
         }
     }
-}
+    [RequireRole("Patient")]
+    public class PatientPortalController : Controller
+    {
+        [HttpGet]
+        public IActionResult Dashboard()
+        {
+            var role = HttpContext.Session.GetString("Role");
+            var patientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
+
+            if (!string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["Error"] = "Please login as patient.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (patientId <= 0)
+            {
+                TempData["Error"] = "Patient session expired. Please login again.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            return View();
+        }
+    }
+    }

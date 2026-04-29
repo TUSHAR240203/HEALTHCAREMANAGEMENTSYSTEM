@@ -2,6 +2,8 @@ namespace Hms.ReceptionApi.DTOs.Reception;
 
 public class ReceptionPatientSummaryDto
 {
+    public int Id { get; set; }
+
     public int PatientId { get; set; }
     public string UHID { get; set; } = default!;
     public string FullName { get; set; } = default!;
