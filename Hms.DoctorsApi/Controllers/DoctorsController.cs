@@ -31,6 +31,16 @@ public class DoctorsController : ControllerBase
         return Ok(Wrap(result, "Doctors fetched successfully."));
     }
 
+    [HttpGet("by-auth-user/{authUserId:int}")]
+    public async Task<IActionResult> GetByAuthUserId(int authUserId)
+    {
+        var result = await _doctorService.GetByAuthUserIdAsync(authUserId);
+
+        return result == null
+            ? NotFound(Fail("Doctor profile is not linked to this login account."))
+            : Ok(Wrap(result, "Doctor profile fetched successfully."));
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {

@@ -1,0 +1,87 @@
+﻿@model Frontend.Models.Doctors.CreateDoctorScheduleViewModel
+@{
+    ViewData["Title"] = "Add Schedule";
+}
+
+<div class="page-header">
+    <div>
+        <span class="badge-soft">
+            <i class="bi bi-clock-history"></i> Schedule
+        </span>
+        <h1>Add Schedule</h1>
+        <p class="page-subtitle">
+            Add your working hours. Appointment slots will be generated automatically.
+        </p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm form-card">
+    <div class="card-body">
+        <form asp-action="AddMySchedule" method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="col-md-6">
+                <label asp-for="DayOfWeek" class="form-label"></label>
+                <select asp-for="DayOfWeek"
+                        asp-items="Html.GetEnumSelectList<DayOfWeek>()"
+                        class="form-select">
+                </select>
+                <span asp-validation-for="DayOfWeek" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="StartTime" class="form-label"></label>
+                <input asp-for="StartTime" type="time" class="form-control" />
+                <span asp-validation-for="StartTime" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="EndTime" class="form-label"></label>
+                <input asp-for="EndTime" type="time" class="form-control" />
+                <span asp-validation-for="EndTime" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="BreakStartTime" class="form-label"></label>
+                <input asp-for="BreakStartTime" type="time" class="form-control" />
+                <span asp-validation-for="BreakStartTime" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="BreakEndTime" class="form-label"></label>
+                <input asp-for="BreakEndTime" type="time" class="form-control" />
+                <span asp-validation-for="BreakEndTime" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="SlotDurationMinutes" class="form-label"></label>
+                <input asp-for="SlotDurationMinutes" class="form-control" />
+                <span asp-validation-for="SlotDurationMinutes" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="MaxPatientsPerDay" class="form-label"></label>
+                <input asp-for="MaxPatientsPerDay" class="form-control" />
+                <span asp-validation-for="MaxPatientsPerDay" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-12">
+                <div class="form-check form-switch">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label"></label>
+                </div>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary" type="submit">Save Schedule</button>
+                <a asp-action="MySchedule" class="btn btn-outline-secondary">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
