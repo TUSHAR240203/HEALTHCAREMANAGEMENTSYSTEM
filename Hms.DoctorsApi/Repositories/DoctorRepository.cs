@@ -17,6 +17,15 @@ public class DoctorRepository : IDoctorRepository
 
     public async Task AddAsync(Doctor doctor) => await _context.Doctors.AddAsync(doctor);
 
+    public async Task<Doctor?> GetByAuthUserIdAsync(int authUserId)
+    {
+        return await _context.Doctors
+            .FirstOrDefaultAsync(x =>
+                x.AuthUserId == authUserId &&
+                !x.IsDeleted);
+    }
+
+
     public async Task<Doctor?> GetByIdAsync(int id) => await _context.Doctors.FirstOrDefaultAsync(x => x.Id == id);
 
     public async Task<List<Doctor>> SearchAsync(DoctorSearchRequestDto request)
@@ -47,6 +56,13 @@ public class DoctorRepository : IDoctorRepository
         return await query.OrderBy(x => x.FullName).ToListAsync();
     }
 
+    public async Task<bool> ExistsByAuthUserIdAsync(int authUserId, int? excludeDoctorId = null)
+    {
+        return await _context.Doctors.AnyAsync(x =>
+            x.AuthUserId == authUserId &&
+            !x.IsDeleted &&
+            (!excludeDoctorId.HasValue || x.Id != excludeDoctorId.Value));
+    }
     public async Task<bool> ExistsByDoctorCodeAsync(string doctorCode, int? excludeDoctorId = null)
     {
         var query = _context.Doctors.Where(x => x.DoctorCode == doctorCode);
@@ -79,25 +95,53 @@ public class DoctorRepository : IDoctorRepository
     public async Task<List<DoctorSchedule>> GetSchedulesAsync(int doctorId)
         => await _context.DoctorSchedules.Where(x => x.DoctorId == doctorId).OrderBy(x => x.DayOfWeek).ThenBy(x => x.StartTime).ToListAsync();
 
-    public async Task AddLeaveAsync(DoctorLeave leave) => await _context.DoctorLeaves.AddAsync(leave);
+    public async Task AddLeaveAsync(DoctorLeave leave)
+    => await _context.DoctorLeaves.AddAsync(leave);
 
     public async Task<DoctorLeave?> GetLeaveByIdAsync(int doctorId, int leaveId)
-        => await _context.DoctorLeaves.FirstOrDefaultAsync(x => x.DoctorId == doctorId && x.Id == leaveId);
+        => await _context.DoctorLeaves
+            .FirstOrDefaultAsync(x =>
+                x.DoctorId == doctorId &&
+                x.Id == leaveId &&
+                !x.IsDeleted);
 
     public async Task<DoctorLeave?> GetLeaveByIdAsync(int leaveId)
-        => await _context.DoctorLeaves.FirstOrDefaultAsync(x => x.Id == leaveId);
+        => await _context.DoctorLeaves
+            .FirstOrDefaultAsync(x =>
+                x.Id == leaveId &&
+                !x.IsDeleted);
 
     public async Task<List<DoctorLeave>> GetLeavesAsync(int doctorId)
-        => await _context.DoctorLeaves.Where(x => x.DoctorId == doctorId).OrderByDescending(x => x.LeaveDate).ToListAsync();
+        => await _context.DoctorLeaves
+            .Where(x =>
+                x.DoctorId == doctorId &&
+                !x.IsDeleted)
+            .OrderByDescending(x => x.StartDate)
+            .ThenByDescending(x => x.Id)
+            .ToListAsync();
 
     public async Task<List<DoctorLeave>> GetLeavesAsync(string? status = null)
     {
-        var query = _context.DoctorLeaves.AsQueryable();
+        var query = _context.DoctorLeaves
+            .Where(x => !x.IsDeleted)
+            .AsQueryable();
+
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(x => x.Status == status);
-        return await query.OrderByDescending(x => x.LeaveDate).ThenByDescending(x => x.Id).ToListAsync();
+
+        return await query
+            .OrderByDescending(x => x.StartDate)
+            .ThenByDescending(x => x.Id)
+            .ToListAsync();
     }
 
     public async Task<bool> HasLeaveOnDateAsync(int doctorId, DateOnly date)
-        => await _context.DoctorLeaves.AnyAsync(x => x.DoctorId == doctorId && x.LeaveDate == date && x.Status == "Approved");
+    {
+        return await _context.DoctorLeaves.AnyAsync(x =>
+            x.DoctorId == doctorId &&
+            !x.IsDeleted &&
+            x.Status == "Approved" &&
+            x.StartDate <= date &&
+            x.EndDate >= date);
+    }
 }

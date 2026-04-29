@@ -19,9 +19,10 @@ public class DoctorsDbContext : DbContext
 
         modelBuilder.Entity<Doctor>(entity =>
         {
+            entity.HasIndex(x => x.AuthUserId).IsUnique().HasFilter("[AuthUserId] IS NOT NULL");
             entity.ToTable("Doctors");
             entity.HasKey(x => x.Id);
-            entity.Property(x => x.DoctorCode).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.DoctorCode).HasMaxLength(20).IsRequired().IsUnicode(); ;
             entity.Property(x => x.FullName).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Email).HasMaxLength(150);
             entity.Property(x => x.Phone).HasMaxLength(20);
@@ -54,14 +55,30 @@ public class DoctorsDbContext : DbContext
         {
             entity.ToTable("DoctorLeaves");
             entity.HasKey(x => x.Id);
-            entity.Property(x => x.Reason).HasMaxLength(250);
-            entity.Property(x => x.Status).HasMaxLength(20).HasDefaultValue("Pending");
-            entity.Property(x => x.ReviewedBy).HasMaxLength(150);
+
+            entity.Property(x => x.StartDate)
+                .HasColumnType("date");
+
+            entity.Property(x => x.EndDate)
+                .HasColumnType("date");
+
+            entity.Property(x => x.Reason)
+                .HasMaxLength(250);
+
+            entity.Property(x => x.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Pending");
+
+            entity.Property(x => x.ReviewedBy)
+                .HasMaxLength(150);
+
             entity.HasOne(x => x.Doctor)
                 .WithMany(x => x.Leaves)
                 .HasForeignKey(x => x.DoctorId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.DoctorId, x.LeaveDate });
+
+            entity.HasIndex(x => new { x.DoctorId, x.StartDate, x.EndDate });
+
             entity.HasQueryFilter(x => !x.IsDeleted);
         });
     }

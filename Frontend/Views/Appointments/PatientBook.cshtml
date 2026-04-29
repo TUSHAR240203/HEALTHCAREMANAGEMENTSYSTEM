@@ -2,6 +2,7 @@
 @model PatientAppointmentBookingViewModel
 @{
     ViewData["Title"] = "Book Appointment";
+    var availabilityMessage = ViewBag.AvailabilityMessage as string;
 }
 
 <div class="page-header">
@@ -9,15 +10,19 @@
         <h1>Book Appointment</h1>
         <p class="page-subtitle">Choose a doctor, pick a free slot, and confirm your visit.</p>
     </div>
-    <a asp-action="ByPatient" asp-route-patientId="@Model.PatientId" class="btn btn-outline-primary"><i class="bi bi-calendar-check me-1"></i> My Appointments</a>
+
+    <a asp-action="ByPatient" asp-route-patientId="@Model.PatientId" class="btn btn-outline-primary">
+        <i class="bi bi-calendar-check me-1"></i> My Appointments
+    </a>
 </div>
 
 <div class="booking-hero glass-panel">
     <div>
-        <span class="badge-soft"><i class="bi bi-clock-history"></i> Live doctor slots</span>
-        <h2>Book your appointment</h2>
-        <p>Choose your doctor, check the selected date, and pick an available consultation slot.</p>
+        <span class="badge-soft"><i class="bi bi-clock-history"></i> Live slots</span>
+        <h2>Live slot booking</h2>
+        <p>Doctor cards show name, speciality, department and photo. Pick one, then choose an available slot.</p>
     </div>
+
     <div class="booking-patient-card">
         <span>Patient ID</span>
         <strong>#@Model.PatientId</strong>
@@ -26,13 +31,19 @@
 </div>
 
 <div class="card border-0">
-    <div class="card-header"><h2 class="h5 mb-0">Choose doctor and date</h2></div>
+    <div class="card-header">
+        <h2 class="h5 mb-0">Choose doctor and date</h2>
+    </div>
+
     <div class="card-body p-4">
         <form asp-action="PatientBook" method="get" class="row g-3 align-items-end">
             <div class="col-12">
                 @if (!Model.Doctors.Any())
                 {
-                    <div class="empty-state"><h3>No doctors found</h3><p>Add doctors first from the Doctors module.</p></div>
+                    <div class="empty-state">
+                        <h3>No doctors found</h3>
+                        <p>Add doctors first from the Doctors module.</p>
+                    </div>
                 }
                 else
                 {
@@ -40,34 +51,67 @@
                         <label class="form-label" for="doctorSearch">Search doctor</label>
                         <div class="doctor-search-box">
                             <i class="bi bi-search"></i>
-                            <input id="doctorSearch" class="form-control" type="search" placeholder="Search by doctor name or speciality" autocomplete="off" />
+                            <input id="doctorSearch"
+                                   class="form-control"
+                                   type="search"
+                                   placeholder="Search by doctor name or speciality"
+                                   autocomplete="off" />
                         </div>
                     </div>
+
                     <div class="doctor-choice-grid doctor-choice-list" id="doctorChoiceList">
                         @foreach (var doctor in Model.Doctors)
                         {
                             var did = "doctor_" + doctor.Id;
                             var searchText = $"{doctor.FullName} {doctor.Specialization} {doctor.DepartmentName}";
+
                             <div class="doctor-choice-item" data-doctor-search="@searchText.ToLowerInvariant()">
-                                <input type="radio" class="doctor-radio" name="doctorId" id="@did" value="@doctor.Id" checked="@(doctor.Id == Model.DoctorId)" />
+                                <input type="radio"
+                                       class="doctor-radio"
+                                       name="doctorId"
+                                       id="@did"
+                                       value="@doctor.Id"
+                                       checked="@(doctor.Id == Model.DoctorId)" />
+
                                 <label class="doctor-choice-card compact" for="@did">
-                                    @if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl)) { <img src="@doctor.PhotoUrl" alt="@doctor.FullName" /> } else { <span class="doctor-avatar-fallback"><i class="bi bi-person-badge"></i></span> }
+                                    @if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl))
+                                    {
+                                        <img src="@doctor.PhotoUrl" alt="@doctor.FullName" />
+                                    }
+                                    else
+                                    {
+                                        <span class="doctor-avatar-fallback">
+                                            <i class="bi bi-person-badge"></i>
+                                        </span>
+                                    }
+
                                     <span class="doctor-choice-name">@doctor.FullName</span>
-                                    <small>@(string.IsNullOrWhiteSpace(doctor.Specialization) ? "Specialization not available" : doctor.Specialization)</small>
-                                    <em>@(string.IsNullOrWhiteSpace(doctor.DepartmentName) ? "Department not available" : doctor.DepartmentName)</em>
+                                    <small>@doctor.Specialization</small>
+                                    <em>@doctor.DepartmentName</em>
                                 </label>
                             </div>
                         }
                     </div>
-                    <div class="empty-state d-none" id="doctorNoResults"><h3>No matching doctor</h3><p>Try another name or speciality.</p></div>
+
+                    <div class="empty-state d-none" id="doctorNoResults">
+                        <h3>No matching doctor</h3>
+                        <p>Try another name or speciality.</p>
+                    </div>
                 }
             </div>
+
             <div class="col-md-8 col-lg-4">
                 <label class="form-label">Date</label>
-                <input name="appointmentDate" type="date" value="@Model.AppointmentDate.ToString("yyyy-MM-dd")" class="form-control" />
+                <input name="appointmentDate"
+                       type="date"
+                       value="@Model.AppointmentDate.ToString("yyyy-MM-dd")"
+                       class="form-control" />
             </div>
+
             <div class="col-md-4 col-lg-3">
-                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i> Check Slots</button>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i> Check Slots
+                </button>
             </div>
         </form>
     </div>
@@ -75,12 +119,21 @@
 
 <form asp-action="PatientBook" method="post">
     @Html.AntiForgeryToken()
+
     <input asp-for="PatientId" type="hidden" />
     <input asp-for="UHID" type="hidden" />
     <input asp-for="DoctorId" type="hidden" />
     <input asp-for="AppointmentDate" type="hidden" value="@Model.AppointmentDate.ToString("yyyy-MM-dd")" />
 
     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    @if (!string.IsNullOrWhiteSpace(availabilityMessage))
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            @availabilityMessage
+        </div>
+    }
 
     <div class="row g-4">
         <div class="col-lg-8">
@@ -90,15 +143,33 @@
                         Time Slots
                         @if (Model.SelectedDoctor != null)
                         {
-                            <span>for @Model.SelectedDoctor.FullName</span>
+                            <text>for @Model.SelectedDoctor.FullName</text>
                         }
                     </h2>
-                    <p class="text-muted mb-0">Select one available slot for @Model.AppointmentDate.ToString("dd MMM yyyy").</p>
+
+                    <p class="text-muted mb-0">
+                        Select one available slot for @Model.AppointmentDate.ToString("dd MMM yyyy").
+                    </p>
                 </div>
+
                 <div class="card-body p-4">
                     @if (!Model.Doctors.Any())
                     {
-                        <div class="empty-state"><h3>No doctors found</h3><p>Add doctors first from the Doctors module.</p></div>
+                        <div class="empty-state">
+                            <h3>No doctors found</h3>
+                            <p>Add doctors first from the Doctors module.</p>
+                        </div>
+                    }
+                    else if (!Model.Slots.Any())
+                    {
+                        <div class="empty-state">
+                            <h3>No available slots</h3>
+                            <p>
+                                @(string.IsNullOrWhiteSpace(availabilityMessage)
+                                                            ? "The selected doctor has no available slots for this date."
+                                                            : availabilityMessage)
+                            </p>
+                        </div>
                     }
                     else
                     {
@@ -106,30 +177,58 @@
                             @foreach (var slot in Model.Slots)
                             {
                                 var id = "slot_" + slot.Value.Replace(":", "").Replace("|", "_");
-                                <input type="radio" class="slot-radio" name="SelectedSlot" id="@id" value="@slot.Value" disabled="@slot.IsBooked" checked="@(Model.SelectedSlot == slot.Value)" />
+
+                                <input type="radio"
+                                       class="slot-radio"
+                                       name="SelectedSlot"
+                                       id="@id"
+                                       value="@slot.Value"
+                                       disabled="@slot.IsBooked"
+                                       checked="@(Model.SelectedSlot == slot.Value)" />
+
                                 <label class="slot-pill @(slot.IsBooked ? "booked" : "available")" for="@id">
                                     <i class="bi @(slot.IsBooked ? "bi-lock-fill" : "bi-check-circle")"></i>
                                     <span>@slot.Label</span>
-                                    <small>@(slot.IsBooked ? "Booked" : "Available")</small>
+                                    <small>@(slot.IsBooked ? "Unavailable" : "Available")</small>
                                 </label>
                             }
                         </div>
+
                         <span asp-validation-for="SelectedSlot" class="text-danger d-block mt-3"></span>
                     }
                 </div>
             </div>
         </div>
+
         <div class="col-lg-4">
             <div class="card border-0 sticky-summary">
-                <div class="card-header"><h2 class="h5 mb-0">Confirm Visit</h2></div>
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Confirm Visit</h2>
+                </div>
+
                 <div class="card-body p-4">
                     @if (Model.SelectedDoctor != null)
                     {
                         <div class="doctor-summary mb-3">
-                            @if (!string.IsNullOrWhiteSpace(Model.SelectedDoctor.PhotoUrl)) { <img src="@Model.SelectedDoctor.PhotoUrl" class="avatar-sm" /> } else { <div class="tile-icon"><i class="bi bi-person-badge"></i></div> }
-                            <div><strong>@Model.SelectedDoctor.FullName</strong><span>@Model.SelectedDoctor.Specialization</span><small>@Model.SelectedDoctor.DepartmentName</small></div>
+                            @if (!string.IsNullOrWhiteSpace(Model.SelectedDoctor.PhotoUrl))
+                            {
+                                <img src="@Model.SelectedDoctor.PhotoUrl" class="avatar-sm" />
+                            }
+                            else
+                            {
+                                <div class="tile-icon">
+                                    <i class="bi bi-person-badge"></i>
+                                </div>
+                            }
+
+                            <div>
+                                <strong>@Model.SelectedDoctor.FullName</strong>
+                                <span>@Model.SelectedDoctor.Specialization</span>
+                                <small>@Model.SelectedDoctor.DepartmentName</small>
+                            </div>
                         </div>
                     }
+
                     <div class="mb-3">
                         <label asp-for="VisitType" class="form-label"></label>
                         <select asp-for="VisitType" class="form-select">
@@ -139,15 +238,32 @@
                             <option>Emergency</option>
                         </select>
                     </div>
+
                     <div class="mb-3">
                         <label asp-for="ReasonForVisit" class="form-label"></label>
-                        <textarea asp-for="ReasonForVisit" class="form-control" rows="4" placeholder="Describe symptoms or reason"></textarea>
+                        <textarea asp-for="ReasonForVisit"
+                                  class="form-control"
+                                  rows="4"
+                                  placeholder="Describe symptoms or reason"></textarea>
                     </div>
+
                     <div class="form-check form-switch mb-4">
                         <input asp-for="IsTeleConsultation" class="form-check-input" />
                         <label asp-for="IsTeleConsultation" class="form-check-label fw-bold"></label>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-calendar2-plus me-1"></i> Book Appointment</button>
+
+                    <button type="submit"
+                            class="btn btn-primary w-100"
+                            disabled="@(!Model.Slots.Any(s => !s.IsBooked))">
+                        <i class="bi bi-calendar2-plus me-1"></i> Book Appointment
+                    </button>
+
+                    @if (!Model.Slots.Any(s => !s.IsBooked))
+                    {
+                        <div class="small text-muted mt-2">
+                            Booking is disabled because no available slot is selected for this doctor and date.
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -156,6 +272,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
     <script>
         (() => {
             const search = document.getElementById('doctorSearch');
@@ -166,11 +283,13 @@
             search?.addEventListener('input', () => {
                 const value = search.value.trim().toLowerCase();
                 let visibleCount = 0;
+
                 list?.querySelectorAll('.doctor-choice-item').forEach(item => {
                     const match = item.dataset.doctorSearch.includes(value);
                     item.classList.toggle('d-none', !match);
                     if (match) visibleCount++;
                 });
+
                 noResults?.classList.toggle('d-none', visibleCount > 0);
             });
 

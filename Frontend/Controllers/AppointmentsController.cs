@@ -402,39 +402,50 @@ public class AppointmentsController : Controller
         };
     }
 
-    private async Task<List<PatientSlotOption>> BuildSlotsAsync(int doctorId, DateOnly appointmentDate, int? ignoreAppointmentId = null)
+    private async Task<List<PatientSlotOption>> BuildSlotsAsync(
+    int doctorId,
+    DateOnly appointmentDate,
+    int? ignoreAppointmentId = null)
     {
-        var result = await _appointmentApiService.SearchAsync(new AppointmentSearchRequestDto
+        try
         {
-            DoctorId = doctorId,
-            AppointmentDate = appointmentDate,
-            PageNumber = 1,
-            PageSize = 100
-        });
+            var availability = await _doctorGatewayService.GetAvailabilityAsync(
+                doctorId,
+                appointmentDate,
+                null);
 
-        var booked = result.Appointments
-            .Where(a => a.Status != AppointmentStatus.Cancelled && (!ignoreAppointmentId.HasValue || a.Id != ignoreAppointmentId.Value))
-            .Select(a => $"{a.SlotStartTime:HH\\:mm}|{a.SlotEndTime:HH\\:mm}")
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var slots = new List<PatientSlotOption>();
-        var start = new TimeOnly(9, 0);
-        var endOfDay = new TimeOnly(17, 0);
-        while (start < endOfDay)
-        {
-            var end = start.AddMinutes(30);
-            var value = $"{start:HH\\:mm}|{end:HH\\:mm}";
-            slots.Add(new PatientSlotOption
+            if (availability == null || availability.Slots == null || availability.Slots.Count == 0)
             {
-                Start = start,
-                End = end,
-                Value = value,
-                Label = $"{start:hh\\:mm tt} - {end:hh\\:mm tt}",
-                IsBooked = booked.Contains(value)
-            });
-            start = end;
+                ViewBag.AvailabilityMessage = !string.IsNullOrWhiteSpace(availability?.Message)
+                    ? availability.Message
+                    : "No available slots for the selected doctor and date.";
+
+                return new List<PatientSlotOption>();
+            }
+
+            ViewBag.AvailabilityMessage = !string.IsNullOrWhiteSpace(availability.Message)
+                ? availability.Message
+                : null;
+
+            return availability.Slots.Select(slot =>
+            {
+                var value = $"{slot.SlotStartTime:HH\\:mm}|{slot.SlotEndTime:HH\\:mm}";
+
+                return new PatientSlotOption
+                {
+                    Start = slot.SlotStartTime,
+                    End = slot.SlotEndTime,
+                    Value = value,
+                    Label = $"{slot.SlotStartTime:hh\\:mm tt} - {slot.SlotEndTime:hh\\:mm tt}",
+                    IsBooked = !slot.IsAvailable
+                };
+            }).ToList();
         }
-        return slots;
+        catch (ApiException ex)
+        {
+            ViewBag.AvailabilityMessage = ex.Message;
+            return new List<PatientSlotOption>();
+        }
     }
 
     private static bool TryParseSlot(string? selectedSlot, out TimeOnly start, out TimeOnly end)

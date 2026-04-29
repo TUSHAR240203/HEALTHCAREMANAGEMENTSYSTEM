@@ -2,6 +2,7 @@ namespace Hms.DoctorsApi.Entities;
 
 public class Doctor : BaseEntity
 {
+    public int? AuthUserId { get; set; }
     public string DoctorCode { get; set; } = default!;
     public string FullName { get; set; } = default!;
     public string? Email { get; set; }

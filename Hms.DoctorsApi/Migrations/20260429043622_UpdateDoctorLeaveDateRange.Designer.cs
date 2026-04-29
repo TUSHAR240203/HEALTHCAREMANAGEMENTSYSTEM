@@ -4,6 +4,7 @@ using Hms.DoctorsApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hms.DoctorsApi.Migrations
 {
     [DbContext(typeof(DoctorsDbContext))]
-    partial class DoctorsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260429043622_UpdateDoctorLeaveDateRange")]
+    partial class UpdateDoctorLeaveDateRange
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,12 +33,9 @@ namespace Hms.DoctorsApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-<<<<<<< HEAD
-=======
                     b.Property<int?>("AuthUserId")
                         .HasColumnType("int");
 
->>>>>>> origin
                     b.Property<decimal>("ConsultationFee")
                         .HasColumnType("decimal(18,2)");
 
@@ -53,10 +53,7 @@ namespace Hms.DoctorsApi.Migrations
                     b.Property<string>("DoctorCode")
                         .IsRequired()
                         .HasMaxLength(20)
-<<<<<<< HEAD
-=======
                         .IsUnicode(true)
->>>>>>> origin
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Email")
@@ -113,13 +110,10 @@ namespace Hms.DoctorsApi.Migrations
 
                     b.HasKey("Id");
 
-<<<<<<< HEAD
-=======
                     b.HasIndex("AuthUserId")
                         .IsUnique()
                         .HasFilter("[AuthUserId] IS NOT NULL");
 
->>>>>>> origin
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("DoctorCode")
@@ -146,21 +140,12 @@ namespace Hms.DoctorsApi.Migrations
                     b.Property<int>("DoctorId")
                         .HasColumnType("int");
 
-<<<<<<< HEAD
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateOnly>("LeaveDate")
-                        .HasColumnType("date");
-
-=======
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
->>>>>>> origin
                     b.Property<string>("Reason")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
@@ -172,12 +157,9 @@ namespace Hms.DoctorsApi.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-<<<<<<< HEAD
-=======
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
->>>>>>> origin
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -190,11 +172,7 @@ namespace Hms.DoctorsApi.Migrations
 
                     b.HasKey("Id");
 
-<<<<<<< HEAD
-                    b.HasIndex("DoctorId", "LeaveDate");
-=======
                     b.HasIndex("DoctorId", "StartDate", "EndDate");
->>>>>>> origin
 
                     b.ToTable("DoctorLeaves", (string)null);
                 });

@@ -25,7 +25,7 @@ namespace Frontend.Models.Admin
         public string Password { get; set; } = string.Empty;
 
         [Required]
-        public string Role { get; set; } = "Doctor";
+        public string Role { get; set; } = "Receptionist";
 
         [EmailAddress]
         public string? Email { get; set; }
