@@ -1,4 +1,5 @@
 @model Frontend.Models.Reception.ReceptionPatientSummaryDto
+
 @{
     ViewData["Title"] = "Patient Summary";
 }
@@ -8,17 +9,44 @@
         <h1>Patient Summary</h1>
         <p class="page-subtitle">Reception-ready overview of core patient information.</p>
     </div>
+
+    <a asp-action="SearchPatients" class="btn btn-outline-primary">
+        Back to Search
+    </a>
 </div>
 
 <div class="card border-0">
     <div class="card-body p-4">
         <div class="info-grid">
-            <div class="info-card"><span class="info-label">Id</span><span class="info-value">@Model.Id</span></div>
-            <div class="info-card"><span class="info-label">UHID</span><span class="info-value">@Model.UHID</span></div>
-            <div class="info-card"><span class="info-label">Name</span><span class="info-value">@Model.FullName</span></div>
-            <div class="info-card"><span class="info-label">Mobile</span><span class="info-value">@Model.MobileNumber</span></div>
-            <div class="info-card"><span class="info-label">Email</span><span class="info-value">@Model.Email</span></div>
-            <div class="info-card"><span class="info-label">DOB</span><span class="info-value">@Model.DateOfBirth</span></div>
+            <div class="info-card">
+                <span class="info-label">Patient Id</span>
+                <span class="info-value">@Model.PatientId</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">UHID</span>
+                <span class="info-value">@Model.UHID</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Name</span>
+                <span class="info-value">@Model.FullName</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Mobile</span>
+                <span class="info-value">@Model.MobileNumber</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Email</span>
+                <span class="info-value">@Model.Email</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">DOB</span>
+                <span class="info-value">@Model.DateOfBirth</span>
+            </div>
         </div>
     </div>
 </div>

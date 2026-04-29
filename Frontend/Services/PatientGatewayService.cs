@@ -77,32 +77,75 @@ namespace Frontend.Services
 
         public async Task<List<PatientResponseDto>> SearchAsync(PatientSearchRequestDto request)
         {
-            var response = await _httpClient.PostAsJsonAsync("gateway/patients/search", request);
+            request ??= new PatientSearchRequestDto();
+
+            var response = await _httpClient.PostAsJsonAsync(
+                "gateway/patients/search",
+                request);
+
+            var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
-                return new List<PatientResponseDto>();
-
-            var content = await response.Content.ReadAsStringAsync();
-
-            try
             {
-                var wrapped = JsonSerializer.Deserialize<PatientSearchResponseDto>(content, _jsonOptions);
-                if (wrapped?.Patients != null && wrapped.Patients.Count > 0)
-                    return wrapped.Patients;
-            }
-            catch
-            {
+                throw new ApiException(
+                    string.IsNullOrWhiteSpace(body)
+                        ? $"Patient search failed with status code {(int)response.StatusCode}."
+                        : body,
+                    (int)response.StatusCode);
             }
 
-            try
-            {
-                var list = JsonSerializer.Deserialize<List<PatientResponseDto>>(content, _jsonOptions);
-                return list ?? new List<PatientResponseDto>();
-            }
-            catch
+            if (string.IsNullOrWhiteSpace(body))
             {
                 return new List<PatientResponseDto>();
             }
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            using var document = System.Text.Json.JsonDocument.Parse(body);
+            var root = document.RootElement;
+
+            // Case 1:
+            // { success: true, message: "...", data: { patients: [...] } }
+            if (root.TryGetProperty("data", out var data))
+            {
+                if (data.ValueKind == System.Text.Json.JsonValueKind.Null)
+                    return new List<PatientResponseDto>();
+
+                if (data.TryGetProperty("patients", out var patientsElement))
+                {
+                    return patientsElement.Deserialize<List<PatientResponseDto>>(options)
+                           ?? new List<PatientResponseDto>();
+                }
+
+                // Case 2:
+                // { success: true, data: [...] }
+                if (data.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    return data.Deserialize<List<PatientResponseDto>>(options)
+                           ?? new List<PatientResponseDto>();
+                }
+            }
+
+            // Case 3:
+            // { patients: [...] }
+            if (root.TryGetProperty("patients", out var directPatients))
+            {
+                return directPatients.Deserialize<List<PatientResponseDto>>(options)
+                       ?? new List<PatientResponseDto>();
+            }
+
+            // Case 4:
+            // [...]
+            if (root.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                return root.Deserialize<List<PatientResponseDto>>(options)
+                       ?? new List<PatientResponseDto>();
+            }
+
+            return new List<PatientResponseDto>();
         }
 
         public async Task<(bool Success, string Message, PatientResponseDto? Data)> CompleteProfileAsync(int id, CompletePatientProfileRequestDto request)

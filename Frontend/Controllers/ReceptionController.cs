@@ -1,4 +1,5 @@
-﻿using Frontend.Models.Reception;
+using Frontend.Models.Reception;
+using Frontend.Models.Api;
 using Frontend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Frontend.Infrastructure;
@@ -9,16 +10,38 @@ namespace Frontend.Controllers
     public class ReceptionController : Controller
     {
         private readonly IReceptionApiService _receptionApiService;
+        private readonly IAppointmentApiService _appointmentApiService;
 
-        public ReceptionController(IReceptionApiService receptionApiService)
+        public ReceptionController(
+            IReceptionApiService receptionApiService,
+            IAppointmentApiService appointmentApiService)
         {
             _receptionApiService = receptionApiService;
+            _appointmentApiService = appointmentApiService;
         }
 
         [HttpGet]
-        public IActionResult SearchPatients()
+        public async Task<IActionResult> SearchPatients()
         {
-            return View(new ReceptionPatientSearchRequestDto());
+            var request = new ReceptionPatientSearchRequestDto();
+
+            try
+            {
+                var result = await _receptionApiService.SearchPatientsAsync(request);
+
+                ViewBag.Results = result?.Patients ?? new List<ReceptionPatientSummaryDto>();
+                ViewBag.HasSearched = false;
+
+                return View(request);
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+                ViewBag.Results = new List<ReceptionPatientSummaryDto>();
+                ViewBag.HasSearched = false;
+
+                return View(request);
+            }
         }
 
         [HttpPost]
@@ -28,16 +51,22 @@ namespace Frontend.Controllers
             try
             {
                 var result = await _receptionApiService.SearchPatientsAsync(request);
+
                 ViewBag.Results = result?.Patients ?? new List<ReceptionPatientSummaryDto>();
+                ViewBag.HasSearched = true;
+
                 return View(request);
             }
             catch (ApiException ex)
             {
                 ModelState.AddModelError(string.Empty, ex.Message);
+
+                ViewBag.Results = new List<ReceptionPatientSummaryDto>();
+                ViewBag.HasSearched = true;
+
                 return View(request);
             }
         }
-
         [HttpGet]
         public IActionResult RegisterPatient()
         {
@@ -66,16 +95,24 @@ namespace Frontend.Controllers
                 return View(request);
             }
         }
-
         [HttpGet]
         public async Task<IActionResult> PatientSummary(int patientId)
         {
+            if (patientId <= 0)
+            {
+                TempData["Error"] = "Invalid patient id.";
+                return RedirectToAction(nameof(SearchPatients));
+            }
+
             try
             {
                 var result = await _receptionApiService.GetPatientSummaryAsync(patientId);
 
                 if (result == null)
-                    return NotFound();
+                {
+                    TempData["Error"] = "Patient not found.";
+                    return RedirectToAction(nameof(SearchPatients));
+                }
 
                 return View(result);
             }
@@ -296,6 +333,8 @@ namespace Frontend.Controllers
             int queueTokenId,
             int departmentId,
             DateOnly date,
+            int appointmentId,
+            int patientId,
             string? notes)
         {
             try
@@ -307,7 +346,23 @@ namespace Frontend.Controllers
                         Notes = notes
                     });
 
-                TempData["Success"] = "Patient completed.";
+                var resolvedAppointmentId = appointmentId > 0
+                    ? appointmentId
+                    : await ResolveAppointmentIdForQueueCompletionAsync(patientId, departmentId, date);
+
+                if (resolvedAppointmentId > 0)
+                {
+                    await _appointmentApiService.CompleteAsync(
+                        resolvedAppointmentId,
+                        new CompleteAppointmentRequestDto
+                        {
+                            Notes = notes ?? "Completed from queue"
+                        });
+                }
+
+                TempData["Success"] = resolvedAppointmentId > 0
+                    ? "Patient completed and appointment status updated in database."
+                    : "Patient completed in queue, but appointment status could not be updated because AppointmentId was not found. Run the SQL sync script once or expose AppointmentId from the Reception API queue response.";
             }
             catch (ApiException ex)
             {
@@ -319,6 +374,35 @@ namespace Frontend.Controllers
                 departmentId,
                 date = date.ToString("yyyy-MM-dd")
             });
+        }
+
+        private async Task<int> ResolveAppointmentIdForQueueCompletionAsync(
+            int patientId,
+            int departmentId,
+            DateOnly date)
+        {
+            if (patientId <= 0 || departmentId <= 0)
+            {
+                return 0;
+            }
+
+            var result = await _appointmentApiService.SearchAsync(new AppointmentSearchRequestDto
+            {
+                PatientId = patientId,
+                DepartmentId = departmentId,
+                AppointmentDate = date,
+                PageNumber = 1,
+                PageSize = 20
+            });
+
+            var appointment = result.Appointments
+                .Where(x => x.Status != AppointmentStatus.Completed &&
+                            x.Status != AppointmentStatus.Cancelled)
+                .OrderByDescending(x => x.Status == AppointmentStatus.CheckedIn)
+                .ThenBy(x => x.SlotStartTime)
+                .FirstOrDefault();
+
+            return appointment?.Id ?? 0;
         }
 
         [HttpPost]

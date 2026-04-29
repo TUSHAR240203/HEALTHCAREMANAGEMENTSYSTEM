@@ -100,9 +100,30 @@ public class ReceptionService : IReceptionService
         return await _billingApiClient.AddPaymentAsync(invoiceId, request);
     }
 
-    public async Task<ReceptionPatientSearchResponseDto> SearchPatientsAsync(ReceptionPatientSearchRequestDto request)
+    public async Task<ReceptionPatientSearchResponseDto> SearchPatientsAsync(
+     ReceptionPatientSearchRequestDto request)
     {
-        return await _patientsApiClient.SearchPatientsAsync(request);
+        var result = await _patientsApiClient.SearchPatientsAsync(request);
+
+        if (result?.Patients == null)
+        {
+            return new ReceptionPatientSearchResponseDto
+            {
+                Patients = new List<ReceptionPatientSummaryDto>()
+            };
+        }
+
+        foreach (var patient in result.Patients)
+        {
+            var effectivePatientId = patient.PatientId > 0
+                ? patient.PatientId
+                : patient.Id;
+
+            patient.Id = effectivePatientId;
+            patient.PatientId = effectivePatientId;
+        }
+
+        return result;
     }
 
     public async Task<ReceptionPatientSummaryDto> RegisterPatientAsync(RegisterPatientByReceptionRequestDto request)

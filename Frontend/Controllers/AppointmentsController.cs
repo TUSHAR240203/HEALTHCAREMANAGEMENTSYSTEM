@@ -159,7 +159,7 @@ public class AppointmentsController : Controller
         if (string.IsNullOrWhiteSpace(model.UHID))
         {
             var patient = await _patientGatewayService.GetByIdAsync(model.PatientId);
-            model.UHID = patient?.Uhid ?? string.Empty;
+            model.UHID = patient?.UHID ?? string.Empty;
         }
 
         if (!TryParseSlot(model.SelectedSlot, out var start, out var end))
@@ -387,7 +387,7 @@ public class AppointmentsController : Controller
         if (patientId > 0 && string.IsNullOrWhiteSpace(uhid))
         {
             var patient = await _patientGatewayService.GetByIdAsync(patientId);
-            uhid = patient?.Uhid ?? string.Empty;
+            uhid = patient?.UHID ?? string.Empty;
         }
 
         return new PatientAppointmentBookingViewModel

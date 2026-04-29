@@ -1,13 +1,17 @@
 @using Microsoft.AspNetCore.Http
 @model List<Frontend.Models.Billing.InvoiceResponseDto>
 @{
-    ViewData["Title"] = "Invoices By Patient";
+    ViewData["Title"] = string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase) ? "My Bills" : "Invoices By Patient";
 }
 
 <div class="page-header">
     <div>
-        <h1>Invoices By Patient</h1>
-        <p class="page-subtitle">Search invoices and review payment status for a selected patient.</p>
+        <h1>@ViewData["Title"]</h1>
+        <p class="page-subtitle">
+            @(string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase)
+                ? "Review your invoice totals, paid amount, balance, and payment status."
+                : "Search invoices and review payment status for a selected patient.")
+        </p>
     </div>
     @if (!string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase))
     {
@@ -61,9 +65,9 @@
                             <td>#@invoice.Id</td>
                             <td>@invoice.UHID</td>
                             <td>@invoice.AppointmentId</td>
-                            <td>@invoice.TotalAmount</td>
-                            <td>@invoice.PaidAmount</td>
-                            <td>@invoice.BalanceAmount</td>
+                            <td>₹@invoice.TotalAmount</td>
+                            <td>₹@invoice.PaidAmount</td>
+                            <td>₹@invoice.BalanceAmount</td>
                             <td><span class="badge bg-light text-dark">@invoice.Status</span></td>
                             <td><a asp-action="Details" asp-route-invoiceId="@invoice.Id" class="btn btn-sm btn-outline-primary">View</a></td>
                         </tr>
@@ -76,7 +80,11 @@
         {
             <div class="empty-state">
                 <h3 class="h5">No invoices found</h3>
-                <p class="text-muted">Search by patient id to review billing records.</p>
+                <p class="text-muted">
+                    @(string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase)
+                        ? "No bills are linked to your patient profile yet."
+                        : "Search by patient id to review billing records.")
+                </p>
             </div>
         }
     </div>

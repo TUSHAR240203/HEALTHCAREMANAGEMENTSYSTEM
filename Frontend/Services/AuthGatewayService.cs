@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Frontend.Models.Api;
 using Frontend.Models.Auth;
 
 namespace Frontend.Services
@@ -8,6 +9,11 @@ namespace Frontend.Services
     public class AuthGatewayService
     {
         private readonly HttpClient _httpClient;
+
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         public AuthGatewayService(HttpClient httpClient)
         {
@@ -25,7 +31,10 @@ namespace Frontend.Services
                 });
 
             if (response.IsSuccessStatusCode)
-                return (true, "Login OTP sent successfully.");
+            {
+                var apiResponse = await ReadApiResponseAsync<object>(response);
+                return (apiResponse?.Success ?? true, apiResponse?.Message ?? "Login OTP sent successfully.");
+            }
 
             var error = await ReadErrorAsync(response);
             return (false, error);
@@ -34,20 +43,23 @@ namespace Frontend.Services
         public async Task<(bool Success, AuthResponseDto? Data, string Message)> StaffLoginAsync(StaffLoginRequestDto request)
         {
             var response = await _httpClient.PostAsJsonAsync("gateway/auth/staff/login", request);
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
-                NormalizePhotoUrl(data);
-                return (true, data, "Login successful.");
-            }
-            var error = await ReadErrorAsync(response);
-            return (false, null, error);
+            return await ReadAuthResultAsync(response, "Login successful.");
         }
 
         public async Task<(bool Success, string Message)> SendStaffLoginOtpAsync(string loginIdOrMobile)
         {
-            var response = await _httpClient.PostAsJsonAsync("gateway/auth/staff/send-login-otp", new StaffOtpRequestDto { LoginId = loginIdOrMobile, MobileNumber = loginIdOrMobile });
-            if (response.IsSuccessStatusCode) return (true, "Staff login OTP sent successfully.");
+            var response = await _httpClient.PostAsJsonAsync("gateway/auth/staff/send-login-otp", new StaffOtpRequestDto
+            {
+                LoginId = loginIdOrMobile,
+                MobileNumber = loginIdOrMobile
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await ReadApiResponseAsync<object>(response);
+                return (apiResponse?.Success ?? true, apiResponse?.Message ?? "Staff login OTP sent successfully.");
+            }
+
             var error = await ReadErrorAsync(response);
             return (false, error);
         }
@@ -55,14 +67,7 @@ namespace Frontend.Services
         public async Task<(bool Success, AuthResponseDto? Data, string Message)> StaffOtpLoginAsync(StaffOtpLoginRequestDto request)
         {
             var response = await _httpClient.PostAsJsonAsync("gateway/auth/staff/otp-login", request);
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
-                NormalizePhotoUrl(data);
-                return (true, data, "Login successful.");
-            }
-            var error = await ReadErrorAsync(response);
-            return (false, null, error);
+            return await ReadAuthResultAsync(response, "Login successful.");
         }
 
         public async Task<(bool Success, AuthResponseDto? Data, string Message)> UpdateAuthPreferenceAsync(string token, AuthPreferenceViewModel model)
@@ -70,30 +75,15 @@ namespace Frontend.Services
             using var request = new HttpRequestMessage(HttpMethod.Put, "gateway/auth/auth-preference");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             request.Content = JsonContent.Create(model);
+
             var response = await _httpClient.SendAsync(request);
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
-                NormalizePhotoUrl(data);
-                return (true, data, "Authentication preference saved.");
-            }
-            var error = await ReadErrorAsync(response);
-            return (false, null, error);
+            return await ReadAuthResultAsync(response, "Authentication preference saved.");
         }
 
         public async Task<(bool Success, AuthResponseDto? Data, string Message)> LoginAsync(PatientLoginRequestDto request)
         {
             var response = await _httpClient.PostAsJsonAsync("gateway/auth/patient/login", request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
-                NormalizePhotoUrl(data);
-                return (true, data, "Login successful.");
-            }
-
-            var error = await ReadErrorAsync(response);
-            return (false, null, error);
+            return await ReadAuthResultAsync(response, "Login successful.");
         }
 
         public async Task<CurrentUserResponseDto?> GetCurrentUserAsync(string token)
@@ -106,7 +96,22 @@ namespace Frontend.Services
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            var user = await response.Content.ReadFromJsonAsync<CurrentUserResponseDto>();
+            var content = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(content))
+                return null;
+
+            CurrentUserResponseDto? user;
+            try
+            {
+                var apiResponse = JsonSerializer.Deserialize<ApiResponseDto<CurrentUserResponseDto>>(content, _jsonOptions);
+                user = apiResponse?.Data;
+            }
+            catch
+            {
+                user = null;
+            }
+
+            user ??= JsonSerializer.Deserialize<CurrentUserResponseDto>(content, _jsonOptions);
             NormalizePhotoUrl(user);
             return user;
         }
@@ -133,7 +138,7 @@ namespace Frontend.Services
                 return (false, null, error);
             }
 
-            var data = await response.Content.ReadFromJsonAsync<CurrentUserResponseDto>();
+            var data = await ReadCurrentUserAsync(response);
             NormalizePhotoUrl(data);
             return (true, data, "Profile photo uploaded successfully.");
         }
@@ -154,9 +159,102 @@ namespace Frontend.Services
                 return (false, null, error);
             }
 
-            var data = await response.Content.ReadFromJsonAsync<CurrentUserResponseDto>();
+            var data = await ReadCurrentUserAsync(response);
             NormalizePhotoUrl(data);
             return (true, data, "Profile photo uploaded successfully.");
+        }
+
+        private async Task<(bool Success, AuthResponseDto? Data, string Message)> ReadAuthResultAsync(HttpResponseMessage response, string defaultMessage)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ReadErrorAsync(response);
+                return (false, null, error);
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(content))
+                return (false, null, "Response was empty.");
+
+            ApiResponseDto<AuthResponseDto>? apiResponse = null;
+            try
+            {
+                apiResponse = JsonSerializer.Deserialize<ApiResponseDto<AuthResponseDto>>(content, _jsonOptions);
+            }
+            catch
+            {
+                // Some endpoints may still return AuthResponseDto directly.
+            }
+
+            var data = apiResponse?.Data;
+            if (data == null)
+            {
+                try
+                {
+                    data = JsonSerializer.Deserialize<AuthResponseDto>(content, _jsonOptions);
+                }
+                catch
+                {
+                    data = null;
+                }
+            }
+
+            if (data == null)
+                return (false, null, apiResponse?.Message ?? "Login response was empty.");
+
+NormalizePhotoUrl(data);
+
+// If HTTP status is success and auth data is present, login is successful.
+// This keeps Staff Login working even when gateway endpoints return slightly
+// different wrapper fields.
+var message = !string.IsNullOrWhiteSpace(apiResponse?.Message)
+    ? apiResponse.Message
+    : defaultMessage;
+
+return (true, data, message);
+        }
+
+        private async Task<ApiResponseDto<T>?> ReadApiResponseAsync<T>(HttpResponseMessage response)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(content))
+                return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<ApiResponseDto<T>>(content, _jsonOptions);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private async Task<CurrentUserResponseDto?> ReadCurrentUserAsync(HttpResponseMessage response)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(content))
+                return null;
+
+            try
+            {
+                var apiResponse = JsonSerializer.Deserialize<ApiResponseDto<CurrentUserResponseDto>>(content, _jsonOptions);
+                if (apiResponse?.Data != null)
+                    return apiResponse.Data;
+            }
+            catch
+            {
+                // Fall back to direct DTO below.
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<CurrentUserResponseDto>(content, _jsonOptions);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private void NormalizePhotoUrl(AuthResponseDto? user)

@@ -64,7 +64,7 @@
         <div class="appointment-card-list">
             @foreach (var item in Model.Result.Appointments)
             {
-                var statusClass = item.Status.ToString().ToLowerInvariant();
+                var statusClass = item.StatusCssClass;
                 <div class="appointment-row-card">
                     <div class="appointment-date-pill">
                         <strong>@item.AppointmentDate.ToString("dd")</strong>
@@ -73,7 +73,7 @@
                     <div class="appointment-main">
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                             <h3 class="mb-0">Appointment #@item.Id</h3>
-                            <span class="badge badge-@statusClass">@item.Status</span>
+                            <span class="badge badge-@statusClass">@item.DisplayStatus</span>
                         </div>
                         <div class="appointment-meta">
                             <span><i class="bi bi-person"></i> Patient @item.PatientId</span>
