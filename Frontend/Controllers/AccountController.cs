@@ -9,12 +9,18 @@ namespace Frontend.Controllers
     {
         private readonly AuthGatewayService _authGatewayService;
         private readonly PatientGatewayService _patientGatewayService;
+        private readonly DoctorGatewayService _doctorGatewayService;
         private readonly IWebHostEnvironment _environment;
 
-        public AccountController(AuthGatewayService authGatewayService, PatientGatewayService patientGatewayService, IWebHostEnvironment environment)
+        public AccountController(
+    AuthGatewayService authGatewayService,
+    PatientGatewayService patientGatewayService,
+    DoctorGatewayService doctorGatewayService,
+    IWebHostEnvironment environment)
         {
             _authGatewayService = authGatewayService;
             _patientGatewayService = patientGatewayService;
+            _doctorGatewayService = doctorGatewayService;
             _environment = environment;
         }
 
@@ -358,17 +364,53 @@ namespace Frontend.Controllers
         {
             HttpContext.Session.SetString("AccessToken", data.AccessToken);
             HttpContext.Session.SetString("Role", data.Role);
-            HttpContext.Session.SetString("MobileNumber", data.MobileNumber);
+            HttpContext.Session.SetString("MobileNumber", data.MobileNumber ?? string.Empty);
             HttpContext.Session.SetInt32("UserId", data.UserId);
             HttpContext.Session.SetString("IsProfileCompleted", data.IsProfileCompleted ? "true" : "false");
-            if (!string.IsNullOrWhiteSpace(data.UHID)) HttpContext.Session.SetString("UHID", data.UHID);
-            if (!string.IsNullOrWhiteSpace(data.FullName)) HttpContext.Session.SetString("FullName", data.FullName);
-            if (!string.IsNullOrWhiteSpace(data.PhotoUrl)) HttpContext.Session.SetString("PhotoUrl", data.PhotoUrl!);
+
+            if (!string.IsNullOrWhiteSpace(data.UHID))
+                HttpContext.Session.SetString("UHID", data.UHID);
+            else
+                HttpContext.Session.Remove("UHID");
+
+            if (!string.IsNullOrWhiteSpace(data.FullName))
+                HttpContext.Session.SetString("FullName", data.FullName);
+            else if (!string.IsNullOrWhiteSpace(data.MobileNumber))
+                HttpContext.Session.SetString("FullName", data.MobileNumber);
+
+            if (!string.IsNullOrWhiteSpace(data.PhotoUrl))
+                HttpContext.Session.SetString("PhotoUrl", data.PhotoUrl);
+            else
+                HttpContext.Session.Remove("PhotoUrl");
+
             if (data.PatientId > 0)
             {
                 HttpContext.Session.SetInt32("PatientId", data.PatientId);
+
                 var patient = await _patientGatewayService.GetByIdAsync(data.PatientId);
-                if (patient != null) RefreshPatientSession(patient);
+                if (patient != null)
+                    RefreshPatientSession(patient);
+            }
+
+            if (string.Equals(data.Role, "Doctor", StringComparison.OrdinalIgnoreCase))
+            {
+                var doctor = await _doctorGatewayService.GetByAuthUserIdAsync(data.UserId);
+
+                if (doctor != null)
+                {
+                    HttpContext.Session.SetInt32("DoctorId", doctor.Id);
+                    HttpContext.Session.SetString("FullName", doctor.FullName);
+                    HttpContext.Session.SetString("MobileNumber", doctor.Phone ?? string.Empty);
+
+                    if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl))
+                        HttpContext.Session.SetString("PhotoUrl", doctor.PhotoUrl);
+                    else
+                        HttpContext.Session.Remove("PhotoUrl");
+                }
+                else
+                {
+                    HttpContext.Session.Remove("DoctorId");
+                }
             }
         }
 

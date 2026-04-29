@@ -8,6 +8,8 @@ public interface IDoctorRepository
     Task AddAsync(Doctor doctor);
     Task<Doctor?> GetByIdAsync(int id);
     Task<List<Doctor>> SearchAsync(DoctorSearchRequestDto request);
+    Task<Doctor?> GetByAuthUserIdAsync(int authUserId);
+    Task<bool> ExistsByAuthUserIdAsync(int authUserId, int? excludeDoctorId = null);
     Task<bool> ExistsByDoctorCodeAsync(string doctorCode, int? excludeDoctorId = null);
     Task<bool> ExistsByLicenseNumberAsync(string licenseNumber, int? excludeDoctorId = null);
     Task UpdateAsync(Doctor doctor);
@@ -19,6 +21,8 @@ public interface IDoctorRepository
 
     Task AddLeaveAsync(DoctorLeave leave);
     Task<DoctorLeave?> GetLeaveByIdAsync(int doctorId, int leaveId);
+    Task<DoctorLeave?> GetLeaveByIdAsync(int leaveId);
     Task<List<DoctorLeave>> GetLeavesAsync(int doctorId);
+    Task<List<DoctorLeave>> GetLeavesAsync(string? status = null);
     Task<bool> HasLeaveOnDateAsync(int doctorId, DateOnly date);
 }

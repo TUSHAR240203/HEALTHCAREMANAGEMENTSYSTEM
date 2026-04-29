@@ -139,7 +139,7 @@ namespace Frontend.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Queue(int departmentId, DateOnly? date)
+        public async Task<IActionResult> Queue(int departmentId = 1, DateOnly? date = null)
         {
             try
             {

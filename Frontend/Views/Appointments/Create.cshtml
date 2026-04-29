@@ -2,7 +2,9 @@
 @model AdminAppointmentBookingViewModel
 @{
     ViewData["Title"] = "Create Appointment";
+    var availabilityMessage = ViewBag.AvailabilityMessage as string;
 }
+
 <div class="page-header">
     <div>
         <h1>Create Appointment</h1>
@@ -11,13 +13,19 @@
 </div>
 
 <div class="card border-0 mb-4">
-    <div class="card-header"><h2 class="h5 mb-0">Choose doctor and date</h2></div>
+    <div class="card-header">
+        <h2 class="h5 mb-0">Choose doctor and date</h2>
+    </div>
+
     <div class="card-body p-4">
         <form asp-action="Create" method="get" class="row g-3 align-items-end">
             <div class="col-12">
                 @if (!Model.Doctors.Any())
                 {
-                    <div class="empty-state"><h3>No active doctors</h3><p>Activate or create doctors first in Doctors module.</p></div>
+                    <div class="empty-state">
+                        <h3>No active doctors</h3>
+                        <p>Activate or create doctors first in Doctors module.</p>
+                    </div>
                 }
                 else
                 {
@@ -25,9 +33,26 @@
                         @foreach (var doctor in Model.Doctors)
                         {
                             var did = "doctor_" + doctor.Id;
-                            <input type="radio" class="doctor-radio" name="doctorId" id="@did" value="@doctor.Id" checked="@(doctor.Id == Model.DoctorId)" />
+
+                            <input type="radio"
+                                   class="doctor-radio"
+                                   name="doctorId"
+                                   id="@did"
+                                   value="@doctor.Id"
+                                   checked="@(doctor.Id == Model.DoctorId)" />
+
                             <label class="doctor-choice-card" for="@did">
-                                @if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl)) { <img src="@doctor.PhotoUrl" alt="@doctor.FullName" /> } else { <span class="doctor-avatar-fallback"><i class="bi bi-person-badge"></i></span> }
+                                @if (!string.IsNullOrWhiteSpace(doctor.PhotoUrl))
+                                {
+                                    <img src="@doctor.PhotoUrl" alt="@doctor.FullName" />
+                                }
+                                else
+                                {
+                                    <span class="doctor-avatar-fallback">
+                                        <i class="bi bi-person-badge"></i>
+                                    </span>
+                                }
+
                                 <span class="doctor-choice-name">@doctor.FullName</span>
                                 <small>@doctor.Specialization</small>
                                 <em>@doctor.DepartmentName</em>
@@ -36,12 +61,19 @@
                     </div>
                 }
             </div>
+
             <div class="col-md-8 col-lg-4">
                 <label class="form-label">Appointment Date</label>
-                <input name="appointmentDate" type="date" class="form-control" value="@Model.AppointmentDate.ToString("yyyy-MM-dd")" />
+                <input name="appointmentDate"
+                       type="date"
+                       class="form-control"
+                       value="@Model.AppointmentDate.ToString("yyyy-MM-dd")" />
             </div>
+
             <div class="col-md-4 col-lg-2">
-                <button class="btn btn-primary w-100" type="submit"><i class="bi bi-search me-1"></i> Show Slots</button>
+                <button class="btn btn-primary w-100" type="submit">
+                    <i class="bi bi-search me-1"></i> Show Slots
+                </button>
             </div>
         </form>
     </div>
@@ -49,55 +81,152 @@
 
 <form asp-action="Create" method="post">
     @Html.AntiForgeryToken()
+
     <input asp-for="DoctorId" type="hidden" />
     <input asp-for="AppointmentDate" type="hidden" value="@Model.AppointmentDate.ToString("yyyy-MM-dd")" />
+
     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    @if (!string.IsNullOrWhiteSpace(availabilityMessage))
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            @availabilityMessage
+        </div>
+    }
+
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card border-0">
-                <div class="card-header"><h2 class="h5 mb-0">Free slots for @Model.AppointmentDate.ToString("dd MMM yyyy")</h2></div>
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Free slots for @Model.AppointmentDate.ToString("dd MMM yyyy")</h2>
+                </div>
+
                 <div class="card-body p-4">
                     @if (!Model.Doctors.Any())
-                    { <div class="empty-state"><h3>No active doctors</h3><p>Activate doctors first in Doctors module.</p></div> }
+                    {
+                        <div class="empty-state">
+                            <h3>No active doctors</h3>
+                            <p>Activate doctors first in Doctors module.</p>
+                        </div>
+                    }
+                    else if (!Model.Slots.Any())
+                    {
+                        <div class="empty-state">
+                            <h3>No available slots</h3>
+                            <p>
+                                @(string.IsNullOrWhiteSpace(availabilityMessage)
+                                                            ? "The selected doctor has no available slots for this date."
+                                                            : availabilityMessage)
+                            </p>
+                        </div>
+                    }
                     else
                     {
                         <div class="slot-grid">
                             @foreach (var slot in Model.Slots)
                             {
                                 var id = "slot_" + slot.Value.Replace(":", "").Replace("|", "_");
-                                <input type="radio" class="slot-radio" name="SelectedSlot" id="@id" value="@slot.Value" disabled="@slot.IsBooked" checked="@(Model.SelectedSlot == slot.Value)" />
+
+                                <input type="radio"
+                                       class="slot-radio"
+                                       name="SelectedSlot"
+                                       id="@id"
+                                       value="@slot.Value"
+                                       disabled="@slot.IsBooked"
+                                       checked="@(Model.SelectedSlot == slot.Value)" />
+
                                 <label class="slot-pill @(slot.IsBooked ? "booked" : "available")" for="@id">
                                     <i class="bi @(slot.IsBooked ? "bi-lock-fill" : "bi-check-circle")"></i>
                                     <span>@slot.Label</span>
-                                    <small>@(slot.IsBooked ? "Booked" : "Available")</small>
+                                    <small>@(slot.IsBooked ? "Unavailable" : "Available")</small>
                                 </label>
                             }
                         </div>
+
                         <span asp-validation-for="SelectedSlot" class="text-danger"></span>
                     }
                 </div>
             </div>
         </div>
+
         <div class="col-lg-4">
             <div class="card border-0 sticky-summary">
-                <div class="card-header"><h2 class="h5 mb-0">Patient and visit</h2></div>
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Patient and visit</h2>
+                </div>
+
                 <div class="card-body p-4">
                     @if (Model.SelectedDoctor != null)
                     {
                         <div class="doctor-summary mb-3">
-                            @if (!string.IsNullOrWhiteSpace(Model.SelectedDoctor.PhotoUrl)) { <img src="@Model.SelectedDoctor.PhotoUrl" class="avatar-sm" /> } else { <div class="tile-icon"><i class="bi bi-person-badge"></i></div> }
-                            <div><strong>@Model.SelectedDoctor.FullName</strong><span>@Model.SelectedDoctor.Specialization</span><small>@Model.SelectedDoctor.DepartmentName</small></div>
+                            @if (!string.IsNullOrWhiteSpace(Model.SelectedDoctor.PhotoUrl))
+                            {
+                                <img src="@Model.SelectedDoctor.PhotoUrl" class="avatar-sm" />
+                            }
+                            else
+                            {
+                                <div class="tile-icon">
+                                    <i class="bi bi-person-badge"></i>
+                                </div>
+                            }
+
+                            <div>
+                                <strong>@Model.SelectedDoctor.FullName</strong>
+                                <span>@Model.SelectedDoctor.Specialization</span>
+                                <small>@Model.SelectedDoctor.DepartmentName</small>
+                            </div>
                         </div>
                     }
-                    <div class="mb-3"><label asp-for="PatientId" class="form-label"></label><input asp-for="PatientId" class="form-control" placeholder="Patient ID" /></div>
-                    <div class="mb-3"><label asp-for="UHID" class="form-label"></label><input asp-for="UHID" class="form-control" placeholder="UHID" /></div>
-                    <div class="mb-3"><label asp-for="VisitType" class="form-label"></label><select asp-for="VisitType" class="form-select"><option>OPD</option><option>New Visit</option><option>Follow-up</option><option>Emergency</option></select></div>
-                    <div class="mb-3"><label asp-for="ReasonForVisit" class="form-label"></label><textarea asp-for="ReasonForVisit" class="form-control" rows="3"></textarea></div>
-                    <div class="form-check form-switch mb-4"><input asp-for="IsTeleConsultation" class="form-check-input" /><label asp-for="IsTeleConsultation" class="form-check-label"></label></div>
-                    <button class="btn btn-primary w-100" type="submit">Book Appointment</button>
+
+                    <div class="mb-3">
+                        <label asp-for="PatientId" class="form-label"></label>
+                        <input asp-for="PatientId" class="form-control" placeholder="Patient ID" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="UHID" class="form-label"></label>
+                        <input asp-for="UHID" class="form-control" placeholder="UHID" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="VisitType" class="form-label"></label>
+                        <select asp-for="VisitType" class="form-select">
+                            <option>OPD</option>
+                            <option>New Visit</option>
+                            <option>Follow-up</option>
+                            <option>Emergency</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ReasonForVisit" class="form-label"></label>
+                        <textarea asp-for="ReasonForVisit" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        <input asp-for="IsTeleConsultation" class="form-check-input" />
+                        <label asp-for="IsTeleConsultation" class="form-check-label"></label>
+                    </div>
+
+                    <button class="btn btn-primary w-100"
+                            type="submit"
+                            disabled="@(!Model.Slots.Any(s => !s.IsBooked))">
+                        Book Appointment
+                    </button>
+
+                    @if (!Model.Slots.Any(s => !s.IsBooked))
+                    {
+                        <div class="small text-muted mt-2">
+                            Booking is disabled because no available slot is selected for this doctor and date.
+                        </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
 </form>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

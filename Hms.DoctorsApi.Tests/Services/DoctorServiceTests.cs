@@ -97,18 +97,70 @@ public class DoctorServiceTests
     }
 
     [Fact]
-    public async Task AddLeaveAsync_WhenLeaveDateIsInPast_ThrowsArgumentException()
+    public async Task AddLeaveAsync_WhenStartDateIsInPast_ThrowsArgumentException()
     {
         _repo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(TestData.Doctor());
+
         var request = new CreateDoctorLeaveRequestDto
         {
-            LeaveDate = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(-1),
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(-1),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.Date),
             Reason = "Personal"
         };
 
         var act = () => CreateService().AddLeaveAsync(1, request);
 
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Leave date cannot be in the past.");
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Leave start date cannot be in the past.");
+    }
+
+    [Fact]
+    public async Task AddLeaveAsync_WhenEndDateIsBeforeStartDate_ThrowsArgumentException()
+    {
+        _repo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(TestData.Doctor());
+
+        var request = new CreateDoctorLeaveRequestDto
+        {
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(2),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(1),
+            Reason = "Personal"
+        };
+
+        var act = () => CreateService().AddLeaveAsync(1, request);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("End date must be greater than or equal to start date.");
+    }
+
+    [Fact]
+    public async Task AddLeaveAsync_WhenDateRangeOverlapsExistingLeave_ThrowsInvalidOperationException()
+    {
+        _repo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(TestData.Doctor());
+
+        _repo.Setup(x => x.GetLeavesAsync(1)).ReturnsAsync(new List<DoctorLeave>
+    {
+        new()
+        {
+            Id = 10,
+            DoctorId = 1,
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(3),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(5),
+            Status = "Pending",
+            Reason = "Existing leave"
+        }
+    });
+
+        var request = new CreateDoctorLeaveRequestDto
+        {
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(4),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(6),
+            Reason = "Personal"
+        };
+
+        var act = () => CreateService().AddLeaveAsync(1, request);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("A pending or approved leave already exists for this date range.");
     }
 
     [Fact]

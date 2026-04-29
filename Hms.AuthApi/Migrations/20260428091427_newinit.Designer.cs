@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hms.AuthApi.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    [Migration("20260427090952_photourlnew")]
-    partial class photourlnew
+    [Migration("20260428091427_newinit")]
+    partial class newinit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -159,7 +159,7 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(8937),
+                            CreatedAtUtc = new DateTime(2026, 4, 28, 9, 14, 23, 975, DateTimeKind.Utc).AddTicks(8386),
                             IsDeleted = false,
                             Name = "Admin",
                             NormalizedName = "ADMIN"
@@ -167,7 +167,7 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9089),
+                            CreatedAtUtc = new DateTime(2026, 4, 28, 9, 14, 23, 975, DateTimeKind.Utc).AddTicks(8430),
                             IsDeleted = false,
                             Name = "Patient",
                             NormalizedName = "PATIENT"
@@ -175,7 +175,7 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9096),
+                            CreatedAtUtc = new DateTime(2026, 4, 28, 9, 14, 23, 975, DateTimeKind.Utc).AddTicks(8433),
                             IsDeleted = false,
                             Name = "Doctor",
                             NormalizedName = "DOCTOR"
@@ -183,7 +183,7 @@ namespace Hms.AuthApi.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAtUtc = new DateTime(2026, 4, 27, 9, 9, 51, 350, DateTimeKind.Utc).AddTicks(9101),
+                            CreatedAtUtc = new DateTime(2026, 4, 28, 9, 14, 23, 975, DateTimeKind.Utc).AddTicks(8436),
                             IsDeleted = false,
                             Name = "Receptionist",
                             NormalizedName = "RECEPTIONIST"

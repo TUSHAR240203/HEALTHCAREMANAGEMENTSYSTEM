@@ -1,67 +1,95 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Hms.DoctorsApi.DTOs.Appointments;
 using Hms.DoctorsApi.Interfaces.Clients;
-using System.Net;
-using System.Net.Http.Json;
 
 namespace Hms.DoctorsApi.Clients;
 
 public class AppointmentsApiClient : IAppointmentsApiClient
 {
     private readonly HttpClient _httpClient;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public AppointmentsApiClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
+
+        _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
     public async Task<List<AppointmentResponseDto>> GetByDoctorIdAsync(int doctorId)
     {
-        var response = await _httpClient.GetAsync($"/api/appointments/doctor/{doctorId}");
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new InvalidOperationException($"Failed to fetch doctor appointments. Details: {error}");
-        }
+        var response = await _httpClient.GetAsync($"api/appointments/doctor/{doctorId}");
 
-        return await response.Content.ReadFromJsonAsync<List<AppointmentResponseDto>>() ?? new List<AppointmentResponseDto>();
+        if (!response.IsSuccessStatusCode)
+            return new List<AppointmentResponseDto>();
+
+        var envelope = await response.Content
+            .ReadFromJsonAsync<ApiEnvelope<List<AppointmentResponseDto>>>(_jsonOptions);
+
+        return envelope?.Data ?? new List<AppointmentResponseDto>();
     }
 
     public async Task<AppointmentResponseDto?> StartAppointmentAsync(int appointmentId)
     {
-        var response = await _httpClient.PutAsync($"/api/appointments/{appointmentId}/start", null);
-        if (response.StatusCode == HttpStatusCode.NotFound) return null;
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new InvalidOperationException($"Failed to start appointment. Details: {error}");
-        }
+        var response = await _httpClient.PostAsync($"api/appointments/{appointmentId}/start", null);
 
-        return await response.Content.ReadFromJsonAsync<AppointmentResponseDto>();
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        var envelope = await response.Content
+            .ReadFromJsonAsync<ApiEnvelope<AppointmentResponseDto>>(_jsonOptions);
+
+        return envelope?.Data;
     }
 
-    public async Task<AppointmentResponseDto?> CompleteAppointmentAsync(int appointmentId, CompleteAppointmentRequestDto request)
+    public async Task<AppointmentResponseDto?> CompleteAppointmentAsync(
+        int appointmentId,
+        CompleteAppointmentRequestDto request)
     {
-        var response = await _httpClient.PutAsJsonAsync($"/api/appointments/{appointmentId}/complete", request);
-        if (response.StatusCode == HttpStatusCode.NotFound) return null;
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new InvalidOperationException($"Failed to complete appointment. Details: {error}");
-        }
+        var response = await _httpClient.PostAsJsonAsync(
+            $"api/appointments/{appointmentId}/complete",
+            request,
+            _jsonOptions);
 
-        return await response.Content.ReadFromJsonAsync<AppointmentResponseDto>();
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        var envelope = await response.Content
+            .ReadFromJsonAsync<ApiEnvelope<AppointmentResponseDto>>(_jsonOptions);
+
+        return envelope?.Data;
     }
 
-    public async Task<AppointmentResponseDto?> AddAppointmentNotesAsync(int appointmentId, UpdateAppointmentNotesRequestDto request)
+    public async Task<AppointmentResponseDto?> AddAppointmentNotesAsync(
+        int appointmentId,
+        UpdateAppointmentNotesRequestDto request)
     {
-        var response = await _httpClient.PutAsJsonAsync($"/api/appointments/{appointmentId}/notes", request);
-        if (response.StatusCode == HttpStatusCode.NotFound) return null;
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new InvalidOperationException($"Failed to update appointment notes. Details: {error}");
-        }
+        var response = await _httpClient.PutAsJsonAsync(
+            $"api/appointments/{appointmentId}/notes",
+            request,
+            _jsonOptions);
 
-        return await response.Content.ReadFromJsonAsync<AppointmentResponseDto>();
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        var envelope = await response.Content
+            .ReadFromJsonAsync<ApiEnvelope<AppointmentResponseDto>>(_jsonOptions);
+
+        return envelope?.Data;
+    }
+
+    private sealed class ApiEnvelope<T>
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public T? Data { get; set; }
+        public object? Errors { get; set; }
     }
 }

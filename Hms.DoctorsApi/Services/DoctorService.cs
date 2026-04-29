@@ -45,6 +45,11 @@ public class DoctorService : IDoctorService
         doctor.IsActive = true;
 
         await _doctorRepository.AddAsync(doctor);
+        if (request.AuthUserId.HasValue &&
+    await _doctorRepository.ExistsByAuthUserIdAsync(request.AuthUserId.Value))
+        {
+            throw new InvalidOperationException("This login account is already linked to another doctor profile.");
+        }
         await _doctorRepository.SaveChangesAsync();
 
         return _mapper.Map<DoctorResponseDto>(doctor);
@@ -80,6 +85,11 @@ public class DoctorService : IDoctorService
         doctor.UpdatedAtUtc = DateTime.UtcNow;
 
         await _doctorRepository.UpdateAsync(doctor);
+        if (request.AuthUserId.HasValue &&
+    await _doctorRepository.ExistsByAuthUserIdAsync(request.AuthUserId.Value, id))
+        {
+            throw new InvalidOperationException("This login account is already linked to another doctor profile.");
+        }
         await _doctorRepository.SaveChangesAsync();
         return _mapper.Map<DoctorResponseDto>(doctor);
     }
@@ -97,7 +107,14 @@ public class DoctorService : IDoctorService
         await _doctorRepository.SaveChangesAsync();
         return true;
     }
+    public async Task<DoctorResponseDto?> GetByAuthUserIdAsync(int authUserId)
+    {
+        if (authUserId <= 0)
+            throw new ArgumentException("Invalid auth user id.");
 
+        var doctor = await _doctorRepository.GetByAuthUserIdAsync(authUserId);
+        return doctor == null ? null : _mapper.Map<DoctorResponseDto>(doctor);
+    }
     public async Task<List<DoctorScheduleResponseDto>> GetSchedulesAsync(int doctorId)
     {
         await EnsureDoctorExistsAsync(doctorId);
@@ -138,19 +155,66 @@ public class DoctorService : IDoctorService
         return _mapper.Map<List<DoctorLeaveResponseDto>>(leaves);
     }
 
+    public async Task<List<DoctorLeaveResponseDto>> GetLeavesAsync(string? status = null)
+    {
+        var leaves = await _doctorRepository.GetLeavesAsync(status);
+        return _mapper.Map<List<DoctorLeaveResponseDto>>(leaves);
+    }
+
     public async Task<DoctorLeaveResponseDto> AddLeaveAsync(int doctorId, CreateDoctorLeaveRequestDto request)
     {
         await EnsureDoctorExistsAsync(doctorId);
-        if (request.LeaveDate < DateOnly.FromDateTime(DateTime.UtcNow.Date))
-            throw new ArgumentException("Leave date cannot be in the past.");
 
-        if (await _doctorRepository.HasLeaveOnDateAsync(doctorId, request.LeaveDate))
-            throw new InvalidOperationException("Doctor leave already exists for this date.");
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+
+        if (request.StartDate < today)
+            throw new ArgumentException("Leave start date cannot be in the past.");
+
+        if (request.EndDate < request.StartDate)
+            throw new ArgumentException("End date must be greater than or equal to start date.");
+
+        var existingLeaves = await _doctorRepository.GetLeavesAsync(doctorId);
+
+        var hasOverlap = existingLeaves.Any(x =>
+            x.Status != "Rejected" &&
+            request.StartDate <= x.EndDate &&
+            request.EndDate >= x.StartDate);
+
+        if (hasOverlap)
+            throw new InvalidOperationException("A pending or approved leave already exists for this date range.");
 
         var leave = _mapper.Map<DoctorLeave>(request);
         leave.DoctorId = doctorId;
+        leave.Status = "Pending";
 
         await _doctorRepository.AddLeaveAsync(leave);
+        await _doctorRepository.SaveChangesAsync();
+
+        return _mapper.Map<DoctorLeaveResponseDto>(leave);
+    }
+
+    public async Task<DoctorLeaveResponseDto?> ApproveLeaveAsync(int leaveId, string? reviewedBy)
+    {
+        var leave = await _doctorRepository.GetLeaveByIdAsync(leaveId);
+        if (leave == null) return null;
+
+        leave.Status = "Approved";
+        leave.ReviewedAtUtc = DateTime.UtcNow;
+        leave.ReviewedBy = string.IsNullOrWhiteSpace(reviewedBy) ? "Admin" : reviewedBy.Trim();
+        leave.UpdatedAtUtc = DateTime.UtcNow;
+        await _doctorRepository.SaveChangesAsync();
+        return _mapper.Map<DoctorLeaveResponseDto>(leave);
+    }
+
+    public async Task<DoctorLeaveResponseDto?> RejectLeaveAsync(int leaveId, string? reviewedBy)
+    {
+        var leave = await _doctorRepository.GetLeaveByIdAsync(leaveId);
+        if (leave == null) return null;
+
+        leave.Status = "Rejected";
+        leave.ReviewedAtUtc = DateTime.UtcNow;
+        leave.ReviewedBy = string.IsNullOrWhiteSpace(reviewedBy) ? "Admin" : reviewedBy.Trim();
+        leave.UpdatedAtUtc = DateTime.UtcNow;
         await _doctorRepository.SaveChangesAsync();
         return _mapper.Map<DoctorLeaveResponseDto>(leave);
     }
@@ -173,12 +237,24 @@ public class DoctorService : IDoctorService
         if (isTeleConsultation == true && !doctor.SupportsTeleConsultation)
             throw new InvalidOperationException("Doctor does not support teleconsultation.");
         if (await _doctorRepository.HasLeaveOnDateAsync(doctorId, date))
-            return BuildAvailabilityResponse(doctor, date, new List<DoctorAvailabilitySlotDto>());
+        {
+            return BuildAvailabilityResponse(
+                doctor,
+                date,
+                new List<DoctorAvailabilitySlotDto>(),
+                "Doctor is on approved leave for this date.");
+        }
 
         var schedules = await _doctorRepository.GetSchedulesAsync(doctorId);
         var schedule = schedules.FirstOrDefault(x => x.DayOfWeek == date.DayOfWeek && x.IsActive);
         if (schedule == null)
-            return BuildAvailabilityResponse(doctor, date, new List<DoctorAvailabilitySlotDto>());
+        {
+            return BuildAvailabilityResponse(
+                doctor,
+                date,
+                new List<DoctorAvailabilitySlotDto>(),
+                "Doctor has no active schedule for this date.");
+        }
 
         var appointments = await _appointmentsApiClient.GetByDoctorIdAsync(doctorId);
         var activeAppointments = appointments
@@ -284,14 +360,18 @@ public class DoctorService : IDoctorService
             throw new ArgumentException("Appointment not found for this doctor.");
     }
 
-    private static DoctorAvailabilityResponseDto BuildAvailabilityResponse(Doctor doctor, DateOnly date, List<DoctorAvailabilitySlotDto> slots) => new()
+    private static DoctorAvailabilityResponseDto BuildAvailabilityResponse(
+    Doctor doctor,
+    DateOnly date,
+    List<DoctorAvailabilitySlotDto> slots,
+    string? message = null) => new()
     {
         DoctorId = doctor.Id,
         DoctorName = doctor.FullName,
         Date = date,
-        Slots = slots
+        Slots = slots,
+        Message = message
     };
-
     private static string GenerateDoctorCode(string fullName)
     {
         var letters = new string(fullName.Where(char.IsLetter).Take(4).ToArray()).ToUpperInvariant();

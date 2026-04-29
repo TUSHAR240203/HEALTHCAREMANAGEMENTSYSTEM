@@ -3,6 +3,7 @@ namespace Hms.DoctorsApi.DTOs.Doctors;
 public class DoctorResponseDto
 {
     public int Id { get; set; }
+    public int? AuthUserId { get; set; }
     public string DoctorCode { get; set; } = default!;
     public string FullName { get; set; } = default!;
     public string? Email { get; set; }

@@ -2,6 +2,7 @@ namespace Hms.DoctorsApi.DTOs.Doctors;
 
 public class CreateDoctorRequestDto
 {
+    public int? AuthUserId { get; set; }
     public string FullName { get; set; } = default!;
     public string? Email { get; set; }
     public string? Phone { get; set; }

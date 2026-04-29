@@ -1,22 +1,45 @@
 @using Frontend.Models.ViewModels
 @model AppointmentListViewModel
 @using Frontend.Models.Api
+@using Microsoft.AspNetCore.Http
 
 @{
     ViewData["Title"] = "Appointments";
+
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+    var isReception = string.Equals(role, "Receptionist", StringComparison.OrdinalIgnoreCase);
+    var isDoctor = string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="page-header receptionist-header">
     <div>
         <span class="badge-soft"><i class="bi bi-calendar2-week"></i> Appointment desk</span>
-        <h1>Appointments</h1>
-        <p class="page-subtitle">Professional appointment board with fast filters, clear statuses and receptionist-friendly actions.</p>
+        <h1>@(isDoctor ? "My Appointments" : "Appointments")</h1>
+        <p class="page-subtitle">
+            @(isDoctor
+                        ? "View your assigned appointments and patient consultation schedule."
+                        : "Professional appointment board with fast filters, clear statuses and receptionist-friendly actions.")
+        </p>
     </div>
-    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Create Appointment</a>
+
+    @if (isAdmin || isReception)
+    {
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Create Appointment
+        </a>
+    }
 </div>
 
-@if (!string.IsNullOrWhiteSpace(Model.Message)) { <div class="alert alert-success">@Model.Message</div> }
-@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert alert-success">@Model.Message</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
 
 <div class="appointment-filter-card">
     <form asp-action="Index" method="get" class="appointment-filter-grid">
@@ -24,28 +47,40 @@
             <label asp-for="Search.PatientId" class="form-label">Patient ID</label>
             <input asp-for="Search.PatientId" class="form-control" placeholder="Patient id" />
         </div>
-        <div>
-            <label asp-for="Search.DoctorId" class="form-label">Doctor ID</label>
-            <input asp-for="Search.DoctorId" class="form-control" placeholder="Doctor id" />
-        </div>
+
+        @if (!isDoctor)
+        {
+            <div>
+                <label asp-for="Search.DoctorId" class="form-label">Doctor ID</label>
+                <input asp-for="Search.DoctorId" class="form-control" placeholder="Doctor id" />
+            </div>
+        }
+
         <div>
             <label asp-for="Search.DepartmentId" class="form-label">Department ID</label>
             <input asp-for="Search.DepartmentId" class="form-control" placeholder="Department id" />
         </div>
+
         <div>
             <label asp-for="Search.AppointmentDate" class="form-label">Date</label>
             <input asp-for="Search.AppointmentDate" type="date" class="form-control" />
         </div>
+
         <div>
             <label asp-for="Search.Status" class="form-label">Status</label>
             <select asp-for="Search.Status" asp-items="Html.GetEnumSelectList<AppointmentStatus>()" class="form-select">
                 <option value="">All statuses</option>
             </select>
         </div>
+
         <input asp-for="Search.PageNumber" type="hidden" />
         <input asp-for="Search.PageSize" type="hidden" />
+
         <div class="filter-actions">
-            <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Search</button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search me-1"></i>Search
+            </button>
+
             <a asp-action="Index" class="btn btn-outline-primary">Reset</a>
         </div>
     </form>
@@ -54,7 +89,7 @@
 <div class="appointment-board-card">
     <div class="results-header">
         <div>
-            <h2>Appointment Board</h2>
+            <h2>@(isDoctor ? "My Appointment Board" : "Appointment Board")</h2>
             <p class="results-meta">Total appointments: <strong>@(Model.Result?.TotalCount ?? 0)</strong></p>
         </div>
     </div>
@@ -65,28 +100,35 @@
             @foreach (var item in Model.Result.Appointments)
             {
                 var statusClass = item.Status.ToString().ToLowerInvariant();
+
                 <div class="appointment-row-card">
                     <div class="appointment-date-pill">
                         <strong>@item.AppointmentDate.ToString("dd")</strong>
                         <span>@item.AppointmentDate.ToString("MMM")</span>
                     </div>
+
                     <div class="appointment-main">
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                             <h3 class="mb-0">Appointment #@item.Id</h3>
                             <span class="badge badge-@statusClass">@item.Status</span>
                         </div>
+
                         <div class="appointment-meta">
                             <span><i class="bi bi-person"></i> Patient @item.PatientId</span>
                             <span><i class="bi bi-credit-card-2-front"></i> UHID @item.UHID</span>
                             <span><i class="bi bi-clock"></i> @item.SlotStartTime - @item.SlotEndTime</span>
                         </div>
                     </div>
+
                     <div class="appointment-doctor">
                         <strong>@(string.IsNullOrWhiteSpace(item.DoctorName) ? "Doctor not assigned" : item.DoctorName)</strong>
                         <span>@(string.IsNullOrWhiteSpace(item.DepartmentName) ? "Department not available" : item.DepartmentName)</span>
                     </div>
+
                     <div class="appointment-actions">
-                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye me-1"></i>View</a>
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>View
+                        </a>
                     </div>
                 </div>
             }
@@ -111,9 +153,13 @@
                asp-route-DoctorId="@Model.Search.DoctorId"
                asp-route-DepartmentId="@Model.Search.DepartmentId"
                asp-route-Status="@Model.Search.Status"
-               asp-route-AppointmentDate="@Model.Search.AppointmentDate">← Previous</a>
+               asp-route-AppointmentDate="@Model.Search.AppointmentDate">
+                ← Previous
+            </a>
         }
+
         <span class="pagination-info">Page @Model.Search.PageNumber</span>
+
         @if (Model.Result != null && Model.Result.TotalCount > Model.Search.PageNumber * Model.Search.PageSize)
         {
             <a asp-action="Index" class="pagination-btn"
@@ -123,7 +169,9 @@
                asp-route-DoctorId="@Model.Search.DoctorId"
                asp-route-DepartmentId="@Model.Search.DepartmentId"
                asp-route-Status="@Model.Search.Status"
-               asp-route-AppointmentDate="@Model.Search.AppointmentDate">Next →</a>
+               asp-route-AppointmentDate="@Model.Search.AppointmentDate">
+                Next →
+            </a>
         }
     </div>
 </div>
