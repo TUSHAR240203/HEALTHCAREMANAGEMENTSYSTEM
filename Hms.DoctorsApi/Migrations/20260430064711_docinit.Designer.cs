@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hms.DoctorsApi.Migrations
 {
     [DbContext(typeof(DoctorsDbContext))]
-    [Migration("20260429105228_doctorinit")]
-    partial class doctorinit
+    [Migration("20260430064711_docinit")]
+    partial class docinit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

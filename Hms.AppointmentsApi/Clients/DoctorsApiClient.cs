@@ -18,7 +18,7 @@ public class DoctorsApiClient : IDoctorsApiClient
         DateOnly date,
         bool? isTeleConsultation)
     {
-        var url = $"api/doctors/{doctorId}/availability?date={date:yyyy-MM-dd}";
+        var url = $"api/doctors/{doctorId}/available-slots?date={date:yyyy-MM-dd}";
 
         if (isTeleConsultation.HasValue)
             url += $"&isTeleConsultation={isTeleConsultation.Value.ToString().ToLowerInvariant()}";
