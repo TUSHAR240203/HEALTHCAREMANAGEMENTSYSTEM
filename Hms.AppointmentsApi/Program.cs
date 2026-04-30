@@ -1,3 +1,4 @@
+using Hms.AppointmentsApi.Security;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hms.AppointmentsApi.Common;
@@ -48,17 +49,18 @@ builder.Services.AddHttpClient<IDoctorsApiClient, DoctorsApiClient>(client =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.AppointmentsApi"));
 
 builder.Services.AddDbContext<AppointmentsDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddAutoMapper(typeof(Program));
-builder.Services.AddValidatorsFromAssemblyContaining<CreateAppointmentRequestDtoValidator>();
+builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly); builder.Services.AddValidatorsFromAssemblyContaining<CreateAppointmentRequestDtoValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+
+builder.Services.AddHmsJwtSecurity(builder.Configuration);
 
 var app = builder.Build();
 
@@ -72,6 +74,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

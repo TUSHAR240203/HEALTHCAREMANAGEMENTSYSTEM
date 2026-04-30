@@ -7,5 +7,7 @@
         public CheckInRequestDto CheckIn { get; set; } = new();
 
         public List<TodayAppointmentForCheckInDto> Appointments { get; set; } = new();
+
+        public string? ErrorMessage { get; set; }
     }
 }

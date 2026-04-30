@@ -20,4 +20,5 @@
   <Project Path="Hms.BillingApi/Hms.BillingApi.csproj" />
   <Project Path="Hms.PatientsApi/Hms.PatientsApi.csproj" />
   <Project Path="Hms.ReceptionApi/Hms.ReceptionApi.csproj" />
+  <Project Path="Hms.CloudIntegration.Functions/Hms.CloudIntegration.Functions.csproj" />
 </Solution>

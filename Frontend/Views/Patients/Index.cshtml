@@ -3,9 +3,15 @@
 @{
     ViewData["Title"] = "Patients";
     var hasSearched = ViewBag.HasSearched as bool? ?? false;
+    var currentPage = ViewBag.CurrentPage as int? ?? 1;
+    var pageSize = ViewBag.PageSize as int? ?? 5;
+    var totalPages = ViewBag.TotalPages as int? ?? 1;
+    var totalItems = ViewBag.TotalItems as int? ?? (Model.Results?.Count ?? 0);
+    var firstItem = totalItems == 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
+    var lastItem = Math.Min(currentPage * pageSize, totalItems);
 }
 
-<div class="container py-4">
+<div class="container py-4 patients-index-page">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">Patients</h2>
@@ -71,13 +77,18 @@
     </div>
 
     <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h2 class="h5 mb-0">
-                @(hasSearched ? "Filtered Patients" : "All Patients")
-            </h2>
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h2 class="h5 mb-1">
+                    @(hasSearched ? "Filtered Patients" : "All Patients")
+                </h2>
+                <small class="text-muted">
+                    Showing @firstItem-@lastItem of @totalItems patients, 5 per page
+                </small>
+            </div>
 
             <span class="badge bg-light text-dark">
-                @(Model.Results?.Count ?? 0) result(s)
+                Page @currentPage of @totalPages
             </span>
         </div>
 
@@ -131,20 +142,20 @@
                                             @if (patientId > 0)
                                             {
                                                 <a asp-action="Details"
-                                                       asp-route-id="@patientId"
-                                                       class="btn btn-sm btn-outline-primary">
+                                                   asp-route-id="@patientId"
+                                                   class="btn btn-sm btn-outline-primary">
                                                     Details
                                                 </a>
 
                                                 <a asp-action="Edit"
-                                                       asp-route-id="@patientId"
-                                                       class="btn btn-sm btn-outline-warning">
+                                                   asp-route-id="@patientId"
+                                                   class="btn btn-sm btn-outline-warning">
                                                     Edit
                                                 </a>
 
                                                 <a asp-action="Delete"
-                                                       asp-route-id="@patientId"
-                                                       class="btn btn-sm btn-outline-danger">
+                                                   asp-route-id="@patientId"
+                                                   class="btn btn-sm btn-outline-danger">
                                                     Delete
                                                 </a>
                                             }
@@ -173,5 +184,51 @@
                 </table>
             </div>
         </div>
+
+        @if (totalPages > 1)
+        {
+            <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <small class="text-muted">Use pagination to move through the patient list.</small>
+                <nav aria-label="Patient pagination">
+                    <ul class="pagination mb-0 flex-wrap">
+                        <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-query="@Model.Query"
+                               asp-route-uhid="@Model.UHID"
+                               asp-route-mobileNumber="@Model.MobileNumber"
+                               asp-route-page="@(currentPage - 1)">
+                                Previous
+                            </a>
+                        </li>
+
+                        @for (var pageNumber = 1; pageNumber <= totalPages; pageNumber++)
+                        {
+                            <li class="page-item @(pageNumber == currentPage ? "active" : "")">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-query="@Model.Query"
+                                   asp-route-uhid="@Model.UHID"
+                                   asp-route-mobileNumber="@Model.MobileNumber"
+                                   asp-route-page="@pageNumber">
+                                    @pageNumber
+                                </a>
+                            </li>
+                        }
+
+                        <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-query="@Model.Query"
+                               asp-route-uhid="@Model.UHID"
+                               asp-route-mobileNumber="@Model.MobileNumber"
+                               asp-route-page="@(currentPage + 1)">
+                                Next
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
     </div>
 </div>
