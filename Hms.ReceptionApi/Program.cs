@@ -1,3 +1,4 @@
+using Hms.ReceptionApi.Security;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hms.ReceptionApi.Clients;
@@ -24,9 +25,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog();
 
-builder.Services
-    .AddControllers()
-    .AddFluentValidation();
+builder.Services.AddControllers().AddFluentValidation();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
@@ -49,10 +48,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.ReceptionApi"));
 
-builder.Services.AddAutoMapper(typeof(MappingProfile));
-
+builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile).Assembly);
 builder.Services.AddDbContext<ReceptionDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -82,6 +80,8 @@ builder.Services.AddHttpClient<ILocationApiClient, LocationApiClient>(client =>
     client.BaseAddress = new Uri("https://countriesnow.space");
 });
 
+builder.Services.AddHmsJwtSecurity(builder.Configuration);
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
@@ -95,6 +95,7 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

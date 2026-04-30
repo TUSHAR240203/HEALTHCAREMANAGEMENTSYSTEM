@@ -43,7 +43,89 @@ namespace Frontend.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            return View("Details", doctor);
+            var model = new UpdateDoctorViewModel
+            {
+                Id = doctor.Id,
+                AuthUserId = doctor.AuthUserId,
+                FullName = doctor.FullName,
+                Email = doctor.Email,
+                Phone = doctor.Phone,
+                Gender = doctor.Gender,
+                Qualification = doctor.Qualification,
+                Specialization = doctor.Specialization,
+                DepartmentId = doctor.DepartmentId,
+                DepartmentName = doctor.DepartmentName,
+                ConsultationFee = doctor.ConsultationFee,
+                ExperienceYears = doctor.ExperienceYears,
+                LicenseNumber = doctor.LicenseNumber,
+                RoomNumber = doctor.RoomNumber,
+                SupportsTeleConsultation = doctor.SupportsTeleConsultation,
+                IsActive = doctor.IsActive,
+                PhotoUrl = doctor.PhotoUrl
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole("Doctor")]
+        public async Task<IActionResult> MyProfile(UpdateDoctorViewModel model)
+        {
+            var doctor = await GetLoggedInDoctorAsync();
+
+            if (doctor == null)
+            {
+                TempData["Error"] = "Your login is not linked to a doctor profile yet.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            model.Id = doctor.Id;
+            model.AuthUserId = doctor.AuthUserId;
+            model.IsActive = doctor.IsActive;
+
+            if (model.PhotoFile != null && model.PhotoFile.Length > 0)
+            {
+                var uploadedPhotoUrl = await SaveDoctorPhotoAsync(model.PhotoFile);
+
+                if (!ModelState.IsValid)
+                {
+                    model.PhotoUrl = doctor.PhotoUrl;
+                    return View(model);
+                }
+
+                if (!string.IsNullOrWhiteSpace(uploadedPhotoUrl))
+                {
+                    model.PhotoUrl = uploadedPhotoUrl;
+                }
+            }
+            else
+            {
+                model.PhotoUrl = doctor.PhotoUrl;
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var result = await _doctorGatewayService.UpdateAsync(model);
+
+            if (!result.Success)
+            {
+                ModelState.AddModelError(string.Empty, result.Message);
+                return View(model);
+            }
+
+            HttpContext.Session.SetString("FullName", model.FullName);
+
+            if (!string.IsNullOrWhiteSpace(model.PhotoUrl))
+            {
+                HttpContext.Session.SetString("PhotoUrl", model.PhotoUrl);
+            }
+
+            TempData["Success"] = "Profile updated successfully.";
+            return RedirectToAction(nameof(MyProfile));
         }
 
         [HttpGet]
@@ -86,13 +168,20 @@ namespace Frontend.Controllers
             model.AuthUserId = authResult.Data.UserId;
             model.PhotoUrl = await SaveDoctorPhotoAsync(model.PhotoFile) ?? model.PhotoUrl;
 
+            if (!ModelState.IsValid)
+            {
+                await _staffUserGatewayService.DeleteAsync(token, authResult.Data.UserId);
+                return View(model);
+            }
+
             var doctorResult = await _doctorGatewayService.CreateAsync(model);
 
             if (!doctorResult.Success)
             {
                 await _staffUserGatewayService.DeleteAsync(token, authResult.Data.UserId);
 
-                ModelState.AddModelError(string.Empty,
+                ModelState.AddModelError(
+                    string.Empty,
                     $"Login account was created but doctor profile failed: {doctorResult.Message}. The login account was removed. Please try again.");
 
                 return View(model);
@@ -264,7 +353,8 @@ namespace Frontend.Controllers
         {
             if (model.EndDate < model.StartDate)
             {
-                ModelState.AddModelError(nameof(model.EndDate),
+                ModelState.AddModelError(
+                    nameof(model.EndDate),
                     "End date must be greater than or equal to start date.");
             }
 
@@ -275,8 +365,10 @@ namespace Frontend.Controllers
 
             if (doctor == null)
             {
-                ModelState.AddModelError(string.Empty,
+                ModelState.AddModelError(
+                    string.Empty,
                     "Your login is not linked to a doctor profile yet. Please ask admin to link your doctor profile.");
+
                 return View(model);
             }
 
@@ -350,13 +442,15 @@ namespace Frontend.Controllers
         {
             if (model.EndTime <= model.StartTime)
             {
-                ModelState.AddModelError(nameof(model.EndTime),
+                ModelState.AddModelError(
+                    nameof(model.EndTime),
                     "End time must be after start time.");
             }
 
             if (model.BreakStartTime.HasValue != model.BreakEndTime.HasValue)
             {
-                ModelState.AddModelError(nameof(model.BreakStartTime),
+                ModelState.AddModelError(
+                    nameof(model.BreakStartTime),
                     "Both break start time and break end time are required.");
             }
 
@@ -364,13 +458,15 @@ namespace Frontend.Controllers
             {
                 if (model.BreakEndTime <= model.BreakStartTime)
                 {
-                    ModelState.AddModelError(nameof(model.BreakEndTime),
+                    ModelState.AddModelError(
+                        nameof(model.BreakEndTime),
                         "Break end time must be after break start time.");
                 }
 
                 if (model.BreakStartTime < model.StartTime || model.BreakEndTime > model.EndTime)
                 {
-                    ModelState.AddModelError(nameof(model.BreakStartTime),
+                    ModelState.AddModelError(
+                        nameof(model.BreakStartTime),
                         "Break time must be within working hours.");
                 }
             }
@@ -381,24 +477,41 @@ namespace Frontend.Controllers
             if (file == null || file.Length == 0)
                 return null;
 
-            var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
-            if (!allowed.Contains(extension))
+            if (!allowedExtensions.Contains(extension))
             {
-                ModelState.AddModelError(nameof(CreateDoctorViewModel.PhotoFile),
-                    "Only JPG, PNG, or WEBP images are allowed.");
+                ModelState.AddModelError(
+                    "PhotoFile",
+                    "Only JPG, JPEG, PNG, or WEBP images are allowed.");
 
                 return null;
             }
 
-            var uploadsRoot = Path.Combine(_environment.WebRootPath, "uploads", "doctors");
+            if (file.Length > 2 * 1024 * 1024)
+            {
+                ModelState.AddModelError(
+                    "PhotoFile",
+                    "Photo size must be 2 MB or smaller.");
+
+                return null;
+            }
+
+            var webRootPath = _environment.WebRootPath;
+
+            if (string.IsNullOrWhiteSpace(webRootPath))
+            {
+                webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            }
+
+            var uploadsRoot = Path.Combine(webRootPath, "uploads", "doctors");
             Directory.CreateDirectory(uploadsRoot);
 
             var fileName = $"doctor_{Guid.NewGuid():N}{extension}";
-            var path = Path.Combine(uploadsRoot, fileName);
+            var fullPath = Path.Combine(uploadsRoot, fileName);
 
-            await using var stream = System.IO.File.Create(path);
+            await using var stream = System.IO.File.Create(fullPath);
             await file.CopyToAsync(stream);
 
             return $"/uploads/doctors/{fileName}";

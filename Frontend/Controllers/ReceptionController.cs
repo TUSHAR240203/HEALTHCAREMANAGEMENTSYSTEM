@@ -108,7 +108,6 @@ namespace Frontend.Controllers
                 return View(request);
             }
         }
-
         [HttpGet]
         public async Task<IActionResult> CheckIn(DateOnly? date = null)
         {
@@ -122,8 +121,22 @@ namespace Frontend.Controllers
                     QueueDate = checkInDate,
                     CheckInTimeUtc = DateTime.UtcNow
                 },
-                Appointments = await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(checkInDate)
+                Appointments = new List<TodayAppointmentForCheckInDto>()
             };
+
+            try
+            {
+                model.Appointments =
+                    await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(checkInDate);
+            }
+            catch (ApiException ex)
+            {
+                model.ErrorMessage = ex.Message;
+            }
+            catch (Exception ex)
+            {
+                model.ErrorMessage = $"Could not load today's appointments. {ex.Message}";
+            }
 
             return View(model);
         }
@@ -140,34 +153,63 @@ namespace Frontend.Controllers
 
             if (!ModelState.IsValid)
             {
-                var model = new CheckInPageViewModel
+                var invalidModel = new CheckInPageViewModel
                 {
                     Date = request.QueueDate,
                     CheckIn = request,
-                    Appointments = await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate)
+                    Appointments = new List<TodayAppointmentForCheckInDto>()
                 };
 
-                return View(model);
+                try
+                {
+                    invalidModel.Appointments =
+                        await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate);
+                }
+                catch (ApiException ex)
+                {
+                    invalidModel.ErrorMessage = ex.Message;
+                }
+                catch (Exception ex)
+                {
+                    invalidModel.ErrorMessage = $"Could not load today's appointments. {ex.Message}";
+                }
+
+                return View(invalidModel);
             }
 
             try
             {
                 await _receptionApiService.CheckInAsync<object>(request);
+
                 TempData["Success"] = "Patient checked in successfully and added to the queue.";
-                return RedirectToAction(nameof(Queue), new { departmentId = request.DepartmentId, date = request.QueueDate });
+
+                return RedirectToAction(
+                    nameof(Queue),
+                    new { departmentId = request.DepartmentId, date = request.QueueDate });
             }
             catch (ApiException ex)
             {
                 ModelState.AddModelError(string.Empty, ex.Message);
 
-                var model = new CheckInPageViewModel
+                var errorModel = new CheckInPageViewModel
                 {
                     Date = request.QueueDate,
                     CheckIn = request,
-                    Appointments = await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate)
+                    Appointments = new List<TodayAppointmentForCheckInDto>(),
+                    ErrorMessage = ex.Message
                 };
 
-                return View(model);
+                try
+                {
+                    errorModel.Appointments =
+                        await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate);
+                }
+                catch
+                {
+                    // Keep original check-in error. Do not crash page again while reloading appointments.
+                }
+
+                return View(errorModel);
             }
         }
 

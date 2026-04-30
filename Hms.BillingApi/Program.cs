@@ -1,3 +1,4 @@
+using Hms.BillingApi.Security;
 using Hms.BillingApi.Data;
 using Hms.BillingApi.Interfaces;
 using Hms.BillingApi.Middleware;
@@ -5,6 +6,7 @@ using Hms.BillingApi.Repositories;
 using Hms.BillingApi.Services;
 using Hms.BillingApi.Mappings;
 using Hms.BillingApi.Validators;
+using Hms.BillingApi.Finance;
 
 using Microsoft.EntityFrameworkCore;
 using FluentValidation;
@@ -26,7 +28,9 @@ builder.Host.UseSerilog();
 // 🔥 Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.BillingApi"));
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCaching();
 
 // 🔥 DB Context
 builder.Services.AddDbContext<BillingDbContext>(options =>
@@ -38,13 +42,15 @@ builder.Services.AddDbContext<BillingDbContext>(options =>
 // 🔥 DI
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<IFinanceCalculator, FinanceCalculator>();
 
 // 🔥 AutoMapper
-builder.Services.AddAutoMapper(typeof(BillingProfile));
-
+builder.Services.AddAutoMapper(cfg => { }, typeof(BillingProfile).Assembly);
 // 🔥 FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<CreateInvoiceValidator>();
 builder.Services.AddFluentValidationAutoValidation();
+
+builder.Services.AddHmsJwtSecurity(builder.Configuration);
 
 var app = builder.Build();
 
@@ -61,6 +67,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseResponseCaching();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

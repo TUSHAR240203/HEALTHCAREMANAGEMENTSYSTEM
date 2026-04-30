@@ -53,8 +53,8 @@
 
             <nav class="side-nav">
                 <a class="side-link @(currentPath == "/" ? "active" : "")"
-                   asp-controller="Home"
-                   asp-action="Index">
+                       asp-controller="Home"
+                       asp-action="Index">
                     <i class="bi bi-grid-1x2"></i>
                     <span>Dashboard</span>
                 </a>
@@ -62,8 +62,8 @@
                 @if (isAdmin)
                 {
                     <a class="side-link @(currentPath.StartsWith("/StaffUsers") ? "active" : "")"
-                       asp-controller="StaffUsers"
-                       asp-action="Index">
+                           asp-controller="StaffUsers"
+                           asp-action="Index">
                         <i class="bi bi-person-gear"></i>
                         <span>Staff Users</span>
                     </a>
@@ -72,23 +72,16 @@
                 @if (isAdmin || isReception)
                 {
                     <a class="side-link @(currentPath.StartsWith("/Patients") ? "active" : "")"
-                       asp-controller="Patients"
-                       asp-action="Index">
+                           asp-controller="Patients"
+                           asp-action="Index">
                         <i class="bi bi-people"></i>
                         <span>Patients</span>
                     </a>
 
-                    <a class="side-link @(currentPath.StartsWith("/Reception") && !currentPath.StartsWith("/Reception/Queue") ? "active" : "")"
-                       asp-controller="Reception"
-                       asp-action="SearchPatients">
-                        <i class="bi bi-headset"></i>
-                        <span>Reception</span>
-                    </a>
-
                     <a class="side-link @(currentPath.StartsWith("/Reception/Queue") ? "active" : "")"
-                       asp-controller="Reception"
-                       asp-action="Queue"
-                       asp-route-departmentId="1">
+                           asp-controller="Reception"
+                           asp-action="Queue"
+                           asp-route-departmentId="1">
                         <i class="bi bi-list-ol"></i>
                         <span>Queue</span>
                     </a>
@@ -98,15 +91,15 @@
                 @if (isAdmin || isReception)
                 {
                     <a class="side-link @(currentPath.StartsWith("/Doctors") && !currentPath.StartsWith("/Doctors/Leaves") ? "active" : "")"
-                       asp-controller="Doctors"
-                       asp-action="Index">
+                           asp-controller="Doctors"
+                           asp-action="Index">
                         <i class="bi bi-heart-pulse"></i>
                         <span>Doctors</span>
                     </a>
 
                     <a class="side-link @(currentPath.StartsWith("/Doctors/Leaves") ? "active" : "")"
-                       asp-controller="Doctors"
-                       asp-action="Leaves">
+                           asp-controller="Doctors"
+                           asp-action="Leaves">
                         <i class="bi bi-calendar-x"></i>
                         <span>Doctor Leaves</span>
                     </a>
@@ -116,30 +109,29 @@
                 @if (isDoctor)
                 {
                     <a class="side-link @(currentPath.StartsWith("/Doctors/MyProfile") ? "active" : "")"
-                       asp-controller="Doctors"
-                       asp-action="MyProfile">
+                           asp-controller="Doctors"
+                           asp-action="MyProfile">
                         <i class="bi bi-person-badge"></i>
                         <span>My Profile</span>
                     </a>
 
                     <a class="side-link @(currentPath.StartsWith("/Doctors/MySchedule") ? "active" : "")"
-                       asp-controller="Doctors"
-                       asp-action="MySchedule">
+                           asp-controller="Doctors"
+                           asp-action="MySchedule">
                         <i class="bi bi-clock-history"></i>
                         <span>My Schedule</span>
                     </a>
 
                     <a class="side-link @(currentPath.StartsWith("/Doctors/Leaves") ? "active" : "")"
-                       asp-controller="Doctors"
-                       asp-action="Leaves">
+                           asp-controller="Doctors"
+                           asp-action="Leaves">
                         <i class="bi bi-calendar-check"></i>
                         <span>My Leaves</span>
                     </a>
 
-
                     <a class="side-link @(currentPath.StartsWith("/Doctors/RequestLeave") ? "active" : "")"
-                       asp-controller="Doctors"
-                       asp-action="RequestLeave">
+                           asp-controller="Doctors"
+                           asp-action="RequestLeave">
                         <i class="bi bi-calendar-plus"></i>
                         <span>Request Leave</span>
                     </a>
@@ -149,16 +141,16 @@
                 {
                     @if (isPatient)
                     {
-                        <a class="side-link @(currentPath.StartsWith("/Appointments") ? "active" : "")"
-                           asp-controller="Appointments"
-                           asp-action="ByPatient">
+                        <a class="side-link @(currentPath.StartsWith("/Appointments") && !currentPath.StartsWith("/Appointments/PatientBook") ? "active" : "")"
+                               asp-controller="Appointments"
+                               asp-action="ByPatient">
                             <i class="bi bi-calendar2-week"></i>
                             <span>My Appointments</span>
                         </a>
 
                         <a class="side-link @(currentPath.StartsWith("/Appointments/PatientBook") ? "active" : "")"
-                           asp-controller="Appointments"
-                           asp-action="PatientBook">
+                               asp-controller="Appointments"
+                               asp-action="PatientBook">
                             <i class="bi bi-calendar2-plus"></i>
                             <span>Book Appointment</span>
                         </a>
@@ -166,8 +158,8 @@
                     else
                     {
                         <a class="side-link @(currentPath.StartsWith("/Appointments") ? "active" : "")"
-                           asp-controller="Appointments"
-                           asp-action="Index">
+                               asp-controller="Appointments"
+                               asp-action="Index">
                             <i class="bi bi-calendar2-week"></i>
                             <span>Appointments</span>
                         </a>
@@ -177,8 +169,8 @@
                 @if (isAdmin || isReception || isPatient)
                 {
                     <a class="side-link @(currentPath.StartsWith("/Billing") ? "active" : "")"
-                       asp-controller="Billing"
-                       asp-action="ByPatient">
+                           asp-controller="Billing"
+                           asp-action="ByPatient">
                         <i class="bi bi-receipt"></i>
                         <span>@(isPatient ? "My Bills" : "Billing")</span>
                     </a>
@@ -189,8 +181,8 @@
                     @if (isPatient)
                     {
                         <a class="side-link @(currentPath.StartsWith("/Account/CompleteProfile") || currentPath.StartsWith("/Account/Profile") ? "active" : "")"
-                           asp-controller="Account"
-                           asp-action="CompleteProfile">
+                               asp-controller="Account"
+                               asp-action="CompleteProfile">
                             <i class="bi bi-person-circle"></i>
                             <span>Complete Profile</span>
                         </a>
@@ -198,27 +190,21 @@
                     else if (!isDoctor)
                     {
                         <a class="side-link @(currentPath.StartsWith("/Account/Profile") ? "active" : "")"
-                           asp-controller="Account"
-                           asp-action="Profile">
+                               asp-controller="Account"
+                               asp-action="Profile">
                             <i class="bi bi-person-circle"></i>
                             <span>Profile</span>
                         </a>
                     }
 
                     <a class="side-link @(currentPath.StartsWith("/Account/AuthPreference") ? "active" : "")"
-                       asp-controller="Account"
-                       asp-action="AuthPreference">
+                           asp-controller="Account"
+                           asp-action="AuthPreference">
                         <i class="bi bi-shield-lock"></i>
                         <span>Auth Settings</span>
                     </a>
                 }
             </nav>
-
-            <div class="sidebar-card">
-                <div class="pulse-dot"></div>
-                <strong>Gateway</strong>
-                <span>https://localhost:7000</span>
-            </div>
         </aside>
 
         <section class="app-content">
@@ -244,9 +230,9 @@
                             @if (isPatient)
                             {
                                 <a class="avatar avatar-clickable"
-                                   asp-controller="Account"
-                                   asp-action="CompleteProfile"
-                                   title="Edit patient photo and profile">
+                                       asp-controller="Account"
+                                       asp-action="CompleteProfile"
+                                       title="Edit patient photo and profile">
                                     @if (!string.IsNullOrWhiteSpace(photoUrl))
                                     {
                                         <img src="@photoUrl" alt="Profile photo" />
@@ -260,9 +246,9 @@
                             else if (isDoctor)
                             {
                                 <a class="avatar avatar-clickable"
-                                   asp-controller="Doctors"
-                                   asp-action="MyProfile"
-                                   title="View doctor profile">
+                                       asp-controller="Doctors"
+                                       asp-action="MyProfile"
+                                       title="View doctor profile">
                                     @if (!string.IsNullOrWhiteSpace(photoUrl))
                                     {
                                         <img src="@photoUrl" alt="Profile photo" />
@@ -276,9 +262,9 @@
                             else
                             {
                                 <a class="avatar avatar-clickable"
-                                   asp-controller="Account"
-                                   asp-action="Profile"
-                                   title="View profile">
+                                       asp-controller="Account"
+                                       asp-action="Profile"
+                                       title="View profile">
                                     @if (!string.IsNullOrWhiteSpace(photoUrl))
                                     {
                                         <img src="@photoUrl" alt="Profile photo" />
@@ -303,8 +289,8 @@
                         </div>
 
                         <a class="btn btn-danger-soft"
-                           asp-controller="Account"
-                           asp-action="Logout">
+                               asp-controller="Account"
+                               asp-action="Logout">
                             <i class="bi bi-box-arrow-right"></i>
                             <span class="d-none d-sm-inline">Logout</span>
                         </a>
@@ -312,20 +298,20 @@
                     else
                     {
                         <a class="btn btn-outline-primary"
-                           asp-controller="Account"
-                           asp-action="StaffLogin">
+                               asp-controller="Account"
+                               asp-action="StaffLogin">
                             Staff Login
                         </a>
 
                         <a class="btn btn-primary-soft"
-                           asp-controller="Account"
-                           asp-action="Register">
+                               asp-controller="Account"
+                               asp-action="Register">
                             Patient Register
                         </a>
 
                         <a class="btn btn-primary"
-                           asp-controller="Account"
-                           asp-action="Login">
+                               asp-controller="Account"
+                               asp-action="Login">
                             Patient Login
                         </a>
                     }
