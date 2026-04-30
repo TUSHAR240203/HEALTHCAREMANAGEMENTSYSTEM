@@ -1,0 +1,11 @@
+@model string[]
+<div class="sidebar-card tech-stack-card">
+    <div class="pulse-dot"></div>
+    <strong>Stack Coverage</strong>
+    <div class="tech-stack-badges">
+        @foreach (var item in Model)
+        {
+            <span class="tech-stack-badge">@item</span>
+        }
+    </div>
+</div>

@@ -370,7 +370,7 @@ public class ReceptionService : IReceptionService
         {
             AppointmentDate = date,
             PageNumber = 1,
-            PageSize = 100
+            PageSize = 5
         });
 
         var appointments = result.Appointments

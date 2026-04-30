@@ -20,7 +20,7 @@ public class BillingServiceTests
         var config = new MapperConfiguration(cfg =>
         {
             cfg.AddProfile<BillingProfile>();
-        });
+        }, Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
 
         var mapper = config.CreateMapper();
 
