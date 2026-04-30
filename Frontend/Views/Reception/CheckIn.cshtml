@@ -2,253 +2,633 @@
 
 @{
     ViewData["Title"] = "Patient Check-In";
+
+    bool IsStatus(string? status, params string[] values)
+    {
+        return values.Any(v => string.Equals(status, v, StringComparison.OrdinalIgnoreCase));
+    }
+
+    string NormalizeStatus(string? status)
+    {
+        return string.IsNullOrWhiteSpace(status)
+            ? "Scheduled"
+            : status.Trim();
+    }
+
+    var appointments = Model?.Appointments;
+
+    var checkInAllowedStatuses = new[] { "Scheduled", "Booked", "Confirmed" };
+
+    var totalAppointments = appointments?.Count() ?? 0;
+
+    var readyCount = appointments?
+        .Count(x =>
+        {
+            string status = NormalizeStatus(x.Status);
+            return checkInAllowedStatuses.Any(s => string.Equals(status, s, StringComparison.OrdinalIgnoreCase));
+        }) ?? 0;
+
+    var checkedInCount = appointments?
+        .Count(x =>
+        {
+            string status = NormalizeStatus(x.Status);
+            return IsStatus(status, "CheckedIn", "Checked In", "InQueue", "In Queue");
+        }) ?? 0;
+
+    var completedCount = appointments?
+        .Count(x =>
+        {
+            string status = NormalizeStatus(x.Status);
+            return IsStatus(status, "Completed");
+        }) ?? 0;
+
+    var cancelledCount = appointments?
+        .Count(x =>
+        {
+            string status = NormalizeStatus(x.Status);
+            return IsStatus(status, "Cancelled", "Canceled", "NoShow", "No Show");
+        }) ?? 0;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="mb-1">Patient Check-In</h2>
-        <p class="text-muted mb-0">
-            Select from today's scheduled appointments. Patient, doctor, and department details will fill automatically.
-        </p>
-    </div>
+<style>
+    .checkin-hero {
+        border-radius: 30px;
+        padding: 32px;
+        margin-bottom: 24px;
+        background: linear-gradient(135deg, #0f766e 0%, #2563eb 100%);
+        color: #fff;
+        box-shadow: 0 20px 45px rgba(37, 99, 235, .2);
+    }
 
-    <a asp-controller="Reception"
-           asp-action="Queue"
-           asp-route-departmentId="1"
-           asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
-           class="btn btn-outline-primary">
-        <i class="bi bi-list-ol"></i> View Queue
-    </a>
-</div>
+    .checkin-hero h1 {
+        font-size: clamp(2rem, 4vw, 3.5rem);
+        font-weight: 850;
+        letter-spacing: -.04em;
+        margin: 0 0 8px;
+    }
 
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        <form asp-controller="Reception" asp-action="CheckIn" method="get" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Appointment Date</label>
-                <input type="date"
-                       name="date"
-                       value="@Model.Date.ToString("yyyy-MM-dd")"
-                       class="form-control" />
+    .checkin-hero p {
+        margin: 0;
+        opacity: .92;
+        font-size: 1.05rem;
+    }
+
+    .hero-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .16);
+        border: 1px solid rgba(255, 255, 255, .25);
+        font-weight: 750;
+        margin-bottom: 14px;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .metric-grid-modern {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .metric-card-modern,
+    .filter-card-modern,
+    .appointment-panel {
+        border: 0;
+        border-radius: 26px;
+        background: #fff;
+        box-shadow: 0 14px 36px rgba(15, 23, 42, .08);
+    }
+
+    .metric-card-modern {
+        padding: 18px;
+    }
+
+    .metric-card-modern span {
+        display: block;
+        color: #64748b;
+        font-weight: 800;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .metric-card-modern strong {
+        display: block;
+        margin-top: 8px;
+        color: #0f172a;
+        font-size: 1.9rem;
+        line-height: 1;
+    }
+
+    .filter-card-modern {
+        margin-bottom: 22px;
+    }
+
+    .appointment-panel {
+        overflow: hidden;
+    }
+
+    .appointment-toolbar {
+        padding: 22px;
+        border-bottom: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .appointment-tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+    }
+
+    .appointment-tab-btn {
+        border: 1px solid #dbe4ef;
+        background: #fff;
+        border-radius: 999px;
+        padding: 9px 14px;
+        font-weight: 800;
+        color: #334155;
+    }
+
+    .appointment-tab-btn.active {
+        background: #0f172a;
+        color: #fff;
+        border-color: #0f172a;
+    }
+
+    .appointment-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 24px;
+        padding: 20px;
+        margin-bottom: 16px;
+        background: #fff;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+
+    .appointment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, .08);
+        border-color: #cbd5e1;
+    }
+
+    .patient-avatar {
+        width: 62px;
+        height: 62px;
+        border-radius: 22px;
+        background: #e0f2fe;
+        color: #0369a1;
+        display: grid;
+        place-items: center;
+        font-size: 1.55rem;
+        flex: 0 0 auto;
+    }
+
+    .patient-title {
+        font-size: 1.15rem;
+        color: #0f172a;
+        font-weight: 900;
+        margin-bottom: 2px;
+    }
+
+    .patient-meta {
+        color: #64748b;
+        font-size: .95rem;
+    }
+
+    .detail-grid {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    .detail-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: .88rem;
+        font-weight: 700;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 999px;
+        padding: 8px 13px;
+        font-size: .84rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .status-ready { background: #dcfce7; color: #166534; }
+    .status-checkedin { background: #cffafe; color: #155e75; }
+    .status-completed { background: #e0e7ff; color: #3730a3; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+    .status-other { background: #f1f5f9; color: #334155; }
+
+    .flow-note {
+        border-radius: 20px;
+        padding: 16px;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        color: #475569;
+        margin-bottom: 20px;
+    }
+
+    .empty-modern {
+        text-align: center;
+        padding: 54px 20px;
+        color: #64748b;
+    }
+
+    .empty-modern i {
+        font-size: 3rem;
+        color: #94a3b8;
+        margin-bottom: 12px;
+    }
+
+    @@media (max-width: 1200px) {
+        .metric-grid-modern {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .hero-actions {
+            justify-content: flex-start;
+            margin-top: 18px;
+        }
+
+        .metric-grid-modern {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .metric-grid-modern {
+            grid-template-columns: 1fr;
+        }
+
+        .checkin-hero {
+            padding: 24px;
+        }
+    }
+</style>
+
+<div class="checkin-hero">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <div class="hero-pill">
+                <i class="bi bi-person-check"></i>
+                Reception check-in desk
             </div>
+            <h1>Patient Check-In</h1>
+            <p>
+                See all appointments for the selected date, check in booked patients, and review completed visits with time and doctor details.
+            </p>
+        </div>
 
-            <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">
-                    Load Appointments
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <form asp-controller="Reception" asp-action="CheckIn" method="post">
-            @Html.AntiForgeryToken()
-
-            <input type="hidden" name="Date" value="@Model.Date.ToString("yyyy-MM-dd")" />
-
-            <input type="hidden" asp-for="CheckIn.AppointmentId" id="AppointmentId" />
-            <input type="hidden" asp-for="CheckIn.PatientId" id="PatientId" />
-            <input type="hidden" asp-for="CheckIn.DoctorId" id="DoctorId" />
-            <input type="hidden" asp-for="CheckIn.DepartmentId" id="DepartmentId" />
-            <input type="hidden" asp-for="CheckIn.QueueDate" id="QueueDate" value="@Model.Date.ToString("yyyy-MM-dd")" />
-            <input type="hidden" asp-for="CheckIn.CheckInTimeUtc" />
-
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-
-            <div class="mb-4">
-                <label class="form-label">Search Today's Scheduled Appointment</label>
-
-                <input type="text"
-                       id="appointmentSearch"
-                       class="form-control"
-                       placeholder="Search by patient name, UHID, doctor, department, or appointment ID..."
-                       autocomplete="off" />
-
-                <div id="appointmentDropdown"
-                     class="list-group mt-2 shadow-sm"
-                     style="max-height: 320px; overflow-y: auto;">
-                    @if (Model.Appointments.Any())
-                    {
-                        foreach (var item in Model.Appointments)
-                        {
-                            var searchText = $"{item.AppointmentId} {item.PatientName} {item.UHID} {item.DoctorName} {item.DepartmentName} {item.Status}".ToLowerInvariant();
-                            var appointmentTimeText = $"{item.AppointmentDate:dd MMM yyyy} {item.SlotStartTime:hh\\:mm tt}";
-
-                            <button type="button"
-                                    class="list-group-item list-group-item-action appointment-option"
-                                    data-search="@searchText"
-                                    data-appointment-id="@item.AppointmentId"
-                                    data-patient-id="@item.PatientId"
-                                    data-patient-name="@item.PatientName"
-                                    data-uhid="@item.UHID"
-                                    data-doctor-id="@item.DoctorId"
-                                    data-doctor-name="@item.DoctorName"
-                                    data-department-id="@item.DepartmentId"
-                                    data-department-name="@item.DepartmentName"
-                                    data-time="@appointmentTimeText"
-                                    data-status="@item.Status">
-                                <div class="d-flex justify-content-between align-items-start gap-3">
-                                    <div>
-                                        <strong>@item.PatientName</strong>
-                                        <span class="text-muted">(@item.UHID)</span>
-
-                                        <div class="small text-muted">
-                                            Appointment #@item.AppointmentId |
-                                            Doctor: @item.DoctorName |
-                                            Department: @item.DepartmentName
-                                        </div>
-                                    </div>
-
-                                    <div class="text-end">
-                                        <span class="badge bg-primary">@item.Status</span>
-
-                                        <div class="small text-muted">
-                                            @item.SlotStartTime.ToString("hh\\:mm tt")
-                                        </div>
-                                    </div>
-                                </div>
-                            </button>
-                        }
-                    }
-                    else
-                    {
-                        <div class="list-group-item text-muted">
-                            No scheduled appointments found for this date.
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <label class="form-label">Patient</label>
-                    <input type="text" id="SelectedPatient" class="form-control" readonly />
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">UHID</label>
-                    <input type="text" id="SelectedUHID" class="form-control" readonly />
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Doctor</label>
-                    <input type="text" id="SelectedDoctor" class="form-control" readonly />
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Department</label>
-                    <input type="text" id="SelectedDepartment" class="form-control" readonly />
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Appointment Time</label>
-                    <input type="text" id="SelectedTime" class="form-control" readonly />
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Status</label>
-                    <input type="text" id="SelectedStatus" class="form-control" readonly />
-                </div>
-            </div>
-
-            <button type="submit" id="checkInButton" class="btn btn-success" disabled>
-                <i class="bi bi-check-circle"></i> Check In Selected Patient
-            </button>
-
-            <a asp-controller="Reception"
+        <div class="col-lg-4">
+            <div class="hero-actions">
+                <a asp-controller="Reception"
                    asp-action="Queue"
                    asp-route-departmentId="1"
                    asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
-                   class="btn btn-outline-secondary ms-2">
-                Back to Queue
-            </a>
+                   class="btn btn-light btn-lg">
+                    <i class="bi bi-list-ol me-2"></i>View Queue
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm rounded-4">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger border-0 shadow-sm rounded-4">
+        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+    </div>
+}
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="metric-grid-modern">
+    <div class="metric-card-modern">
+        <span>Total</span>
+        <strong>@totalAppointments</strong>
+    </div>
+    <div class="metric-card-modern">
+        <span>Ready</span>
+        <strong>@readyCount</strong>
+    </div>
+    <div class="metric-card-modern">
+        <span>Checked In</span>
+        <strong>@checkedInCount</strong>
+    </div>
+    <div class="metric-card-modern">
+        <span>Completed</span>
+        <strong>@completedCount</strong>
+    </div>
+    <div class="metric-card-modern">
+        <span>Cancelled</span>
+        <strong>@cancelledCount</strong>
+    </div>
+</div>
+
+<div class="card filter-card-modern">
+    <div class="card-body p-4">
+        <form asp-controller="Reception" asp-action="CheckIn" method="get" class="row g-3 align-items-end">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold">Appointment Date</label>
+                <input type="date"
+                       name="date"
+                       value="@Model.Date.ToString("yyyy-MM-dd")"
+                       class="form-control form-control-lg" />
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-calendar2-check me-2"></i>Load Appointments
+                </button>
+            </div>
+
+            <div class="col-lg-4">
+                <a asp-controller="Reception"
+                   asp-action="Queue"
+                   asp-route-departmentId="1"
+                   asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
+                   class="btn btn-outline-secondary btn-lg w-100">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Queue
+                </a>
+            </div>
         </form>
     </div>
 </div>
 
-<style>
-    .appointment-option.active,
-    .appointment-option.active:hover,
-    .appointment-option.active:focus {
-        background-color: #ffffff !important;
-        border: 2px solid #198754 !important;
-        color: inherit !important;
-        box-shadow: 0 0 0 0.15rem rgba(25, 135, 84, 0.15) !important;
-    }
+<div class="card appointment-panel">
+    <div class="appointment-toolbar">
+        <div class="flow-note">
+            <strong>Flow:</strong>
+            Booked/Scheduled patients can be checked in. After queue completion, the appointment should sync to
+            <strong>Completed</strong> and stay visible here for review.
+        </div>
 
-        .appointment-option.active strong,
-        .appointment-option.active span,
-        .appointment-option.active small,
-        .appointment-option.active div {
-            color: inherit !important;
-        }
+        <div class="row align-items-end g-3">
+            <div class="col-lg-8">
+                <label class="form-label fw-semibold">Search appointments</label>
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text"
+                           id="appointmentSearch"
+                           class="form-control"
+                           placeholder="Search patient, UHID, doctor, department, status, appointment ID, or time..."
+                           autocomplete="off" />
+                </div>
+            </div>
 
-        .appointment-option.active .badge {
-            background-color: #198754 !important;
-            color: #ffffff !important;
-        }
+            <div class="col-lg-4">
+                <label class="form-label fw-semibold">Quick filter</label>
+                <select id="statusFilter" class="form-select form-select-lg">
+                    <option value="all">All appointments</option>
+                    <option value="ready">Ready for check-in</option>
+                    <option value="checkedin">Checked in / In queue</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled / No-show</option>
+                    <option value="other">Other statuses</option>
+                </select>
+            </div>
+        </div>
 
-    .appointment-option:focus,
-    .appointment-option:active {
-        outline: none !important;
-        box-shadow: 0 0 0 0.15rem rgba(25, 135, 84, 0.15) !important;
-    }
-</style>
+        <div class="appointment-tabs">
+            <button type="button" class="appointment-tab-btn active" data-filter="all">All (@totalAppointments)</button>
+            <button type="button" class="appointment-tab-btn" data-filter="ready">Ready (@readyCount)</button>
+            <button type="button" class="appointment-tab-btn" data-filter="checkedin">Checked In (@checkedInCount)</button>
+            <button type="button" class="appointment-tab-btn" data-filter="completed">Completed (@completedCount)</button>
+            <button type="button" class="appointment-tab-btn" data-filter="cancelled">Cancelled (@cancelledCount)</button>
+        </div>
+    </div>
+
+    <div class="card-body p-4">
+        <div id="appointmentList">
+            @if (appointments != null && appointments.Any())
+            {
+                foreach (var item in appointments)
+                {
+                    string rawStatus = NormalizeStatus(item.Status);
+
+                    var isReady = checkInAllowedStatuses.Any(s => string.Equals(rawStatus, s, StringComparison.OrdinalIgnoreCase));
+                    var isCompleted = IsStatus(rawStatus, "Completed");
+                    var isCancelled = IsStatus(rawStatus, "Cancelled", "Canceled", "NoShow", "No Show");
+                    var isCheckedIn = IsStatus(rawStatus, "CheckedIn", "Checked In", "InQueue", "In Queue");
+
+                    var canCheckIn = isReady && !isCompleted && !isCancelled && !isCheckedIn;
+
+                    var filterStatus = canCheckIn ? "ready"
+                        : isCheckedIn ? "checkedin"
+                        : isCompleted ? "completed"
+                        : isCancelled ? "cancelled"
+                        : "other";
+
+                    var statusClass = canCheckIn ? "status-ready"
+                        : isCheckedIn ? "status-checkedin"
+                        : isCompleted ? "status-completed"
+                        : isCancelled ? "status-cancelled"
+                        : "status-other";
+
+                    var statusIcon = canCheckIn ? "bi-calendar-check"
+                        : isCheckedIn ? "bi-person-check"
+                        : isCompleted ? "bi-check2-circle"
+                        : isCancelled ? "bi-x-circle"
+                        : "bi-info-circle";
+
+                    var queueDate = item.AppointmentDate == default ? Model.Date : item.AppointmentDate;
+
+                    var slotText = $"{item.SlotStartTime.ToString("hh\\:mm tt")} - {item.SlotEndTime.ToString("hh\\:mm tt")}";
+                    var searchText = $"{item.AppointmentId} {item.PatientName} {item.UHID} {item.DoctorName} {item.DepartmentName} {rawStatus} {slotText}".ToLowerInvariant();
+
+                    <div class="appointment-card appointment-row"
+                         data-search="@searchText"
+                         data-status="@filterStatus">
+                        <div class="row align-items-center g-3">
+                            <div class="col-xl-8">
+                                <div class="d-flex gap-3">
+                                    <div class="patient-avatar">
+                                        <i class="bi bi-person"></i>
+                                    </div>
+
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+                                            <div>
+                                                <div class="patient-title">@item.PatientName</div>
+                                                <div class="patient-meta">
+                                                    UHID @item.UHID • Appointment #@item.AppointmentId
+                                                </div>
+                                            </div>
+
+                                            <span class="status-badge @statusClass">
+                                                <i class="bi @statusIcon"></i>@rawStatus
+                                            </span>
+                                        </div>
+
+                                        <div class="detail-grid">
+                                            <span class="detail-chip">
+                                                <i class="bi bi-person-badge"></i>@item.DoctorName
+                                            </span>
+                                            <span class="detail-chip">
+                                                <i class="bi bi-building"></i>@item.DepartmentName
+                                            </span>
+                                            <span class="detail-chip">
+                                                <i class="bi bi-clock"></i>@slotText
+                                            </span>
+                                            <span class="detail-chip">
+                                                <i class="bi bi-calendar-event"></i>@queueDate.ToString("dd MMM yyyy")
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-4 text-xl-end">
+                                @if (canCheckIn)
+                                {
+                                    <form asp-controller="Reception" asp-action="CheckIn" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden" name="AppointmentId" value="@item.AppointmentId" />
+                                        <input type="hidden" name="PatientId" value="@item.PatientId" />
+                                        <input type="hidden" name="DoctorId" value="@item.DoctorId" />
+                                        <input type="hidden" name="DepartmentId" value="@item.DepartmentId" />
+                                        <input type="hidden" name="QueueDate" value="@queueDate.ToString("yyyy-MM-dd")" />
+                                        <input type="hidden" name="CheckInTimeUtc" value="@DateTime.UtcNow.ToString("O")" />
+
+                                        <button type="submit" class="btn btn-success btn-lg">
+                                            <i class="bi bi-person-check me-2"></i>Check In
+                                        </button>
+                                    </form>
+                                }
+                                else if (isCompleted)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary btn-lg" disabled>
+                                        <i class="bi bi-check2-circle me-2"></i>Completed
+                                    </button>
+                                }
+                                else if (isCheckedIn)
+                                {
+                                    <button type="button" class="btn btn-outline-info btn-lg" disabled>
+                                        <i class="bi bi-person-check me-2"></i>Already Checked In
+                                    </button>
+                                }
+                                else if (isCancelled)
+                                {
+                                    <button type="button" class="btn btn-outline-danger btn-lg" disabled>
+                                        <i class="bi bi-x-circle me-2"></i>Not Available
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-outline-secondary btn-lg" disabled>
+                                        <i class="bi bi-lock me-2"></i>@rawStatus
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-modern">
+                    <i class="bi bi-calendar-x"></i>
+                    <h3>No appointments found</h3>
+                    <p>No appointments were found for the selected date.</p>
+                </div>
+            }
+        </div>
+
+        <div id="noSearchResults" class="empty-modern d-none">
+            <i class="bi bi-search"></i>
+            <h3>No matching appointments</h3>
+            <p>Try another patient name, UHID, doctor, department, time, or status.</p>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 
     <script>
         const searchInput = document.getElementById("appointmentSearch");
-        const options = document.querySelectorAll(".appointment-option");
-        const checkInButton = document.getElementById("checkInButton");
+        const statusFilter = document.getElementById("statusFilter");
+        const rows = document.querySelectorAll(".appointment-row");
+        const noSearchResults = document.getElementById("noSearchResults");
+        const tabButtons = document.querySelectorAll(".appointment-tab-btn");
 
-        const appointmentIdInput = document.getElementById("AppointmentId");
-        const patientIdInput = document.getElementById("PatientId");
-        const doctorIdInput = document.getElementById("DoctorId");
-        const departmentIdInput = document.getElementById("DepartmentId");
-        const queueDateInput = document.getElementById("QueueDate");
-
-        const selectedPatient = document.getElementById("SelectedPatient");
-        const selectedUHID = document.getElementById("SelectedUHID");
-        const selectedDoctor = document.getElementById("SelectedDoctor");
-        const selectedDepartment = document.getElementById("SelectedDepartment");
-        const selectedTime = document.getElementById("SelectedTime");
-        const selectedStatus = document.getElementById("SelectedStatus");
-
-        searchInput?.addEventListener("input", function () {
-            const value = this.value.toLowerCase().trim();
-
-            options.forEach(option => {
-                const search = option.dataset.search || "";
-                option.style.display = search.includes(value) ? "" : "none";
+        function setActiveTab(filter) {
+            tabButtons.forEach(btn => {
+                btn.classList.toggle("active", (btn.dataset.filter || "all") === filter);
             });
-        });
+        }
 
-        options.forEach(option => {
-            option.addEventListener("click", function () {
-                options.forEach(x => x.classList.remove("active"));
-                this.classList.add("active");
+        function applyAppointmentFilters(sourceFilter) {
+            const searchValue = (searchInput?.value || "").toLowerCase().trim();
+            const selectedFilter = sourceFilter || (statusFilter?.value || "all").toLowerCase().trim();
 
-                appointmentIdInput.value = this.dataset.appointmentId || "";
-                patientIdInput.value = this.dataset.patientId || "";
-                doctorIdInput.value = this.dataset.doctorId || "";
-                departmentIdInput.value = this.dataset.departmentId || "";
-                queueDateInput.value = "@Model.Date.ToString("yyyy-MM-dd")";
+            let visibleCount = 0;
 
-                selectedPatient.value = this.dataset.patientName || "";
-                selectedUHID.value = this.dataset.uhid || "";
-                selectedDoctor.value = this.dataset.doctorName || "";
-                selectedDepartment.value = this.dataset.departmentName || "";
-                selectedTime.value = this.dataset.time || "";
-                selectedStatus.value = this.dataset.status || "";
+            rows.forEach(row => {
+                const search = row.dataset.search || "";
+                const status = row.dataset.status || "";
 
-                searchInput.value =
-                    `${this.dataset.patientName || ""} - ${this.dataset.uhid || ""} - Appointment #${this.dataset.appointmentId || ""}`;
+                const matchesSearch = !searchValue || search.includes(searchValue);
+                const matchesStatus = selectedFilter === "all" || status === selectedFilter;
 
-                checkInButton.disabled = false;
+                const shouldShow = matchesSearch && matchesStatus;
+                row.style.display = shouldShow ? "" : "none";
+
+                if (shouldShow) {
+                    visibleCount++;
+                }
+            });
+
+            if (noSearchResults) {
+                noSearchResults.classList.toggle("d-none", visibleCount > 0 || rows.length === 0);
+            }
+
+            if (statusFilter) {
+                statusFilter.value = selectedFilter;
+            }
+
+            setActiveTab(selectedFilter);
+        }
+
+        searchInput?.addEventListener("input", () => applyAppointmentFilters());
+        statusFilter?.addEventListener("change", () => applyAppointmentFilters());
+
+        tabButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                applyAppointmentFilters(this.dataset.filter || "all");
             });
         });
     </script>
