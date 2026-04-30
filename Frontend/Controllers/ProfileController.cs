@@ -1,23 +1,31 @@
-﻿using System.Net.Http.Headers;
+using Frontend.Services;
 using Microsoft.AspNetCore.Mvc;
 
-public class ProfileController : Controller
+namespace Frontend.Controllers
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    public ProfileController(IHttpClientFactory httpClientFactory) => _httpClientFactory = httpClientFactory;
-
-    public async Task<IActionResult> Index()
+    public class ProfileController : Controller
     {
-        var token = User.FindFirst("access_token")?.Value;
-        var client = _httpClientFactory.CreateClient("AuthApi");
-        if (!string.IsNullOrEmpty(token))
+        private readonly AuthGatewayService _authGatewayService;
+
+        public ProfileController(AuthGatewayService authGatewayService)
         {
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            _authGatewayService = authGatewayService;
         }
 
-        var resp = await client.GetAsync("api/protected/profile");
-        if (!resp.IsSuccessStatusCode) return Challenge(); // or handle errors
-        var profile = await resp.Content.ReadFromJsonAsync<object>();
-        return View(profile);
+        public async Task<IActionResult> Index()
+        {
+            var token = HttpContext.Session.GetString("AccessToken");
+            if (string.IsNullOrWhiteSpace(token))
+                return RedirectToAction("StaffLogin", "Account");
+
+            var profile = await _authGatewayService.GetCurrentUserAsync(token);
+            if (profile == null)
+            {
+                TempData["Error"] = "Session expired or unauthorized. Please login again.";
+                return RedirectToAction("StaffLogin", "Account");
+            }
+
+            return View(profile);
+        }
     }
 }
