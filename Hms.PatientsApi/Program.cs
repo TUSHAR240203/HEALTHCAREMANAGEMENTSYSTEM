@@ -1,3 +1,4 @@
+using Hms.PatientsApi.Security;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hms.PatientsApi.Data;
@@ -27,13 +28,15 @@ builder.Host.UseSerilog();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.PatientsApi"));
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IPatientRepository, PatientRepository>();
 builder.Services.AddScoped<IPatientService, PatientService>();
+
+builder.Services.AddHmsJwtSecurity(builder.Configuration);
 
 var app = builder.Build();
 
@@ -47,6 +50,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
