@@ -110,33 +110,67 @@ namespace Frontend.Controllers
         }
 
         [HttpGet]
-        public IActionResult CheckIn()
+        public async Task<IActionResult> CheckIn(DateOnly? date = null)
         {
-            return View(new CheckInRequestDto
+            var checkInDate = date ?? DateOnly.FromDateTime(DateTime.Today);
+
+            var model = new CheckInPageViewModel
             {
-                CheckInTimeUtc = DateTime.UtcNow
-            });
+                Date = checkInDate,
+                CheckIn = new CheckInRequestDto
+                {
+                    QueueDate = checkInDate,
+                    CheckInTimeUtc = DateTime.UtcNow
+                },
+                Appointments = await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(checkInDate)
+            };
+
+            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CheckIn(CheckInRequestDto request)
         {
+            if (request.QueueDate == default)
+                request.QueueDate = DateOnly.FromDateTime(DateTime.Today);
+
+            if (request.CheckInTimeUtc == default)
+                request.CheckInTimeUtc = DateTime.UtcNow;
+
             if (!ModelState.IsValid)
-                return View(request);
+            {
+                var model = new CheckInPageViewModel
+                {
+                    Date = request.QueueDate,
+                    CheckIn = request,
+                    Appointments = await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate)
+                };
+
+                return View(model);
+            }
 
             try
             {
                 await _receptionApiService.CheckInAsync<object>(request);
-                TempData["Success"] = "Patient checked in successfully.";
-                return RedirectToAction(nameof(SearchPatients));
+                TempData["Success"] = "Patient checked in successfully and added to the queue.";
+                return RedirectToAction(nameof(Queue), new { departmentId = request.DepartmentId, date = request.QueueDate });
             }
             catch (ApiException ex)
             {
                 ModelState.AddModelError(string.Empty, ex.Message);
-                return View(request);
+
+                var model = new CheckInPageViewModel
+                {
+                    Date = request.QueueDate,
+                    CheckIn = request,
+                    Appointments = await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate)
+                };
+
+                return View(model);
             }
         }
+
 
         [HttpGet]
         public async Task<IActionResult> Queue(int departmentId = 1, DateOnly? date = null)

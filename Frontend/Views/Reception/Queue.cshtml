@@ -2,46 +2,370 @@
 @using Frontend.Models.Reception
 @{
     ViewData["Title"] = "Department Queue";
+
     var current = ViewBag.CurrentQueue as QueueCurrentResponseDto;
     var queueDate = Model?.Date ?? DateOnly.FromDateTime(DateTime.Today);
-    var waitingCount = Model?.Queue?.Count(x => string.Equals(x.Status, "Waiting", StringComparison.OrdinalIgnoreCase)) ?? 0;
-    var completedCount = Model?.Queue?.Count(x => string.Equals(x.Status, "Completed", StringComparison.OrdinalIgnoreCase)) ?? 0;
-    var skippedCount = Model?.Queue?.Count(x => string.Equals(x.Status, "Skipped", StringComparison.OrdinalIgnoreCase)) ?? 0;
+    var queue = Model?.Queue ?? new List<QueueItemDto>();
+
+    bool IsStatus(string? status, params string[] values)
+    {
+        return values.Any(v => string.Equals(status, v, StringComparison.OrdinalIgnoreCase));
+    }
+
+    var waitingItems = queue.Where(x => IsStatus(x.Status, "Waiting")).ToList();
+    var calledItems = queue.Where(x => IsStatus(x.Status, "Called")).ToList();
+    var inProgressItems = queue.Where(x => IsStatus(x.Status, "InProgress", "In Progress")).ToList();
+    var skippedItems = queue.Where(x => IsStatus(x.Status, "Skipped")).ToList();
+    var completedItems = queue.Where(x => IsStatus(x.Status, "Completed")).ToList();
+    var cancelledItems = queue.Where(x => IsStatus(x.Status, "Cancelled", "Canceled")).ToList();
+
+    var activeCount = calledItems.Count + inProgressItems.Count;
 }
 
-<div class="page-header receptionist-header">
-    <div>
-        <span class="badge-soft"><i class="bi bi-people"></i> Reception live desk</span>
-        <h1>Department Queue</h1>
-        <p class="page-subtitle">Call, start, skip, recall, cancel and complete patients from one professional queue console.</p>
-    </div>
-    @if (Model != null)
-    {
-        <form asp-action="CallNext" method="post" class="m-0">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-            <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-            <button class="btn btn-primary btn-lg"><i class="bi bi-megaphone me-2"></i>Next Patient</button>
-        </form>
+<style>
+    .reception-hero {
+        border-radius: 30px;
+        padding: 32px;
+        margin-bottom: 24px;
+        background: linear-gradient(135deg, #0f766e 0%, #2563eb 100%);
+        color: #fff;
+        box-shadow: 0 20px 45px rgba(37, 99, 235, .2);
     }
+
+    .reception-hero h1 {
+        font-size: clamp(2rem, 4vw, 3.5rem);
+        font-weight: 850;
+        letter-spacing: -.04em;
+        margin: 0 0 8px;
+    }
+
+    .reception-hero p {
+        margin: 0;
+        opacity: .92;
+        font-size: 1.05rem;
+    }
+
+    .hero-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .16);
+        border: 1px solid rgba(255, 255, 255, .25);
+        font-weight: 750;
+        margin-bottom: 14px;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .queue-filter-card,
+    .queue-panel,
+    .queue-current-modern,
+    .metric-card-modern {
+        border: 0;
+        border-radius: 26px;
+        box-shadow: 0 14px 36px rgba(15, 23, 42, .08);
+        background: #fff;
+    }
+
+    .queue-filter-card {
+        margin-bottom: 22px;
+    }
+
+    .metric-grid-modern {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .metric-card-modern {
+        padding: 18px;
+    }
+
+    .metric-card-modern span {
+        display: block;
+        color: #64748b;
+        font-weight: 800;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .metric-card-modern strong {
+        display: block;
+        margin-top: 8px;
+        color: #0f172a;
+        font-size: 1.9rem;
+        line-height: 1;
+    }
+
+    .queue-current-modern {
+        padding: 26px;
+        margin-bottom: 24px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .queue-current-modern::after {
+        content: "";
+        position: absolute;
+        right: -60px;
+        top: -80px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: rgba(37, 99, 235, .08);
+    }
+
+    .current-label {
+        color: #64748b;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .current-token {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 110px;
+        height: 82px;
+        padding: 0 20px;
+        border-radius: 24px;
+        background: #e0f2fe;
+        color: #0369a1;
+        font-size: 2.5rem;
+        font-weight: 900;
+        margin-bottom: 16px;
+    }
+
+    .queue-tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    .queue-tab-btn {
+        border: 1px solid #dbe4ef;
+        background: #fff;
+        border-radius: 999px;
+        padding: 9px 14px;
+        font-weight: 800;
+        color: #334155;
+    }
+
+    .queue-tab-btn.active {
+        background: #0f172a;
+        color: #fff;
+        border-color: #0f172a;
+    }
+
+    .queue-panel {
+        overflow: hidden;
+    }
+
+    .queue-panel-header {
+        padding: 22px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .queue-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 22px;
+        padding: 18px;
+        margin-bottom: 14px;
+        background: #fff;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+
+    .queue-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, .08);
+        border-color: #cbd5e1;
+    }
+
+    .token-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 20px;
+        display: grid;
+        place-items: center;
+        background: #eef2ff;
+        color: #3730a3;
+        font-size: 1.2rem;
+        font-weight: 900;
+        flex: 0 0 auto;
+    }
+
+    .patient-name {
+        font-size: 1.1rem;
+        color: #0f172a;
+        font-weight: 900;
+        margin-bottom: 2px;
+    }
+
+    .patient-sub {
+        color: #64748b;
+        font-size: .94rem;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        font-size: .82rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .status-waiting { background: #fef3c7; color: #92400e; }
+    .status-called { background: #dbeafe; color: #1d4ed8; }
+    .status-progress { background: #cffafe; color: #155e75; }
+    .status-completed { background: #dcfce7; color: #166534; }
+    .status-skipped { background: #ffedd5; color: #9a3412; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+    .status-other { background: #f1f5f9; color: #334155; }
+
+    .action-row-modern {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .empty-modern {
+        text-align: center;
+        padding: 54px 20px;
+        color: #64748b;
+    }
+
+    .empty-modern i {
+        font-size: 3rem;
+        color: #94a3b8;
+        margin-bottom: 12px;
+    }
+
+    @@media (max-width: 1200px) {
+        .metric-grid-modern {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .hero-actions {
+            justify-content: flex-start;
+            margin-top: 18px;
+        }
+
+        .metric-grid-modern {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .action-row-modern {
+            justify-content: flex-start;
+            margin-top: 12px;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .metric-grid-modern {
+            grid-template-columns: 1fr;
+        }
+
+        .reception-hero {
+            padding: 24px;
+        }
+    }
+</style>
+
+<div class="reception-hero">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <div class="hero-pill">
+                <i class="bi bi-display"></i>
+                Reception live queue
+            </div>
+            <h1>Department Queue</h1>
+            <p>
+                Check in patients, call the next token, track active consultations, and review completed queue items in one place.
+            </p>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="hero-actions">
+                <a asp-controller="Reception"
+                   asp-action="CheckIn"
+                   asp-route-date="@queueDate.ToString("yyyy-MM-dd")"
+                   class="btn btn-light btn-lg">
+                    <i class="bi bi-person-check me-2"></i>Patient Check-In
+                </a>
+
+                @if (Model != null)
+                {
+                    <form asp-action="CallNext" method="post" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                        <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                        <button class="btn btn-warning btn-lg">
+                            <i class="bi bi-megaphone me-2"></i>Next Patient
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
 </div>
 
-@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
-@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm rounded-4">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger border-0 shadow-sm rounded-4">
+        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+    </div>
+}
 
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body">
+<div class="card queue-filter-card">
+    <div class="card-body p-4">
         <form asp-action="Queue" method="get" class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">Department ID</label>
-                <input type="number" name="departmentId" value="@(Model?.DepartmentId ?? 1)" min="1" class="form-control" />
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold">Department ID</label>
+                <input type="number"
+                       name="departmentId"
+                       value="@(Model?.DepartmentId ?? 1)"
+                       min="1"
+                       class="form-control form-control-lg" />
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Queue Date</label>
-                <input type="date" name="date" value="@queueDate.ToString("yyyy-MM-dd")" class="form-control" />
+
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold">Queue Date</label>
+                <input type="date"
+                       name="date"
+                       value="@queueDate.ToString("yyyy-MM-dd")"
+                       class="form-control form-control-lg" />
             </div>
-            <div class="col-md-4">
-                <button class="btn btn-outline-primary w-100"><i class="bi bi-search me-1"></i>Load Queue</button>
+
+            <div class="col-lg-4">
+                <button class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-search me-2"></i>Load Queue
+                </button>
             </div>
         </form>
     </div>
@@ -49,101 +373,211 @@
 
 @if (Model == null)
 {
-    <div class="empty-state"><h3>No queue data found</h3><p>Select a department and date to load queue details.</p></div>
+    <div class="empty-modern queue-panel">
+        <i class="bi bi-list-ol"></i>
+        <h3>No queue data found</h3>
+        <p>Select a department and date to load queue details.</p>
+
+        <a asp-controller="Reception"
+           asp-action="CheckIn"
+           asp-route-date="@queueDate.ToString("yyyy-MM-dd")"
+           class="btn btn-success mt-3">
+            <i class="bi bi-person-check me-2"></i>Go to Patient Check-In
+        </a>
+    </div>
 }
 else
 {
-    <div class="queue-command-grid">
-        <div class="queue-current-card">
-            <div class="queue-current-label">Now Serving</div>
-            @if (current != null)
-            {
-                <div class="queue-token-xl">#@current.TokenNumber</div>
-                <h2>@current.PatientName</h2>
-                <p>UHID @current.UHID • Patient ID @current.PatientId</p>
-                <span class="queue-status-pill">@current.Status</span>
-
-                <div class="queue-action-row mt-4">
-                    <form asp-action="StartToken" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
-                        <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                        <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                        <button class="btn btn-outline-primary"><i class="bi bi-play-circle me-1"></i>Start</button>
-                    </form>
-                    <form asp-action="SkipToken" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
-                        <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                        <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                        <button class="btn btn-outline-warning"><i class="bi bi-skip-forward me-1"></i>Skip</button>
-                    </form>
-                    <form asp-action="CompleteToken" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
-                        <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
-                        <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
-                        <input type="hidden" name="notes" value="Completed from receptionist queue" />
-                        <button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Complete</button>
-                    </form>
-                </div>
-            }
-            else
-            {
-                <div class="queue-token-xl muted">--</div>
-                <h2>No active patient</h2>
-                <p>Press <strong>Next Patient</strong> to call the next waiting token.</p>
-            }
+    <div class="metric-grid-modern">
+        <div class="metric-card-modern">
+            <span>Total Tokens</span>
+            <strong>@queue.Count</strong>
         </div>
-
-        <div class="queue-metrics">
-            <div class="metric-card"><span>Department</span><strong>@Model.DepartmentName</strong></div>
-            <div class="metric-card"><span>Date</span><strong>@queueDate.ToString("dd MMM yyyy")</strong></div>
-            <div class="metric-card"><span>Waiting</span><strong>@waitingCount</strong></div>
-            <div class="metric-card"><span>Completed</span><strong>@completedCount</strong></div>
-            <div class="metric-card"><span>Skipped</span><strong>@skippedCount</strong></div>
+        <div class="metric-card-modern">
+            <span>Waiting</span>
+            <strong>@waitingItems.Count</strong>
+        </div>
+        <div class="metric-card-modern">
+            <span>Active</span>
+            <strong>@activeCount</strong>
+        </div>
+        <div class="metric-card-modern">
+            <span>Completed</span>
+            <strong>@completedItems.Count</strong>
+        </div>
+        <div class="metric-card-modern">
+            <span>Skipped</span>
+            <strong>@skippedItems.Count</strong>
+        </div>
+        <div class="metric-card-modern">
+            <span>Cancelled</span>
+            <strong>@cancelledItems.Count</strong>
         </div>
     </div>
 
-    <div class="card border-0 queue-board">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="h5 mb-1">Patient Sequence</h2>
-                <p class="section-subtitle mb-0">Use row actions for skipped, recalled, cancelled, or completed tokens.</p>
+    <div class="queue-current-modern">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="current-label">Now Serving</div>
+
+                @if (current != null)
+                {
+                    <div class="current-token">#@current.TokenNumber</div>
+                    <h2 class="fw-bold mb-1">@current.PatientName</h2>
+                    <p class="text-muted mb-3">UHID @current.UHID • Patient ID @current.PatientId</p>
+
+                    <span class="status-pill status-called">
+                        <i class="bi bi-broadcast"></i>@current.Status
+                    </span>
+                }
+                else
+                {
+                    <div class="current-token">--</div>
+                    <h2 class="fw-bold mb-1">No active patient</h2>
+                    <p class="text-muted mb-3">Click <strong>Next Patient</strong> to call the next waiting token.</p>
+                }
+            </div>
+
+            <div class="col-lg-5">
+                @if (current != null)
+                {
+                    <div class="action-row-modern">
+                        <form asp-action="StartToken" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
+                            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                            <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                            <button class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-play-circle me-2"></i>Start
+                            </button>
+                        </form>
+
+                        <form asp-action="SkipToken" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
+                            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                            <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                            <button class="btn btn-outline-warning btn-lg">
+                                <i class="bi bi-skip-forward me-2"></i>Skip
+                            </button>
+                        </form>
+
+                        <form asp-action="CompleteToken" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="queueTokenId" value="@current.QueueTokenId" />
+                            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                            <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" name="notes" value="Completed from receptionist queue" />
+                            <button class="btn btn-success btn-lg">
+                                <i class="bi bi-check2-circle me-2"></i>Complete
+                            </button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <div class="action-row-modern">
+                        <a asp-controller="Reception"
+                           asp-action="CheckIn"
+                           asp-route-date="@queueDate.ToString("yyyy-MM-dd")"
+                           class="btn btn-success btn-lg">
+                            <i class="bi bi-person-check me-2"></i>Check In Patient
+                        </a>
+                    </div>
+                }
             </div>
         </div>
-        <div class="card-body p-0">
-            @if (Model.Queue.Any())
+    </div>
+
+    <div class="queue-tabs">
+        <button type="button" class="queue-tab-btn active" data-filter="all">All (@queue.Count)</button>
+        <button type="button" class="queue-tab-btn" data-filter="waiting">Waiting (@waitingItems.Count)</button>
+        <button type="button" class="queue-tab-btn" data-filter="active">Active (@activeCount)</button>
+        <button type="button" class="queue-tab-btn" data-filter="completed">Completed (@completedItems.Count)</button>
+        <button type="button" class="queue-tab-btn" data-filter="skipped">Skipped (@skippedItems.Count)</button>
+        <button type="button" class="queue-tab-btn" data-filter="cancelled">Cancelled (@cancelledItems.Count)</button>
+    </div>
+
+    <div class="card queue-panel">
+        <div class="queue-panel-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h2 class="h5 mb-1 fw-bold">Patient Queue Timeline</h2>
+                <p class="text-muted mb-0">Completed patients stay visible here so you can review who finished today.</p>
+            </div>
+
+            <a asp-controller="Reception"
+               asp-action="CheckIn"
+               asp-route-date="@queueDate.ToString("yyyy-MM-dd")"
+               class="btn btn-success">
+                <i class="bi bi-person-check me-2"></i>Check In Patient
+            </a>
+        </div>
+
+        <div class="card-body p-4">
+            @if (queue.Any())
             {
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0 professional-table">
-                        <thead>
-                            <tr>
-                                <th>Token</th>
-                                <th>Patient</th>
-                                <th>UHID</th>
-                                <th>Status</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @foreach (var item in Model.Queue)
-                        {
-                            <tr>
-                                <td><span class="token-chip">#@item.TokenNumber</span></td>
-                                <td>
-                                    <div class="primary-text">@item.PatientName</div>
-                                    <div class="secondary-text">Patient ID: @item.PatientId</div>
-                                </td>
-                                <td>@item.UHID</td>
-                                <td><span class="queue-status-pill small">@item.Status</span></td>
-                                <td class="text-end">
-                                    <div class="queue-row-actions justify-content-end">
-                                        @if (string.Equals(item.Status, "Waiting", StringComparison.OrdinalIgnoreCase))
+                <div id="queueList">
+                    @foreach (var item in queue)
+                    {
+                        var status = string.IsNullOrWhiteSpace(item.Status) ? "Waiting" : item.Status.Trim();
+                        var isWaiting = IsStatus(status, "Waiting");
+                        var isCalled = IsStatus(status, "Called");
+                        var isInProgress = IsStatus(status, "InProgress", "In Progress");
+                        var isCompleted = IsStatus(status, "Completed");
+                        var isSkipped = IsStatus(status, "Skipped");
+                        var isCancelled = IsStatus(status, "Cancelled", "Canceled");
+
+                        var rowFilter = isWaiting ? "waiting"
+                            : (isCalled || isInProgress) ? "active"
+                            : isCompleted ? "completed"
+                            : isSkipped ? "skipped"
+                            : isCancelled ? "cancelled"
+                            : "other";
+
+                        var statusClass = isWaiting ? "status-waiting"
+                            : isCalled ? "status-called"
+                            : isInProgress ? "status-progress"
+                            : isCompleted ? "status-completed"
+                            : isSkipped ? "status-skipped"
+                            : isCancelled ? "status-cancelled"
+                            : "status-other";
+
+                        var statusIcon = isWaiting ? "bi-hourglass-split"
+                            : isCalled ? "bi-megaphone"
+                            : isInProgress ? "bi-play-circle"
+                            : isCompleted ? "bi-check2-circle"
+                            : isSkipped ? "bi-skip-forward"
+                            : isCancelled ? "bi-x-circle"
+                            : "bi-info-circle";
+
+                        <div class="queue-card queue-row" data-status="@rowFilter">
+                            <div class="row align-items-center g-3">
+                                <div class="col-xl-7">
+                                    <div class="d-flex gap-3 align-items-center">
+                                        <div class="token-avatar">#@item.TokenNumber</div>
+
+                                        <div>
+                                            <div class="patient-name">@item.PatientName</div>
+                                            <div class="patient-sub">
+                                                UHID @item.UHID • Patient ID @item.PatientId
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-xl-2">
+                                    <span class="status-pill @statusClass">
+                                        <i class="bi @statusIcon"></i>@status
+                                    </span>
+                                </div>
+
+                                <div class="col-xl-3">
+                                    <div class="action-row-modern">
+                                        @if (isWaiting)
                                         {
                                             <span class="text-muted small">Use <strong>Next Patient</strong></span>
                                         }
-                                        else if (string.Equals(item.Status, "Called", StringComparison.OrdinalIgnoreCase))
+                                        else if (isCalled)
                                         {
                                             <form asp-action="StartToken" method="post">
                                                 @Html.AntiForgeryToken()
@@ -152,6 +586,7 @@ else
                                                 <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
                                                 <button class="btn btn-sm btn-outline-primary">Start</button>
                                             </form>
+
                                             <form asp-action="SkipToken" method="post">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
@@ -159,6 +594,7 @@ else
                                                 <input type="hidden" name="date" value="@queueDate.ToString("yyyy-MM-dd")" />
                                                 <button class="btn btn-sm btn-outline-warning">Skip</button>
                                             </form>
+
                                             <form asp-action="CompleteToken" method="post">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="queueTokenId" value="@item.QueueTokenId" />
@@ -168,7 +604,7 @@ else
                                                 <button class="btn btn-sm btn-success">Complete</button>
                                             </form>
                                         }
-                                        else if (string.Equals(item.Status, "InProgress", StringComparison.OrdinalIgnoreCase))
+                                        else if (isInProgress)
                                         {
                                             <form asp-action="CompleteToken" method="post">
                                                 @Html.AntiForgeryToken()
@@ -179,7 +615,7 @@ else
                                                 <button class="btn btn-sm btn-success">Complete</button>
                                             </form>
                                         }
-                                        else if (string.Equals(item.Status, "Skipped", StringComparison.OrdinalIgnoreCase))
+                                        else if (isSkipped)
                                         {
                                             <form asp-action="RecallToken" method="post">
                                                 @Html.AntiForgeryToken()
@@ -189,22 +625,77 @@ else
                                                 <button class="btn btn-sm btn-outline-primary">Recall</button>
                                             </form>
                                         }
+                                        else if (isCompleted)
+                                        {
+                                            <span class="text-success fw-semibold small">
+                                                <i class="bi bi-check-circle me-1"></i>Done
+                                            </span>
+                                        }
                                         else
                                         {
                                             <span class="text-muted small">No action</span>
                                         }
                                     </div>
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div id="noQueueRows" class="empty-modern d-none">
+                    <i class="bi bi-filter"></i>
+                    <h3>No patients in this category</h3>
+                    <p>Choose another filter to view more queue tokens.</p>
                 </div>
             }
             else
             {
-                <div class="empty-state"><h3>No patients in queue</h3><p>Checked-in patients will appear here.</p></div>
+                <div class="empty-modern">
+                    <i class="bi bi-person-plus"></i>
+                    <h3>No patients in queue</h3>
+                    <p>Checked-in patients will appear here.</p>
+
+                    <a asp-controller="Reception"
+                       asp-action="CheckIn"
+                       asp-route-date="@queueDate.ToString("yyyy-MM-dd")"
+                       class="btn btn-success mt-3">
+                        <i class="bi bi-person-check me-2"></i>Check In Patient
+                    </a>
+                </div>
             }
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        const queueTabButtons = document.querySelectorAll(".queue-tab-btn");
+        const queueRows = document.querySelectorAll(".queue-row");
+        const noQueueRows = document.getElementById("noQueueRows");
+
+        queueTabButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                const filter = this.dataset.filter || "all";
+                let visibleCount = 0;
+
+                queueTabButtons.forEach(btn => btn.classList.remove("active"));
+                this.classList.add("active");
+
+                queueRows.forEach(row => {
+                    const status = row.dataset.status || "";
+                    const visible = filter === "all" || status === filter;
+
+                    row.style.display = visible ? "" : "none";
+
+                    if (visible) {
+                        visibleCount++;
+                    }
+                });
+
+                if (noQueueRows) {
+                    noQueueRows.classList.toggle("d-none", visibleCount > 0);
+                }
+            });
+        });
+    </script>
 }

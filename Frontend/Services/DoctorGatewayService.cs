@@ -30,11 +30,14 @@ namespace Frontend.Services
 
         public async Task<List<DoctorResponseDto>> GetAllAsync(bool? isActive = null)
         {
-            var request = new { isActive };
+            var url = "gateway/doctors";
 
-            return await PostAsync<object, List<DoctorResponseDto>>(
-                "gateway/doctors/search",
-                request) ?? new List<DoctorResponseDto>();
+            if (isActive.HasValue)
+            {
+                url += $"?isActive={isActive.Value.ToString().ToLowerInvariant()}";
+            }
+
+            return await GetAsync<List<DoctorResponseDto>>(url) ?? new List<DoctorResponseDto>();
         }
 
         public async Task<DoctorResponseDto?> GetByIdAsync(int id)

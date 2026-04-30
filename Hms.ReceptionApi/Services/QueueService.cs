@@ -1,16 +1,20 @@
-﻿using Hms.ReceptionApi.DTOs.Reception;
+﻿using Hms.ReceptionApi.Data;
+using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Interfaces.Repository;
 using Hms.ReceptionApi.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Hms.ReceptionApi.Services;
 
 public class QueueService : IQueueService
 {
     private readonly IQueueRepository _queueRepository;
+    private readonly ReceptionDbContext _context;
 
-    public QueueService(IQueueRepository queueRepository)
+    public QueueService(IQueueRepository queueRepository, ReceptionDbContext context)
     {
         _queueRepository = queueRepository;
+        _context = context;
     }
 
     public async Task<DepartmentQueueResponseDto> GetDepartmentQueueAsync(int departmentId, DateOnly date)
@@ -114,6 +118,19 @@ public class QueueService : IQueueService
         await _queueRepository.UpdateAsync(token);
         await _queueRepository.SaveChangesAsync();
 
+        if (token.AppointmentId > 0)
+        {
+            await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE a
+                SET 
+                    a.Status = 4,
+                    a.CompletionNotes = COALESCE(a.CompletionNotes, 'Completed from queue sync')
+                FROM [Appointments-Healthcare].dbo.Appointments a
+                WHERE a.Id = {token.AppointmentId}
+                  AND a.Status <> 4
+            ");
+        }
+
         return MapAction(token, "Token completed successfully.");
     }
 
@@ -196,5 +213,4 @@ public class QueueService : IQueueService
             Message = message
         };
     }
-
 }

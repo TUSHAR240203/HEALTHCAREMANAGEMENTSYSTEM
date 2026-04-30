@@ -23,9 +23,11 @@ namespace Frontend.Controllers
             _doctorGatewayService = doctorGatewayService;
             _environment = environment;
         }
-
         [HttpGet]
-        public IActionResult StaffLogin() => View(new StaffLoginViewModel());
+        public IActionResult StaffLogin()
+        {
+            return View(new StaffLoginViewModel());
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -35,44 +37,86 @@ namespace Frontend.Controllers
 
             if (submitButton == "sendOtp")
             {
-                if (string.IsNullOrWhiteSpace(model.LoginId) && string.IsNullOrWhiteSpace(model.MobileNumber))
+                var loginValue = !string.IsNullOrWhiteSpace(model.LoginId)
+                    ? model.LoginId.Trim()
+                    : model.MobileNumber?.Trim();
+
+                if (string.IsNullOrWhiteSpace(loginValue))
                 {
                     ModelState.AddModelError(string.Empty, "Login ID or mobile number is required.");
                     return View(model);
                 }
 
-                var otpResult = await _authGatewayService.SendStaffLoginOtpAsync(!string.IsNullOrWhiteSpace(model.LoginId) ? model.LoginId : model.MobileNumber);
-                if (!otpResult.Success)
+                var otpResult = await _authGatewayService.SendStaffLoginOtpAsync(loginValue);
+
+                var otpMessage = otpResult.Message ?? string.Empty;
+
+                var isOtpSuccess =
+                    otpResult.Success ||
+                    otpMessage.Contains("success", StringComparison.OrdinalIgnoreCase) ||
+                    otpMessage.Contains("OTP sent", StringComparison.OrdinalIgnoreCase) ||
+                    otpMessage.Contains("OTP send", StringComparison.OrdinalIgnoreCase) ||
+                    otpMessage.Contains("sent successfully", StringComparison.OrdinalIgnoreCase);
+
+                if (!isOtpSuccess)
                 {
-                    ModelState.AddModelError(string.Empty, otpResult.Message);
+                    ModelState.AddModelError(string.Empty,
+                        string.IsNullOrWhiteSpace(otpMessage)
+                            ? "Unable to send OTP."
+                            : otpMessage);
+
+                    model.OtpSent = false;
                     return View(model);
                 }
 
-                TempData["Success"] = "OTP sent successfully. Check the Auth API console output.";
+                ModelState.Clear();
+
                 model.OtpSent = true;
+                model.LoginId = loginValue;
+                model.MobileNumber = loginValue;
+
+                ViewBag.Success = string.IsNullOrWhiteSpace(otpMessage)
+                    ? "Staff login OTP sent successfully."
+                    : otpMessage;
+
                 return View(model);
             }
 
             if (submitButton == "verifyOtp")
             {
-                if (string.IsNullOrWhiteSpace(model.OtpCode) || (string.IsNullOrWhiteSpace(model.LoginId) && string.IsNullOrWhiteSpace(model.MobileNumber)))
+                var loginValue = !string.IsNullOrWhiteSpace(model.LoginId)
+                    ? model.LoginId.Trim()
+                    : model.MobileNumber?.Trim();
+
+                if (string.IsNullOrWhiteSpace(model.OtpCode) ||
+                    string.IsNullOrWhiteSpace(loginValue))
                 {
                     ModelState.AddModelError(string.Empty, "Login ID/mobile number and OTP are required.");
                     model.OtpSent = true;
                     return View(model);
                 }
 
-                result = await _authGatewayService.StaffOtpLoginAsync(new StaffOtpLoginRequestDto { LoginId = model.LoginId, MobileNumber = model.MobileNumber, OtpCode = model.OtpCode });
+                result = await _authGatewayService.StaffOtpLoginAsync(new StaffOtpLoginRequestDto
+                {
+                    LoginId = loginValue,
+                    MobileNumber = loginValue,
+                    OtpCode = model.OtpCode.Trim()
+                });
             }
             else
             {
-                if (string.IsNullOrWhiteSpace(model.LoginId) || string.IsNullOrWhiteSpace(model.Password))
+                if (string.IsNullOrWhiteSpace(model.LoginId) ||
+                    string.IsNullOrWhiteSpace(model.Password))
                 {
                     ModelState.AddModelError(string.Empty, "Login ID and password are required.");
                     return View(model);
                 }
 
-                result = await _authGatewayService.StaffLoginAsync(new StaffLoginRequestDto { LoginId = model.LoginId, Password = model.Password });
+                result = await _authGatewayService.StaffLoginAsync(new StaffLoginRequestDto
+                {
+                    LoginId = model.LoginId.Trim(),
+                    Password = model.Password
+                });
             }
 
             if (!result.Success || result.Data == null)
@@ -83,10 +127,13 @@ namespace Frontend.Controllers
             }
 
             await SetAuthSessionAsync(result.Data);
+
             TempData["Success"] = "Login successful.";
 
             if (!result.Data.IsFirstLoginCompleted)
+            {
                 return RedirectToAction(nameof(AuthPreference));
+            }
 
             return RedirectToAction("Index", "Home");
         }
