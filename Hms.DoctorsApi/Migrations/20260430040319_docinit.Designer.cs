@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hms.DoctorsApi.Migrations
 {
     [DbContext(typeof(DoctorsDbContext))]
-    [Migration("20260429043622_UpdateDoctorLeaveDateRange")]
-    partial class UpdateDoctorLeaveDateRange
+    [Migration("20260430040319_docinit")]
+    partial class docinit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
