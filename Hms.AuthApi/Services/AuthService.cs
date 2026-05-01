@@ -60,7 +60,6 @@ public class AuthService : IAuthService
                 MobileNumber = normalizedMobile,
                 LoginId = normalizedMobile,
                 Email = patient.Email,
-                FullName = patient.FullName,
                 IsActive = true,
                 IsOtpLoginEnabled = true,
                 IsPasswordLoginEnabled = false,
@@ -277,9 +276,7 @@ public class AuthService : IAuthService
             UserId = user.Id,
             PatientId = link?.PatientId,
             UHID = link?.UHID,
-            FullName = !string.IsNullOrWhiteSpace(user.FullName)
-                ? user.FullName
-                : user.LoginId,
+            FullName = await GetDisplayNameAsync(user, link),
             MobileNumber = user.MobileNumber,
             PhotoUrl = user.PhotoUrl,
             Roles = user.UserRoles.Select(x => x.Role.Name).Distinct().ToArray(),
@@ -314,6 +311,12 @@ public class AuthService : IAuthService
         {
             throw new ArgumentException("Only Admin, Doctor, or Receptionist users can be created here.");
         }
+
+        var requiresStaffProfile = roleName.Equals(AppRoles.Admin, StringComparison.OrdinalIgnoreCase)
+            || roleName.Equals(AppRoles.Receptionist, StringComparison.OrdinalIgnoreCase);
+
+        if (requiresStaffProfile && string.IsNullOrWhiteSpace(request.FullName))
+            throw new ArgumentException("Full name is required for Admin and Receptionist users.");
 
         var mobile = NormalizeMobile(
             string.IsNullOrWhiteSpace(request.MobileNumber)
@@ -352,16 +355,18 @@ public class AuthService : IAuthService
             Email = string.IsNullOrWhiteSpace(request.Email)
                 ? null
                 : request.Email.Trim(),
-
-            FullName = string.IsNullOrWhiteSpace(request.FullName)
-                ? null
-                : request.FullName.Trim(),
-
             IsActive = request.IsActive,
             IsOtpLoginEnabled = request.EnableOtpLogin,
             IsPasswordLoginEnabled = request.EnablePasswordLogin,
             IsFirstLoginCompleted = false
         };
+        if (requiresStaffProfile)
+        {
+            user.StaffUser = new StaffUser
+            {
+                FullName = request.FullName!.Trim()
+            };
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Password))
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -379,8 +384,9 @@ public class AuthService : IAuthService
     public async Task<IReadOnlyList<UserAdminResponseDto>> GetUsersAsync()
     {
         return (await _userRepository.GetAllWithRolesAsync())
-            .Where(u => !u.UserRoles.Any(ur =>
-                ur.Role.Name.Equals(AppRoles.Patient, StringComparison.OrdinalIgnoreCase)))
+            .Where(u => u.UserRoles.Any(ur =>
+                ur.Role.Name.Equals(AppRoles.Admin, StringComparison.OrdinalIgnoreCase) ||
+                ur.Role.Name.Equals(AppRoles.Receptionist, StringComparison.OrdinalIgnoreCase)))
             .Select(ToAdminDto)
             .ToList();
     }
@@ -416,6 +422,21 @@ public class AuthService : IAuthService
         return true;
     }
 
+    private async Task<string?> GetDisplayNameAsync(User user, PatientUserLink? link)
+    {
+        if (link != null)
+        {
+            var patient = await _patientsApiClient.GetPatientByIdAsync(link.PatientId);
+            if (!string.IsNullOrWhiteSpace(patient?.FullName))
+                return patient.FullName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(user.StaffUser?.FullName))
+            return user.StaffUser.FullName;
+
+        return user.LoginId;
+    }
+
     private AuthResponseDto BuildAuthResponse(
         User user,
         PatientUserLink? link,
@@ -437,8 +458,8 @@ public class AuthService : IAuthService
 
             FullName = !string.IsNullOrWhiteSpace(fullName)
                 ? fullName
-                : !string.IsNullOrWhiteSpace(user.FullName)
-                    ? user.FullName
+                : !string.IsNullOrWhiteSpace(user.StaffUser?.FullName)
+                    ? user.StaffUser!.FullName
                     : user.LoginId ?? string.Empty,
 
             MobileNumber = user.MobileNumber,
@@ -457,7 +478,7 @@ public class AuthService : IAuthService
     {
         UserId = user.Id,
         LoginId = user.LoginId,
-        FullName = user.FullName,
+        FullName = user.StaffUser?.FullName,
         MobileNumber = user.MobileNumber,
         Email = user.Email,
         IsActive = user.IsActive,

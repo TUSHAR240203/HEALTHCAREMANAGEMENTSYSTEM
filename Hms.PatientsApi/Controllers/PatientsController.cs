@@ -1,5 +1,6 @@
 using Hms.PatientsApi.DTOs.Patients;
 using Hms.PatientsApi.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hms.PatientsApi.Controllers;
@@ -14,6 +15,7 @@ public class PatientsController : ControllerBase
     {
         _patientService = patientService;
     }
+    [AllowAnonymous]
 
     [HttpPost]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status201Created)]
@@ -23,7 +25,7 @@ public class PatientsController : ControllerBase
         var result = await _patientService.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
-
+    [AllowAnonymous]
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

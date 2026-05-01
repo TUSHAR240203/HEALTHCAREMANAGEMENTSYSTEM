@@ -233,7 +233,4 @@ public class AuthController : ControllerBase
     }
 }
 
-public class UpdateProfilePhotoUrlRequestDto
-{
-    public string PhotoUrl { get; set; } = string.Empty;
-}
+

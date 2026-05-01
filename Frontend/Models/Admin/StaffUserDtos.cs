@@ -6,6 +6,7 @@ namespace Frontend.Models.Admin
     {
         public int UserId { get; set; }
         public string LoginId { get; set; } = string.Empty;
+        public string? FullName { get; set; }
         public string MobileNumber { get; set; } = string.Empty;
         public string? Email { get; set; }
         public bool IsActive { get; set; }
@@ -26,6 +27,9 @@ namespace Frontend.Models.Admin
 
         [Required]
         public string Role { get; set; } = "Receptionist";
+
+        [Required, StringLength(150), Display(Name = "Full Name")]
+        public string FullName { get; set; } = string.Empty;
 
         [EmailAddress]
         public string? Email { get; set; }
