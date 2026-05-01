@@ -69,10 +69,27 @@ public class InvoiceRepository : IInvoiceRepository
         return invoice;
     }
 
-    // ✅ NEW METHOD (for saving totals)
     public async Task UpdateInvoiceAsync(Invoice invoice)
     {
         _context.Invoices.Update(invoice);
         await _context.SaveChangesAsync();
     }
-}
+
+    public async Task<Invoice?> GetByAppointmentIdAsync(int appointmentId)
+    {
+        return await _context.Invoices
+            .Include(x => x.Items)
+            .Include(x => x.Payments)
+            .FirstOrDefaultAsync(x => x.AppointmentId == appointmentId);
+    }
+
+    public async Task<Invoice?> GetActiveInvoiceByPatientIdAsync(int patientId)
+    {
+        return await _context.Invoices
+            .Include(x => x.Items)
+            .Include(x => x.Payments)
+            .Where(x => x.PatientId == patientId && !x.IsClosed)
+            .OrderByDescending(x => x.Id)
+            .FirstOrDefaultAsync();
+    }
+}

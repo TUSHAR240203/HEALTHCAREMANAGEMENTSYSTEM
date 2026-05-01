@@ -18,7 +18,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {

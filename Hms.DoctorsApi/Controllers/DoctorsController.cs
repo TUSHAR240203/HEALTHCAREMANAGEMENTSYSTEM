@@ -2,6 +2,7 @@ using Hms.DoctorsApi.Common;
 using Hms.DoctorsApi.DTOs.Appointments;
 using Hms.DoctorsApi.DTOs.Doctors;
 using Hms.DoctorsApi.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hms.DoctorsApi.Controllers;
@@ -40,12 +41,16 @@ public class DoctorsController : ControllerBase
             ? NotFound(Fail("Doctor profile is not linked to this login account."))
             : Ok(Wrap(result, "Doctor profile fetched successfully."));
     }
-
+    [AllowAnonymous]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _doctorService.GetByIdAsync(id);
-        return result == null ? NotFound(Fail("Doctor not found.")) : Ok(Wrap(result, "Doctor fetched successfully."));
+
+        if (result == null)
+            return NotFound(Fail("Doctor not found."));
+
+        return Ok(result); // ✅ IMPORTANT FIX
     }
 
     [HttpPost("search")]
@@ -132,10 +137,15 @@ public class DoctorsController : ControllerBase
         return deleted ? Ok(Wrap<object?>(null, "Doctor leave deleted successfully.")) : NotFound(Fail("Doctor leave not found."));
     }
 
+    [AllowAnonymous]
     [HttpGet("{doctorId:int}/available-slots")]
-    public async Task<IActionResult> GetAvailableSlots(int doctorId, [FromQuery] DateOnly date, [FromQuery] bool? isTeleConsultation)
+    public async Task<IActionResult> GetAvailableSlots(
+    int doctorId,
+    [FromQuery] DateOnly date,
+    [FromQuery] bool? isTeleConsultation)
     {
         var result = await _doctorService.GetAvailableSlotsAsync(doctorId, date, isTeleConsultation);
+
         return Ok(Wrap(result, "Available slots fetched successfully."));
     }
 

@@ -30,7 +30,6 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -43,10 +42,24 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
         return new BadRequestObjectResult(ApiResponse<object>.Fail("Validation failed.", errors));
     };
 });
+
+
+// ✅ Doctors API client (FIXED — no AddRetry issue)
 builder.Services.AddHttpClient<IDoctorsApiClient, DoctorsApiClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:DoctorsApi"]!);
-});
+})
+.AddStandardResilienceHandler();
+
+
+// ✅ Billing API client (FIXED)
+builder.Services.AddHttpClient<IBillingApiClient, BillingApiClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:BillingApi"]!);
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddStandardResilienceHandler();
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.AppointmentsApi"));
@@ -54,11 +67,16 @@ builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.App
 builder.Services.AddDbContext<AppointmentsDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly); builder.Services.AddValidatorsFromAssemblyContaining<CreateAppointmentRequestDtoValidator>();
+builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
+builder.Services.AddValidatorsFromAssemblyContaining<CreateAppointmentRequestDtoValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+
+// Background service
+builder.Services.AddHostedService<OutboxProcessorService>();
 
 builder.Services.AddHmsJwtSecurity(builder.Configuration);
 
