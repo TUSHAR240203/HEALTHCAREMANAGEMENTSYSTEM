@@ -12,7 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hms.DoctorsApi.Migrations
 {
     [DbContext(typeof(DoctorsDbContext))]
+<<<<<<<< HEAD:Hms.DoctorsApi/Migrations/20260430064711_docinit.Designer.cs
     [Migration("20260430064711_docinit")]
+========
+    [Migration("20260430040319_docinit")]
+>>>>>>>> origin:Hms.DoctorsApi/Migrations/20260430040319_docinit.Designer.cs
     partial class docinit
     {
         /// <inheritdoc />

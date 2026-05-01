@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hms.DoctorsApi.Migrations
 {
     [DbContext(typeof(DoctorsDbContext))]
+<<<<<<< HEAD
 <<<<<<<< HEAD:Hms.DoctorsApi/Migrations/20260429104807_doc1init.Designer.cs
     [Migration("20260429104807_doc1init")]
     partial class doc1init
@@ -19,6 +20,14 @@ namespace Hms.DoctorsApi.Migrations
     [Migration("20260430040319_docinit")]
     partial class docinit
 >>>>>>>> 42c4862 (Updated migrations - removed old and added docinit):Hms.DoctorsApi/Migrations/20260430040319_docinit.Designer.cs
+=======
+<<<<<<<< HEAD:Hms.DoctorsApi/Migrations/20260430064711_docinit.Designer.cs
+    [Migration("20260430064711_docinit")]
+========
+    [Migration("20260430040319_docinit")]
+>>>>>>>> origin:Hms.DoctorsApi/Migrations/20260430040319_docinit.Designer.cs
+    partial class docinit
+>>>>>>> origin
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

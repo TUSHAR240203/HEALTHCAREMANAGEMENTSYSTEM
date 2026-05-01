@@ -18,6 +18,10 @@ public class DoctorsApiClient : IDoctorsApiClient
         DateOnly date,
         bool? isTeleConsultation)
     {
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin
         var url = $"api/doctors/{doctorId}/available-slots?date={date:yyyy-MM-dd}";
 
         if (isTeleConsultation.HasValue)

@@ -4,6 +4,7 @@ public class CreateStaffUserRequestDto
 {
     public string LoginId { get; set; } = default!;
     public string? Password { get; set; }
+    public string? FullName { get; set; }
     public string Role { get; set; } = default!;
     public string? Email { get; set; }
     public string? MobileNumber { get; set; }
