@@ -83,11 +83,11 @@ app.MapControllers();
 
 // Keep Doctors database schema in sync with the entity model.
 // This fixes runtime errors such as: Invalid column name AuthUserId.
-if (!string.Equals(app.Configuration["ApplyMigrationsOnStartup"], "false", StringComparison.OrdinalIgnoreCase))
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<DoctorsDbContext>();
-    db.Database.Migrate();
-}
+//if (!string.Equals(app.Configuration["ApplyMigrationsOnStartup"], "false", StringComparison.OrdinalIgnoreCase))
+//{
+//    using var scope = app.Services.CreateScope();
+//    var db = scope.ServiceProvider.GetRequiredService<DoctorsDbContext>();
+//    db.Database.Migrate();
+//}
 
 app.Run();
