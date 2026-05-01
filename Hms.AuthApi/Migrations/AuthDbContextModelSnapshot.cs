@@ -114,6 +114,17 @@ namespace Hms.AuthApi.Migrations
 
                     b.ToTable("PatientUserLinks", (string)null);
                 });
+            modelBuilder.Entity("Hms.AuthApi.Entities.StaffUser", b =>
+                {
+                    b.HasOne("Hms.AuthApi.Entities.User", "User")
+                        .WithOne("StaffUser")
+                        .HasForeignKey("Hms.AuthApi.Entities.StaffUser", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
 
             modelBuilder.Entity("Hms.AuthApi.Entities.Role", b =>
                 {
@@ -200,13 +211,7 @@ namespace Hms.AuthApi.Migrations
 
                     b.Property<string>("Email")
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("FullName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<bool>("IsActive")
+                        .HasColumnType("nvarchar(150)");b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
@@ -259,6 +264,39 @@ namespace Hms.AuthApi.Migrations
 
                     b.ToTable("Users", (string)null);
                 });
+            modelBuilder.Entity("Hms.AuthApi.Entities.StaffUser", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("StaffUsers", (string)null);
+                });
+
 
             modelBuilder.Entity("Hms.AuthApi.Entities.UserRole", b =>
                 {

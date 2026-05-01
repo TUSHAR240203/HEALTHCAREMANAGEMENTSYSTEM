@@ -13,7 +13,7 @@
 }
 
 <div class="doctor-profile-page">
-    <div class="doctor-profile-hero mb-4">
+    <section class="doctor-profile-hero">
         <div class="doctor-hero-left">
             <div class="doctor-profile-avatar" id="doctorHeroPhotoPreview">
                 @if (!string.IsNullOrWhiteSpace(photo))
@@ -28,200 +28,497 @@
                 }
             </div>
 
-            <div>
-                <span class="badge-soft mb-3">
+            <div class="doctor-hero-text">
+                <span class="doctor-kicker">
                     <i class="bi bi-person-badge"></i>
                     Doctor Profile
                 </span>
 
-                <h1 class="h2 fw-bold mb-1">@Model.FullName</h1>
-                <p class="mb-2 text-muted">@Model.Qualification • @Model.Specialization</p>
+                <h1>@(string.IsNullOrWhiteSpace(Model.FullName) ? "Doctor Profile" : Model.FullName)</h1>
 
-                <div class="d-flex flex-wrap gap-2">
+                <p>
+                    @(string.IsNullOrWhiteSpace(Model.Qualification) ? "Qualification N/A" : Model.Qualification)
+                    •
+                    @(string.IsNullOrWhiteSpace(Model.Specialization) ? "Specialization N/A" : Model.Specialization)
+                </p>
+
+                <div class="doctor-chip-row">
                     <span class="mini-chip">
                         <i class="bi bi-hospital"></i>
-                        @Model.DepartmentName
+                        @(string.IsNullOrWhiteSpace(Model.DepartmentName) ? "Department N/A" : Model.DepartmentName)
                     </span>
+
                     <span class="mini-chip">
                         <i class="bi bi-door-open"></i>
-                        Room @(Model.RoomNumber ?? "N/A")
+                        Room @(string.IsNullOrWhiteSpace(Model.RoomNumber) ? "N/A" : Model.RoomNumber)
                     </span>
+
                     <span class="mini-chip">
                         <i class="bi bi-currency-rupee"></i>
                         @Model.ConsultationFee
                     </span>
+
                     <span class="mini-chip">
                         <i class="bi bi-camera-video"></i>
-                        @(Model.SupportsTeleConsultation ? "Teleconsultation Available" : "No Teleconsultation")
+                        @(Model.SupportsTeleConsultation ? "Teleconsultation Available" : "In-clinic Only")
                     </span>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="content-card doctor-profile-card">
-        <div class="card-body p-4 p-lg-5">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="fw-bold mb-1">Update Profile</h4>
-                    <p class="text-muted mb-0">Update your doctor details and profile photo.</p>
+    <section class="doctor-profile-card">
+        <div class="doctor-section-header">
+            <div>
+                <span class="section-label">Profile Settings</span>
+                <h2>Update Profile</h2>
+                <p>Update your doctor details and profile photo.</p>
+            </div>
+        </div>
+
+        <form asp-action="MyProfile"
+              asp-controller="Doctors"
+              method="post"
+              enctype="multipart/form-data">
+
+            @Html.AntiForgeryToken()
+
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="AuthUserId" type="hidden" />
+            <input asp-for="PhotoUrl" type="hidden" />
+            <input asp-for="IsActive" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="doctor-upload-panel">
+                        <div class="profile-upload-preview" id="doctorPhotoPreview">
+                            @if (!string.IsNullOrWhiteSpace(photo))
+                            {
+                                <img src="@photo" alt="Doctor photo" id="doctorPhotoPreviewImg" />
+                                <span id="doctorPhotoPreviewInitial" style="display:none;">@initial</span>
+                            }
+                            else
+                            {
+                                <img src="" alt="Doctor photo" id="doctorPhotoPreviewImg" style="display:none;" />
+                                <span id="doctorPhotoPreviewInitial">@initial</span>
+                            }
+                        </div>
+
+                        <label asp-for="PhotoFile" class="form-label fw-semibold mt-3">
+                            Profile Photo
+                        </label>
+
+                        <input asp-for="PhotoFile"
+                               class="form-control"
+                               type="file"
+                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                               id="PhotoFile" />
+
+                        <span asp-validation-for="PhotoFile" class="text-danger small"></span>
+
+                        <small class="text-muted d-block mt-2">
+                            Upload JPG, PNG, or WEBP image. Maximum recommended size: 2 MB.
+                        </small>
+
+                        <div class="photo-upload-help mt-3">
+                            <i class="bi bi-info-circle"></i>
+                            Select an image to preview it instantly, then click Save Profile.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="doctor-form-grid">
+                        <div>
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Gender" class="form-label"></label>
+                            <select asp-for="Gender" class="form-select">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <span asp-validation-for="Gender" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Qualification" class="form-label"></label>
+                            <input asp-for="Qualification" class="form-control" />
+                            <span asp-validation-for="Qualification" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Specialization" class="form-label"></label>
+                            <input asp-for="Specialization" class="form-control" />
+                            <span asp-validation-for="Specialization" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="DepartmentId" class="form-label"></label>
+                            <input asp-for="DepartmentId" class="form-control" />
+                            <span asp-validation-for="DepartmentId" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="DepartmentName" class="form-label"></label>
+                            <input asp-for="DepartmentName" class="form-control" />
+                            <span asp-validation-for="DepartmentName" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="ConsultationFee" class="form-label"></label>
+                            <input asp-for="ConsultationFee" class="form-control" />
+                            <span asp-validation-for="ConsultationFee" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="ExperienceYears" class="form-label"></label>
+                            <input asp-for="ExperienceYears" class="form-control" />
+                            <span asp-validation-for="ExperienceYears" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="LicenseNumber" class="form-label"></label>
+                            <input asp-for="LicenseNumber" class="form-control" />
+                            <span asp-validation-for="LicenseNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="RoomNumber" class="form-label"></label>
+                            <input asp-for="RoomNumber" class="form-control" />
+                            <span asp-validation-for="RoomNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="doctor-switch-box">
+                            <div class="form-check form-switch doctor-switch">
+                                <input asp-for="SupportsTeleConsultation" class="form-check-input" />
+                                <label asp-for="SupportsTeleConsultation" class="form-check-label"></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doctor-form-actions">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>
+                            Save Profile
+                        </button>
+                    </div>
                 </div>
             </div>
-
-            <form asp-action="MyProfile"
-                  asp-controller="Doctors"
-                  method="post"
-                  enctype="multipart/form-data">
-                @Html.AntiForgeryToken()
-
-                <input asp-for="Id" type="hidden" />
-                <input asp-for="AuthUserId" type="hidden" />
-                <input asp-for="PhotoUrl" type="hidden" />
-                <input asp-for="IsActive" type="hidden" />
-
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-
-                <div class="row g-4">
-                    <div class="col-lg-4">
-                        <div class="profile-upload-card">
-                            <div class="profile-upload-preview" id="doctorPhotoPreview">
-                                @if (!string.IsNullOrWhiteSpace(photo))
-                                {
-                                    <img src="@photo" alt="Doctor photo" id="doctorPhotoPreviewImg" />
-                                    <span id="doctorPhotoPreviewInitial" style="display:none;">@initial</span>
-                                }
-                                else
-                                {
-                                    <img src="" alt="Doctor photo" id="doctorPhotoPreviewImg" style="display:none;" />
-                                    <span id="doctorPhotoPreviewInitial">@initial</span>
-                                }
-                            </div>
-
-                            <label asp-for="PhotoFile" class="form-label fw-semibold mt-3">
-                                Profile Photo
-                            </label>
-
-                            <input asp-for="PhotoFile"
-                                   class="form-control"
-                                   type="file"
-                                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                   id="PhotoFile" />
-
-                            <span asp-validation-for="PhotoFile" class="text-danger small"></span>
-
-                            <small class="text-muted d-block mt-2">
-                                Upload JPG, PNG, or WEBP image. Maximum recommended size: 2 MB.
-                            </small>
-
-                            <div class="photo-upload-help mt-3">
-                                <i class="bi bi-info-circle"></i>
-                                Select an image to preview it instantly, then click Save Profile.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-8">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label asp-for="FullName" class="form-label"></label>
-                                <input asp-for="FullName" class="form-control" />
-                                <span asp-validation-for="FullName" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Email" class="form-label"></label>
-                                <input asp-for="Email" class="form-control" />
-                                <span asp-validation-for="Email" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Phone" class="form-label"></label>
-                                <input asp-for="Phone" class="form-control" />
-                                <span asp-validation-for="Phone" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Gender" class="form-label"></label>
-                                <select asp-for="Gender" class="form-select">
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                <span asp-validation-for="Gender" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Qualification" class="form-label"></label>
-                                <input asp-for="Qualification" class="form-control" />
-                                <span asp-validation-for="Qualification" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Specialization" class="form-label"></label>
-                                <input asp-for="Specialization" class="form-control" />
-                                <span asp-validation-for="Specialization" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="DepartmentId" class="form-label"></label>
-                                <input asp-for="DepartmentId" class="form-control" />
-                                <span asp-validation-for="DepartmentId" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="DepartmentName" class="form-label"></label>
-                                <input asp-for="DepartmentName" class="form-control" />
-                                <span asp-validation-for="DepartmentName" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="ConsultationFee" class="form-label"></label>
-                                <input asp-for="ConsultationFee" class="form-control" />
-                                <span asp-validation-for="ConsultationFee" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="ExperienceYears" class="form-label"></label>
-                                <input asp-for="ExperienceYears" class="form-control" />
-                                <span asp-validation-for="ExperienceYears" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="LicenseNumber" class="form-label"></label>
-                                <input asp-for="LicenseNumber" class="form-control" />
-                                <span asp-validation-for="LicenseNumber" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="RoomNumber" class="form-label"></label>
-                                <input asp-for="RoomNumber" class="form-control" />
-                                <span asp-validation-for="RoomNumber" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-12">
-                                <div class="form-check form-switch doctor-switch">
-                                    <input asp-for="SupportsTeleConsultation" class="form-check-input" />
-                                    <label asp-for="SupportsTeleConsultation" class="form-check-label"></label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
-                                Cancel
-                            </a>
-
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save me-1"></i>
-                                Save Profile
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
+        </form>
+    </section>
 </div>
+
+<style>
+    .doctor-profile-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1.35rem;
+        padding-bottom: 2rem;
+        animation: doctorProfileIn .35s ease both;
+    }
+
+    .doctor-profile-hero,
+    .doctor-profile-card {
+        border-radius: 24px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 14px 35px rgba(15, 23, 42, .06);
+    }
+
+    .doctor-profile-hero {
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #ffffff 0%, #ecfeff 52%, #f0fdfa 100%);
+        border-color: #ccfbf1;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .doctor-profile-hero::after {
+            content: "";
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            right: -100px;
+            top: -125px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, .10);
+            animation: softFloat 5s ease-in-out infinite;
+        }
+
+    .doctor-hero-left {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .doctor-profile-avatar {
+        width: 124px;
+        height: 124px;
+        border-radius: 34px;
+        background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-size: 2.8rem;
+        font-weight: 900;
+        box-shadow: 0 16px 32px rgba(20, 184, 166, .18);
+        flex: 0 0 auto;
+    }
+
+        .doctor-profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+    .doctor-kicker,
+    .section-label {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        color: #0f766e;
+        font-size: .76rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin-bottom: .45rem;
+    }
+
+    .doctor-hero-text h1 {
+        margin: 0 0 .35rem;
+        color: #0f172a;
+        font-size: clamp(1.8rem, 3vw, 2.7rem);
+        font-weight: 900;
+        letter-spacing: -.03em;
+        word-break: break-word;
+    }
+
+    .doctor-hero-text p {
+        color: #64748b;
+        font-weight: 700;
+        margin-bottom: .85rem;
+    }
+
+    .doctor-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .55rem;
+    }
+
+    .mini-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .48rem .75rem;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #0f766e;
+        border: 1px solid #ccfbf1;
+        font-size: .82rem;
+        font-weight: 800;
+    }
+
+    .doctor-profile-card {
+        padding: 1.25rem;
+    }
+
+    .doctor-section-header {
+        margin-bottom: 1.25rem;
+    }
+
+        .doctor-section-header h2 {
+            color: #0f172a;
+            font-weight: 900;
+            margin: 0;
+        }
+
+        .doctor-section-header p {
+            color: #64748b;
+            font-weight: 600;
+            margin: .35rem 0 0;
+        }
+
+    .doctor-upload-panel {
+        padding: 1rem;
+        border-radius: 20px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        height: 100%;
+    }
+
+    .profile-upload-preview {
+        width: 100%;
+        min-height: 260px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #e0f2fe, #f8fafc);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        color: #0f766e;
+        font-size: 4rem;
+        font-weight: 900;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, .25);
+    }
+
+        .profile-upload-preview img {
+            width: 100%;
+            height: 100%;
+            min-height: 260px;
+            object-fit: cover;
+            display: block;
+        }
+
+    .photo-upload-help {
+        display: flex;
+        align-items: flex-start;
+        gap: .5rem;
+        padding: .75rem;
+        border-radius: 14px;
+        background: #ecfeff;
+        color: #0f766e;
+        font-size: .84rem;
+        font-weight: 700;
+        border: 1px solid #ccfbf1;
+    }
+
+    .doctor-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+        .doctor-form-grid .form-label {
+            color: #334155;
+            font-size: .82rem;
+            font-weight: 800;
+        }
+
+        .doctor-form-grid .form-control,
+        .doctor-form-grid .form-select {
+            min-height: 44px;
+            border-radius: 14px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            font-weight: 600;
+            box-shadow: none;
+        }
+
+            .doctor-form-grid .form-control:focus,
+            .doctor-form-grid .form-select:focus {
+                border-color: #14b8a6;
+                box-shadow: 0 0 0 .18rem rgba(20, 184, 166, .12);
+            }
+
+    .doctor-switch-box {
+        grid-column: 1 / -1;
+        padding: .8rem;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .doctor-switch .form-check-input {
+        width: 3rem;
+        height: 1.5rem;
+    }
+
+    .doctor-switch .form-check-label {
+        color: #0f172a;
+        font-weight: 800;
+        margin-left: .4rem;
+    }
+
+    .doctor-form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: .65rem;
+        margin-top: 1.25rem;
+    }
+
+    @@keyframes doctorProfileIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes softFloat {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(16px);
+        }
+    }
+
+    @@media (max-width: 992px) {
+        .doctor-hero-left {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .doctor-form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .doctor-profile-hero,
+        .doctor-profile-card {
+            border-radius: 18px;
+            padding: 1rem;
+        }
+
+        .doctor-profile-avatar {
+            width: 106px;
+            height: 106px;
+            border-radius: 28px;
+        }
+
+        .doctor-form-actions {
+            flex-direction: column;
+        }
+
+            .doctor-form-actions .btn {
+                width: 100%;
+            }
+    }
+</style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

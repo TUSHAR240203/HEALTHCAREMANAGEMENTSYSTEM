@@ -1489,4 +1489,25 @@ html[data-theme="dark"] .user-chip { background: rgba(255,255,255,.04); }
         width: 100%;
         min-width: unset;
     }
+    .next-btn:hover,
+    .next-btn:focus {
+        background: #1d4ed8;
+        color: #ffffff;
+        border-color: #1d4ed8;
+    }
+    .ui-ripple {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,.45);
+        transform: scale(0);
+        animation: rippleEffect .65s ease-out;
+        pointer-events: none;
+    }
+
+    @keyframes rippleEffect {
+        to {
+            transform: scale(2.6);
+            opacity: 0;
+        }
+    }
 }

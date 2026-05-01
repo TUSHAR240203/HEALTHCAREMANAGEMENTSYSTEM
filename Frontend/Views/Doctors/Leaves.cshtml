@@ -1,5 +1,6 @@
 @model List<Frontend.Models.Doctors.DoctorLeaveResponseDto>
 @using Microsoft.AspNetCore.Http
+
 @{
     ViewData["Title"] = "Doctor Leaves";
 
@@ -10,143 +11,872 @@
 
     var doctorId = ViewBag.DoctorId as int?;
     var status = ViewBag.Status as string;
+
+    var totalLeaves = Model?.Count ?? 0;
+    var pendingLeaves = Model?.Count(x => string.Equals(x.Status, "Pending", StringComparison.OrdinalIgnoreCase)) ?? 0;
+    var approvedLeaves = Model?.Count(x => string.Equals(x.Status, "Approved", StringComparison.OrdinalIgnoreCase)) ?? 0;
+    var rejectedLeaves = Model?.Count(x => string.Equals(x.Status, "Rejected", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+    string StatusClass(string? value)
+    {
+        if (string.Equals(value, "Approved", StringComparison.OrdinalIgnoreCase))
+            return "approved";
+
+        if (string.Equals(value, "Rejected", StringComparison.OrdinalIgnoreCase))
+            return "rejected";
+
+        return "pending";
+    }
+
+    string ActiveFilter(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(status) && string.IsNullOrWhiteSpace(value))
+            return "active";
+
+        return string.Equals(status, value, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
 }
 
-<div class="page-header">
-    <div>
-        <span class="badge-soft">
-            <i class="bi bi-calendar-x"></i> Doctor leave
-        </span>
+<div class="doctor-leaves-page">
+    <section class="leave-hero">
+        <div class="leave-hero-content">
+            <span class="leave-kicker">
+                <i class="bi bi-calendar-x"></i>
+                Doctor Leave
+            </span>
 
-        <h1>@(isDoctor ? "My Leave Requests" : "Doctor Leave Requests")</h1>
+            <h1>@(isDoctor ? "My Leave Requests" : "Doctor Leave Requests")</h1>
 
-        <p class="page-subtitle">
-            @(isDoctor
-                        ? "Apply for leave and track approval status from your own doctor account."
-                        : "Doctors submit leave from their portal. Admin approval controls whether leave blocks availability.")
-        </p>
-    </div>
+            <p>
+                @(isDoctor
+                    ? "Apply for leave and track your approval status from your doctor account."
+                    : "Review doctor leave requests and manage availability blocking through admin approval.")
+            </p>
+        </div>
 
-    <div class="d-flex flex-wrap gap-2">
-        @if (isDoctor)
-        {
-            <a asp-action="RequestLeave" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i>Apply Leave
-            </a>
-        }
+        <div class="leave-hero-actions">
+            @if (isDoctor)
+            {
+                <a asp-action="RequestLeave" class="leave-primary-btn">
+                    <i class="bi bi-plus-circle"></i>
+                    Apply Leave
+                </a>
+            }
 
-        @if (isAdmin || isReception)
-        {
-            <a asp-action="Leaves" asp-route-status="Pending" class="btn btn-outline-primary">Pending</a>
-            <a asp-action="Leaves" asp-route-status="Approved" class="btn btn-outline-success">Approved</a>
-            <a asp-action="Leaves" asp-route-status="Rejected" class="btn btn-outline-danger">Rejected</a>
-            <a asp-action="Leaves" class="btn btn-outline-secondary">All</a>
-        }
-    </div>
-</div>
+            @if (isAdmin || isReception)
+            {
+                <div class="leave-filter-tabs">
+                    <a asp-action="Leaves" asp-route-status="Pending" class="leave-tab @ActiveFilter("Pending")">
+                        Pending
+                    </a>
+                    <a asp-action="Leaves" asp-route-status="Approved" class="leave-tab @ActiveFilter("Approved")">
+                        Approved
+                    </a>
+                    <a asp-action="Leaves" asp-route-status="Rejected" class="leave-tab @ActiveFilter("Rejected")">
+                        Rejected
+                    </a>
+                    <a asp-action="Leaves" class="leave-tab @ActiveFilter(null)">
+                        All
+                    </a>
+                </div>
+            }
+        </div>
+    </section>
 
-@if (!Model.Any())
-{
-    <div class="empty-state">
-        <h3>No leave requests found</h3>
-        <p>@(isDoctor ? "Your leave applications will appear here." : "New leave applications will appear here.")</p>
-    </div>
-}
-else
-{
-    <div class="card border-0 queue-board">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table align-middle mb-0 professional-table">
-                    <thead>
-                        <tr>
-                            <th>Start Date</th>
-                            <th>End Date</th>
+    <section class="leave-stats-grid">
+        <article class="leave-stat-card">
+            <div>
+                <span>Total Requests</span>
+                <strong>@totalLeaves</strong>
+            </div>
+            <i class="bi bi-collection"></i>
+        </article>
 
-                            @if (!isDoctor)
-                            {
-                                <th>Doctor ID</th>
-                            }
+        <article class="leave-stat-card pending">
+            <div>
+                <span>Pending</span>
+                <strong>@pendingLeaves</strong>
+            </div>
+            <i class="bi bi-hourglass-split"></i>
+        </article>
 
-                            <th>Reason</th>
-                            <th>Status</th>
-                            <th>Reviewed</th>
+        <article class="leave-stat-card approved">
+            <div>
+                <span>Approved</span>
+                <strong>@approvedLeaves</strong>
+            </div>
+            <i class="bi bi-check2-circle"></i>
+        </article>
 
-                            @if (isAdmin)
-                            {
-                                <th class="text-end">Admin Action</th>
-                            }
-                        </tr>
-                    </thead>
+        <article class="leave-stat-card rejected">
+            <div>
+                <span>Rejected</span>
+                <strong>@rejectedLeaves</strong>
+            </div>
+            <i class="bi bi-x-circle"></i>
+        </article>
+    </section>
 
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td>@item.StartDate.ToString("dd MMM yyyy")</td>
-                                <td>@item.EndDate.ToString("dd MMM yyyy")</td>
+    @if (Model == null || !Model.Any())
+    {
+        <section class="leave-empty-state">
+            <div class="leave-empty-icon">
+                <i class="bi bi-calendar2-x"></i>
+            </div>
 
+            <h3>No leave requests found</h3>
+            <p>
+                @(isDoctor
+                    ? "Your leave applications will appear here once submitted."
+                    : "New doctor leave applications will appear here.")
+            </p>
+
+            @if (isDoctor)
+            {
+                <a asp-action="RequestLeave" class="leave-primary-btn">
+                    <i class="bi bi-plus-circle"></i>
+                    Apply Leave
+                </a>
+            }
+        </section>
+    }
+    else
+    {
+        <section class="leave-board">
+            <div class="leave-board-header">
+                <div>
+                    <span>Leave Queue</span>
+                    <h2>@(isDoctor ? "My applications" : "Review requests")</h2>
+                </div>
+
+                <div class="leave-board-count">
+                    @totalLeaves record@(totalLeaves == 1 ? "" : "s")
+                </div>
+            </div>
+
+            <div class="leave-list">
+                @foreach (var item in Model)
+                {
+                    var currentStatusClass = StatusClass(item.Status);
+                    var totalDays = item.EndDate.DayNumber - item.StartDate.DayNumber + 1;
+
+                    <article class="leave-row-card status-border-@currentStatusClass">
+                        <div class="leave-date-box">
+                            <span>@item.StartDate.ToString("MMM")</span>
+                            <strong>@item.StartDate.ToString("dd")</strong>
+                            <small>@item.StartDate.ToString("yyyy")</small>
+                        </div>
+
+                        <div class="leave-main-info">
+                            <div class="leave-title-line">
+                                <div>
+                                    <h3>
+                                        @item.StartDate.ToString("dd MMM yyyy")
+                                        -
+                                        @item.EndDate.ToString("dd MMM yyyy")
+                                    </h3>
+
+                                    <p>
+                                        <i class="bi bi-calendar-range"></i>
+                                        @totalDays day@(totalDays == 1 ? "" : "s") leave
+                                    </p>
+                                </div>
+
+                                <span class="leave-status-pill @currentStatusClass">
+                                    <i class="bi bi-circle-fill"></i>
+                                    @item.Status
+                                </span>
+                            </div>
+
+                            <div class="leave-info-grid">
                                 @if (!isDoctor)
                                 {
-                                    <td>@item.DoctorId</td>
+                                    <div class="leave-info-chip">
+                                        <i class="bi bi-person-badge"></i>
+                                        <span>Doctor ID</span>
+                                        <strong>@item.DoctorId</strong>
+                                    </div>
                                 }
 
-                                <td>@(string.IsNullOrWhiteSpace(item.Reason) ? "-" : item.Reason)</td>
+                                <div class="leave-info-chip reason-chip">
+                                    <i class="bi bi-chat-left-text"></i>
+                                    <span>Reason</span>
+                                    <strong>@(string.IsNullOrWhiteSpace(item.Reason) ? "-" : item.Reason)</strong>
+                                </div>
 
-                                <td>
-                                    <span class="queue-status-pill small">@item.Status</span>
-                                </td>
+                                <div class="leave-info-chip">
+                                    <i class="bi bi-shield-check"></i>
+                                    <span>Reviewed</span>
 
-                                <td>
                                     @if (item.ReviewedAtUtc.HasValue)
                                     {
-                                        <span>@item.ReviewedAtUtc.Value.ToString("dd MMM yyyy HH:mm")</span>
+                                        <strong>@item.ReviewedAtUtc.Value.ToString("dd MMM yyyy HH:mm")</strong>
 
                                         @if (!string.IsNullOrWhiteSpace(item.ReviewedBy))
                                         {
-                                            <small class="d-block text-muted">by @item.ReviewedBy</small>
+                                            <small>by @item.ReviewedBy</small>
                                         }
                                     }
                                     else
                                     {
-                                        <span>Pending</span>
+                                        <strong>Pending</strong>
                                     }
-                                </td>
+                                </div>
+                            </div>
+                        </div>
 
-                                @if (isAdmin)
+                        @if (isAdmin)
+                        {
+                            <div class="leave-actions">
+                                @if (string.Equals(item.Status, "Pending", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    <td class="text-end">
-                                        @if (string.Equals(item.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            <div class="queue-row-actions justify-content-end">
-                                                <form asp-action="ApproveLeave" method="post">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="leaveId" value="@item.Id" />
-                                                    <input type="hidden" name="doctorId" value="@doctorId" />
-                                                    <input type="hidden" name="status" value="@status" />
-                                                    <button class="btn btn-sm btn-success">Approve</button>
-                                                </form>
+                                    <form asp-action="ApproveLeave" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="leaveId" value="@item.Id" />
+                                        <input type="hidden" name="doctorId" value="@doctorId" />
+                                        <input type="hidden" name="status" value="@status" />
 
-                                                <form asp-action="RejectLeave" method="post">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="leaveId" value="@item.Id" />
-                                                    <input type="hidden" name="doctorId" value="@doctorId" />
-                                                    <input type="hidden" name="status" value="@status" />
-                                                    <button class="btn btn-sm btn-outline-danger">Reject</button>
-                                                </form>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">No action</span>
-                                        }
-                                    </td>
+                                        <button class="leave-action-btn approve">
+                                            <i class="bi bi-check2"></i>
+                                            Approve
+                                        </button>
+                                    </form>
+
+                                    <form asp-action="RejectLeave" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="leaveId" value="@item.Id" />
+                                        <input type="hidden" name="doctorId" value="@doctorId" />
+                                        <input type="hidden" name="status" value="@status" />
+
+                                        <button class="leave-action-btn reject">
+                                            <i class="bi bi-x-lg"></i>
+                                            Reject
+                                        </button>
+                                    </form>
                                 }
-                            </tr>
+                                else
+                                {
+                                    <span class="leave-no-action">
+                                        <i class="bi bi-lock"></i>
+                                        No action
+                                    </span>
+                                }
+                            </div>
                         }
-                    </tbody>
-                </table>
+                    </article>
+                }
             </div>
-        </div>
-    </div>
-}
+        </section>
+    }
+</div>
+
+<style>
+    .doctor-leaves-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1.35rem;
+        padding-bottom: 2rem;
+        animation: leavePageIn .35s ease both;
+    }
+
+    .leave-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 1.25rem;
+        align-items: center;
+        padding: 1.5rem;
+        border-radius: 24px;
+        background: linear-gradient(135deg, #ffffff 0%, #ecfeff 50%, #f0fdfa 100%);
+        border: 1px solid #ccfbf1;
+        box-shadow: 0 14px 35px rgba(20, 184, 166, .08);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .leave-hero::after {
+            content: "";
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            right: -95px;
+            top: -120px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, .10);
+            animation: leaveFloat 5s ease-in-out infinite;
+        }
+
+    .leave-hero-content,
+    .leave-hero-actions {
+        position: relative;
+        z-index: 1;
+    }
+
+    .leave-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .45rem .8rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        color: #ffffff;
+        font-size: .78rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        box-shadow: 0 10px 22px rgba(14, 165, 233, .18);
+        margin-bottom: .85rem;
+    }
+
+    .leave-hero h1 {
+        margin: 0 0 .55rem;
+        color: #0f172a;
+        font-weight: 900;
+        font-size: clamp(1.8rem, 3vw, 2.7rem);
+        letter-spacing: -.03em;
+    }
+
+    .leave-hero p {
+        margin: 0;
+        color: #64748b;
+        max-width: 760px;
+        line-height: 1.65;
+        font-weight: 600;
+    }
+
+    .leave-hero-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: .85rem;
+    }
+
+    .leave-primary-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 44px;
+        padding: .7rem 1rem;
+        border-radius: 15px;
+        background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 900;
+        box-shadow: 0 12px 24px rgba(20, 184, 166, .18);
+        transition: transform .2s ease, box-shadow .2s ease;
+        border: 0;
+    }
+
+        .leave-primary-btn:hover {
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 16px 30px rgba(20, 184, 166, .24);
+        }
+
+    .leave-filter-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        justify-content: flex-end;
+    }
+
+    .leave-tab {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        padding: .55rem .85rem;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #0f766e;
+        border: 1px solid #ccfbf1;
+        text-decoration: none;
+        font-size: .85rem;
+        font-weight: 900;
+        transition: all .2s ease;
+    }
+
+        .leave-tab:hover,
+        .leave-tab.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+            border-color: transparent;
+            box-shadow: 0 10px 20px rgba(20, 184, 166, .16);
+            transform: translateY(-1px);
+        }
+
+    .leave-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(160px, 1fr));
+        gap: 1rem;
+    }
+
+    .leave-stat-card {
+        padding: 1rem;
+        border-radius: 20px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, .06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .leave-stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, .10);
+        }
+
+        .leave-stat-card span {
+            display: block;
+            color: #64748b;
+            font-size: .76rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            margin-bottom: .25rem;
+        }
+
+        .leave-stat-card strong {
+            display: block;
+            color: #0f172a;
+            font-size: 1.9rem;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .leave-stat-card i {
+            width: 46px;
+            height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            background: #ecfeff;
+            color: #0ea5e9;
+            font-size: 1.35rem;
+        }
+
+        .leave-stat-card.pending i {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .leave-stat-card.approved i {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .leave-stat-card.rejected i {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+    .leave-board,
+    .leave-empty-state {
+        padding: 1.25rem;
+        border-radius: 24px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 14px 35px rgba(15, 23, 42, .06);
+    }
+
+    .leave-board-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+        .leave-board-header span {
+            display: block;
+            color: #0ea5e9;
+            font-size: .76rem;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-bottom: .25rem;
+        }
+
+        .leave-board-header h2 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 1.35rem;
+            font-weight: 900;
+        }
+
+    .leave-board-count {
+        padding: .5rem .8rem;
+        border-radius: 999px;
+        background: #ecfeff;
+        color: #0f766e;
+        border: 1px solid #ccfbf1;
+        font-weight: 900;
+        font-size: .84rem;
+        white-space: nowrap;
+    }
+
+    .leave-list {
+        display: flex;
+        flex-direction: column;
+        gap: .9rem;
+    }
+
+    .leave-row-card {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr) auto;
+        gap: 1rem;
+        padding: .95rem;
+        border-radius: 20px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        animation: rowIn .35s ease both;
+    }
+
+        .leave-row-card:hover {
+            transform: translateY(-3px);
+            border-color: #99f6e4;
+            box-shadow: 0 14px 30px rgba(20, 184, 166, .10);
+        }
+
+    .status-border-pending {
+        border-left: 4px solid #f59e0b;
+    }
+
+    .status-border-approved {
+        border-left: 4px solid #22c55e;
+    }
+
+    .status-border-rejected {
+        border-left: 4px solid #ef4444;
+    }
+
+    .leave-date-box {
+        min-height: 110px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #e0f2fe, #ccfbf1);
+        color: #0f766e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        border: 1px solid #ccfbf1;
+    }
+
+        .leave-date-box span {
+            font-size: .75rem;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .leave-date-box strong {
+            font-size: 2rem;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .leave-date-box small {
+            color: #0f766e;
+            font-weight: 800;
+        }
+
+    .leave-title-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: .8rem;
+    }
+
+        .leave-title-line h3 {
+            margin: 0 0 .25rem;
+            color: #0f172a;
+            font-size: 1.08rem;
+            font-weight: 900;
+        }
+
+        .leave-title-line p {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            margin: 0;
+            color: #64748b;
+            font-size: .86rem;
+            font-weight: 800;
+        }
+
+    .leave-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .42rem .72rem;
+        border-radius: 999px;
+        font-size: .76rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+        .leave-status-pill i {
+            font-size: .45rem;
+        }
+
+        .leave-status-pill.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .leave-status-pill.approved {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .leave-status-pill.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+    .leave-info-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(130px, 1fr));
+        gap: .75rem;
+    }
+
+    .leave-info-chip {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr);
+        column-gap: .6rem;
+        align-items: center;
+        padding: .7rem;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+        .leave-info-chip.reason-chip {
+            grid-column: span 1;
+        }
+
+        .leave-info-chip i {
+            width: 36px;
+            height: 36px;
+            grid-row: span 3;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 13px;
+            background: #ecfeff;
+            color: #0ea5e9;
+        }
+
+        .leave-info-chip span {
+            color: #64748b;
+            font-size: .7rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .leave-info-chip strong {
+            color: #0f172a;
+            font-size: .88rem;
+            font-weight: 900;
+            word-break: break-word;
+        }
+
+        .leave-info-chip small {
+            color: #64748b;
+            font-size: .76rem;
+            font-weight: 700;
+        }
+
+    .leave-actions {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: .55rem;
+        min-width: 125px;
+    }
+
+    .leave-action-btn {
+        width: 100%;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        border-radius: 12px;
+        border: 0;
+        font-weight: 900;
+        font-size: .84rem;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+        .leave-action-btn.approve {
+            background: #16a34a;
+            color: #ffffff;
+        }
+
+        .leave-action-btn.reject {
+            background: #ffffff;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .leave-action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, .10);
+        }
+
+    .leave-no-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        padding: .55rem .75rem;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #94a3b8;
+        font-weight: 900;
+        font-size: .82rem;
+        white-space: nowrap;
+    }
+
+    .leave-empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        border-style: dashed;
+    }
+
+    .leave-empty-icon {
+        width: 72px;
+        height: 72px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 24px;
+        background: #ecfeff;
+        color: #0ea5e9;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .leave-empty-state h3 {
+        color: #0f172a;
+        font-weight: 900;
+        margin-bottom: .4rem;
+    }
+
+    .leave-empty-state p {
+        color: #64748b;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    @@keyframes leavePageIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes leaveFloat {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(18px);
+        }
+    }
+
+    @@keyframes rowIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@media (max-width: 1200px) {
+        .leave-hero {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .leave-hero-actions {
+            align-items: flex-start;
+        }
+
+        .leave-filter-tabs {
+            justify-content: flex-start;
+        }
+
+        .leave-stats-grid {
+            grid-template-columns: repeat(2, minmax(160px, 1fr));
+        }
+
+        .leave-row-card {
+            grid-template-columns: 82px minmax(0, 1fr);
+        }
+
+        .leave-actions {
+            grid-column: 1 / -1;
+            flex-direction: row;
+            justify-content: flex-end;
+        }
+
+            .leave-actions form {
+                min-width: 125px;
+            }
+    }
+
+    @@media (max-width: 768px) {
+        .leave-hero,
+        .leave-board,
+        .leave-empty-state {
+            border-radius: 18px;
+            padding: 1rem;
+        }
+
+        .leave-stats-grid,
+        .leave-info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .leave-row-card {
+            grid-template-columns: 1fr;
+        }
+
+        .leave-date-box {
+            min-height: auto;
+            padding: 1rem;
+            flex-direction: row;
+            gap: .5rem;
+        }
+
+        .leave-title-line {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .leave-actions {
+            flex-direction: column;
+        }
+
+            .leave-actions form {
+                width: 100%;
+            }
+    }
+</style>

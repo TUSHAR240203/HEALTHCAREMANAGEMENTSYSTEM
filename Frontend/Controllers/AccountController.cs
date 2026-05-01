@@ -13,16 +13,17 @@ namespace Frontend.Controllers
         private readonly IWebHostEnvironment _environment;
 
         public AccountController(
-    AuthGatewayService authGatewayService,
-    PatientGatewayService patientGatewayService,
-    DoctorGatewayService doctorGatewayService,
-    IWebHostEnvironment environment)
+            AuthGatewayService authGatewayService,
+            PatientGatewayService patientGatewayService,
+            DoctorGatewayService doctorGatewayService,
+            IWebHostEnvironment environment)
         {
             _authGatewayService = authGatewayService;
             _patientGatewayService = patientGatewayService;
             _doctorGatewayService = doctorGatewayService;
             _environment = environment;
         }
+
         [HttpGet]
         public IActionResult StaffLogin()
         {
@@ -127,6 +128,7 @@ namespace Frontend.Controllers
             }
 
             await SetAuthSessionAsync(result.Data);
+            HttpContext.Session.SetString("LastLoginPortal", "Staff");
 
             TempData["Success"] = "Login successful.";
 
@@ -146,7 +148,12 @@ namespace Frontend.Controllers
 
             var role = HttpContext.Session.GetString("Role");
             var isPatient = string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
-            return View(new AuthPreferenceViewModel { EnableOtpLogin = true, EnablePasswordLogin = !isPatient });
+
+            return View(new AuthPreferenceViewModel
+            {
+                EnableOtpLogin = true,
+                EnablePasswordLogin = !isPatient
+            });
         }
 
         [HttpPost]
@@ -154,10 +161,13 @@ namespace Frontend.Controllers
         public async Task<IActionResult> AuthPreference(AuthPreferenceViewModel model)
         {
             var token = HttpContext.Session.GetString("AccessToken");
-            if (string.IsNullOrWhiteSpace(token)) return RedirectToAction(nameof(StaffLogin));
+
+            if (string.IsNullOrWhiteSpace(token))
+                return RedirectToAction(nameof(StaffLogin));
 
             var role = HttpContext.Session.GetString("Role");
             var isPatient = string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
+
             if (isPatient)
             {
                 model.EnableOtpLogin = true;
@@ -173,6 +183,7 @@ namespace Frontend.Controllers
             }
 
             var result = await _authGatewayService.UpdateAuthPreferenceAsync(token, model);
+
             if (!result.Success || result.Data == null)
             {
                 ModelState.AddModelError(string.Empty, result.Message);
@@ -180,7 +191,9 @@ namespace Frontend.Controllers
             }
 
             await SetAuthSessionAsync(result.Data);
+
             TempData["Success"] = "Authentication preference saved.";
+
             return string.Equals(result.Data.Role, "Patient", StringComparison.OrdinalIgnoreCase)
                 ? RedirectToAction(nameof(CompleteProfile))
                 : RedirectToAction("Index", "Home");
@@ -206,14 +219,21 @@ namespace Frontend.Controllers
                 return View(model);
 
             var result = await _patientGatewayService.RegisterForPortalAsync(model);
+
             if (!result.Success || result.Data == null)
             {
                 ModelState.AddModelError(string.Empty, result.Message);
                 return View(model);
             }
 
-            TempData["Success"] = $"Registration successful. Your Patient ID is {result.Data.Id}. Use it with your mobile number to login by OTP.";
-            return RedirectToAction(nameof(Login), new { patientId = result.Data.Id, mobileNumber = result.Data.MobileNumber });
+            TempData["Success"] =
+                $"Registration successful. Your Patient ID is {result.Data.Id}. Use it with your mobile number to login by OTP.";
+
+            return RedirectToAction(nameof(Login), new
+            {
+                patientId = result.Data.Id,
+                mobileNumber = result.Data.MobileNumber
+            });
         }
 
         [HttpGet]
@@ -222,7 +242,8 @@ namespace Frontend.Controllers
             return View(new PatientLoginViewModel
             {
                 PatientId = patientId ?? 0,
-                MobileNumber = mobileNumber ?? string.Empty
+                MobileNumber = mobileNumber ?? string.Empty,
+                OtpSent = false
             });
         }
 
@@ -232,58 +253,101 @@ namespace Frontend.Controllers
         {
             if (submitButton == "sendOtp")
             {
-                if (model.PatientId <= 0 || string.IsNullOrWhiteSpace(model.MobileNumber))
-                {
-                    ModelState.AddModelError(string.Empty, "Patient ID and Mobile Number are required.");
-                    return View(model);
-                }
+                ModelState.Remove(nameof(model.OtpCode));
+                ModelState.Remove("OtpCode");
 
-                var result = await _authGatewayService.SendLoginOtpAsync(model.PatientId, model.MobileNumber);
-                if (!result.Success)
+                if (model.PatientId <= 0)
+                    ModelState.AddModelError(nameof(model.PatientId), "Patient ID is required.");
+
+                if (string.IsNullOrWhiteSpace(model.MobileNumber))
+                    ModelState.AddModelError(nameof(model.MobileNumber), "Mobile number is required.");
+
+                if (!ModelState.IsValid)
                 {
-                    ModelState.AddModelError(string.Empty, result.Message);
                     model.OtpSent = false;
                     return View(model);
                 }
 
-                TempData["Success"] = "OTP sent successfully. Check the Auth API console output.";
-                model.OtpSent = true;
-                return View(model);
+                try
+                {
+                    var otpResult = await _authGatewayService.SendPatientLoginOtpAsync(
+                        model.PatientId,
+                        model.MobileNumber);
+
+                    if (!otpResult.Success)
+                    {
+                        model.OtpSent = false;
+                        ModelState.AddModelError(string.Empty,
+                            string.IsNullOrWhiteSpace(otpResult.Message)
+                                ? "Unable to send OTP."
+                                : otpResult.Message);
+
+                        return View(model);
+                    }
+
+                    ModelState.Clear();
+
+                    model.OtpSent = true;
+                    model.OtpCode = string.Empty;
+
+                    ViewBag.Success = string.IsNullOrWhiteSpace(otpResult.Message)
+                        ? "OTP sent successfully."
+                        : otpResult.Message;
+
+                    ViewBag.OtpJustSent = true;
+
+                    return View(model);
+                }
+                catch (Exception ex)
+                {
+                    model.OtpSent = false;
+                    ModelState.AddModelError(string.Empty, ex.Message);
+                    return View(model);
+                }
             }
 
             if (submitButton == "verifyOtp")
             {
-                if (model.PatientId <= 0 || string.IsNullOrWhiteSpace(model.MobileNumber) || string.IsNullOrWhiteSpace(model.OtpCode))
+                if (string.IsNullOrWhiteSpace(model.OtpCode))
                 {
-                    ModelState.AddModelError(string.Empty, "Patient ID, Mobile Number, and OTP are required.");
                     model.OtpSent = true;
+                    ModelState.AddModelError(nameof(model.OtpCode), "OTP is required.");
                     return View(model);
                 }
 
-                var request = new PatientLoginRequestDto
+                try
                 {
-                    PatientId = model.PatientId,
-                    MobileNumber = model.MobileNumber,
-                    OtpCode = model.OtpCode
-                };
+                    var result = await _authGatewayService.PatientLoginAsync(model);
 
-                var result = await _authGatewayService.LoginAsync(request);
+                    if (!result.Success || result.Data == null)
+                    {
+                        model.OtpSent = true;
+                        model.OtpCode = string.Empty;
 
-                if (!result.Success || result.Data == null)
+                        ModelState.AddModelError(string.Empty,
+                            string.IsNullOrWhiteSpace(result.Message)
+                                ? "Invalid OTP. You can try again or resend OTP."
+                                : result.Message);
+
+                        return View(model);
+                    }
+
+                    await SetAuthSessionAsync(result.Data);
+                    HttpContext.Session.SetString("LastLoginPortal", "Patient");
+
+                    TempData["Success"] = "Login successful.";
+                    return RedirectToAction("Index", "Home");
+                }
+                catch
                 {
-                    ModelState.AddModelError(string.Empty, result.Message);
                     model.OtpSent = true;
+                    model.OtpCode = string.Empty;
+
+                    ModelState.AddModelError(string.Empty, "Invalid OTP. You can try again or resend OTP.");
                     return View(model);
                 }
-
-                await SetAuthSessionAsync(result.Data);
-                TempData["Success"] = "Login successful.";
-
-                if (!result.Data.IsFirstLoginCompleted) return RedirectToAction(nameof(AuthPreference));
-                return RedirectToAction(nameof(CompleteProfile));
             }
 
-            ModelState.AddModelError(string.Empty, "Invalid action.");
             return View(model);
         }
 
@@ -291,9 +355,12 @@ namespace Frontend.Controllers
         public async Task<IActionResult> CompleteProfile()
         {
             var patientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
-            if (patientId <= 0) return RedirectToAction(nameof(Login));
+
+            if (patientId <= 0)
+                return RedirectToAction(nameof(Login));
 
             var patient = await _patientGatewayService.GetByIdAsync(patientId);
+
             if (patient == null)
             {
                 TempData["Error"] = "Patient profile could not be loaded.";
@@ -309,21 +376,24 @@ namespace Frontend.Controllers
         public async Task<IActionResult> CompleteProfile(CompletePatientProfileViewModel model)
         {
             var patientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
-            if (patientId <= 0) return RedirectToAction(nameof(Login));
+
+            if (patientId <= 0)
+                return RedirectToAction(nameof(Login));
 
             model.PatientId = patientId;
+
             if (!ModelState.IsValid)
             {
                 model.CompletionPercentage = CalculateProfileCompletion(model);
                 return View(model);
             }
 
-            // Handle photo upload from gallery (takes priority over URL)
             if (model.PhotoFile != null && model.PhotoFile.Length > 0)
             {
                 var saved = await SavePatientPhotoAsync(model.PhotoFile, patientId);
 
-                if (saved != null) model.PhotoUrl = saved;
+                if (saved != null)
+                    model.PhotoUrl = saved;
             }
 
             var request = new CompletePatientProfileRequestDto
@@ -345,6 +415,7 @@ namespace Frontend.Controllers
             };
 
             var result = await _patientGatewayService.CompleteProfileAsync(patientId, request);
+
             if (!result.Success || result.Data == null)
             {
                 ModelState.AddModelError(string.Empty, result.Message);
@@ -353,6 +424,7 @@ namespace Frontend.Controllers
             }
 
             RefreshPatientSession(result.Data);
+
             TempData["Success"] = "Profile saved successfully.";
             return RedirectToAction(nameof(Profile));
         }
@@ -361,9 +433,12 @@ namespace Frontend.Controllers
         public async Task<IActionResult> Profile()
         {
             var token = HttpContext.Session.GetString("AccessToken");
-            if (string.IsNullOrWhiteSpace(token)) return RedirectToAction(nameof(StaffLogin));
+
+            if (string.IsNullOrWhiteSpace(token))
+                return RedirectToAction(nameof(StaffLogin));
 
             var user = await _authGatewayService.GetCurrentUserAsync(token);
+
             if (user == null)
             {
                 TempData["Error"] = "Session expired or unauthorized.";
@@ -375,7 +450,11 @@ namespace Frontend.Controllers
             else
                 HttpContext.Session.SetString("PhotoUrl", user.PhotoUrl);
 
-            user.IsProfileCompleted = string.Equals(HttpContext.Session.GetString("IsProfileCompleted"), "true", StringComparison.OrdinalIgnoreCase);
+            user.IsProfileCompleted = string.Equals(
+                HttpContext.Session.GetString("IsProfileCompleted"),
+                "true",
+                StringComparison.OrdinalIgnoreCase);
+
             return View(user);
         }
 
@@ -384,10 +463,13 @@ namespace Frontend.Controllers
         public async Task<IActionResult> UploadStaffPhoto(IFormFile photo)
         {
             var token = HttpContext.Session.GetString("AccessToken");
-            if (string.IsNullOrWhiteSpace(token)) return RedirectToAction(nameof(StaffLogin));
+
+            if (string.IsNullOrWhiteSpace(token))
+                return RedirectToAction(nameof(StaffLogin));
 
             var role = HttpContext.Session.GetString("Role");
             var savedPhotoUrl = await SaveStaffPhotoAsync(photo, role);
+
             if (string.IsNullOrWhiteSpace(savedPhotoUrl))
             {
                 TempData["Error"] = "Please upload a valid JPG, PNG, or WEBP photo up to 2 MB.";
@@ -395,6 +477,7 @@ namespace Frontend.Controllers
             }
 
             var result = await _authGatewayService.UpdateMyPhotoUrlAsync(token, savedPhotoUrl);
+
             if (!result.Success || result.Data == null)
             {
                 TempData["Error"] = result.Message;
@@ -402,10 +485,29 @@ namespace Frontend.Controllers
             }
 
             HttpContext.Session.SetString("PhotoUrl", result.Data.PhotoUrl ?? savedPhotoUrl);
+
             TempData["Success"] = "Profile photo uploaded successfully.";
             return RedirectToAction(nameof(Profile));
         }
 
+        [HttpGet]
+        public IActionResult Logout()
+        {
+            var lastPortal = HttpContext.Session.GetString("LastLoginPortal");
+            var role = HttpContext.Session.GetString("Role") ?? string.Empty;
+
+            var redirectToPatientLogin =
+                string.Equals(lastPortal, "Patient", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
+
+            HttpContext.Session.Clear();
+
+            TempData["Success"] = "Logged out successfully.";
+
+            return redirectToPatientLogin
+                ? RedirectToAction(nameof(Login))
+                : RedirectToAction(nameof(StaffLogin));
+        }
 
         private async Task SetAuthSessionAsync(AuthResponseDto data)
         {
@@ -435,8 +537,13 @@ namespace Frontend.Controllers
                 HttpContext.Session.SetInt32("PatientId", data.PatientId);
 
                 var patient = await _patientGatewayService.GetByIdAsync(data.PatientId);
+
                 if (patient != null)
                     RefreshPatientSession(patient);
+            }
+            else
+            {
+                HttpContext.Session.Remove("PatientId");
             }
 
             if (string.Equals(data.Role, "Doctor", StringComparison.OrdinalIgnoreCase))
@@ -459,15 +566,29 @@ namespace Frontend.Controllers
                     HttpContext.Session.Remove("DoctorId");
                 }
             }
+            else
+            {
+                HttpContext.Session.Remove("DoctorId");
+            }
         }
 
         private void RefreshPatientSession(PatientResponseDto patient)
         {
             HttpContext.Session.SetInt32("PatientId", patient.Id);
-            if (!string.IsNullOrWhiteSpace(patient.Uhid)) HttpContext.Session.SetString("UHID", patient.Uhid);
-            if (!string.IsNullOrWhiteSpace(patient.FullName)) HttpContext.Session.SetString("FullName", patient.FullName);
-            if (!string.IsNullOrWhiteSpace(patient.PhotoUrl)) HttpContext.Session.SetString("PhotoUrl", patient.PhotoUrl!);
-            else HttpContext.Session.Remove("PhotoUrl");
+
+            if (!string.IsNullOrWhiteSpace(patient.Uhid))
+                HttpContext.Session.SetString("UHID", patient.Uhid);
+            else
+                HttpContext.Session.Remove("UHID");
+
+            if (!string.IsNullOrWhiteSpace(patient.FullName))
+                HttpContext.Session.SetString("FullName", patient.FullName);
+
+            if (!string.IsNullOrWhiteSpace(patient.PhotoUrl))
+                HttpContext.Session.SetString("PhotoUrl", patient.PhotoUrl!);
+            else
+                HttpContext.Session.Remove("PhotoUrl");
+
             HttpContext.Session.SetString("IsProfileCompleted", patient.IsProfileCompleted ? "true" : "false");
             HttpContext.Session.SetInt32("ProfileCompletion", CalculateProfileCompletion(patient));
         }
@@ -504,10 +625,22 @@ namespace Frontend.Controllers
         {
             var filled = new[]
             {
-                patient.FullName, patient.MobileNumber, patient.Email, patient.BloodGroup, patient.PhotoUrl,
-                patient.MaritalStatus, patient.AddressLine1, patient.City, patient.State, patient.PostalCode,
-                patient.EmergencyContactName, patient.EmergencyContactNumber, patient.EmergencyContactRelation,
-                patient.AadhaarNumber, patient.InsuranceProvider, patient.InsurancePolicyNumber
+                patient.FullName,
+                patient.MobileNumber,
+                patient.Email,
+                patient.BloodGroup,
+                patient.PhotoUrl,
+                patient.MaritalStatus,
+                patient.AddressLine1,
+                patient.City,
+                patient.State,
+                patient.PostalCode,
+                patient.EmergencyContactName,
+                patient.EmergencyContactNumber,
+                patient.EmergencyContactRelation,
+                patient.AadhaarNumber,
+                patient.InsuranceProvider,
+                patient.InsurancePolicyNumber
             }.Count(v => !string.IsNullOrWhiteSpace(v));
 
             return Math.Clamp((int)Math.Round(filled / 16.0 * 100), 15, 100);
@@ -517,30 +650,37 @@ namespace Frontend.Controllers
         {
             var filled = new[]
             {
-                model.FullName, model.MobileNumber, model.Email, model.BloodGroup, model.PhotoUrl,
-                model.MaritalStatus, model.AddressLine1, model.City, model.State, model.PostalCode,
-                model.EmergencyContactName, model.EmergencyContactNumber, model.EmergencyContactRelation,
-                model.AadhaarNumber, model.InsuranceProvider, model.InsurancePolicyNumber
+                model.FullName,
+                model.MobileNumber,
+                model.Email,
+                model.BloodGroup,
+                model.PhotoUrl,
+                model.MaritalStatus,
+                model.AddressLine1,
+                model.City,
+                model.State,
+                model.PostalCode,
+                model.EmergencyContactName,
+                model.EmergencyContactNumber,
+                model.EmergencyContactRelation,
+                model.AadhaarNumber,
+                model.InsuranceProvider,
+                model.InsurancePolicyNumber
             }.Count(v => !string.IsNullOrWhiteSpace(v));
 
             return Math.Clamp((int)Math.Round(filled / 16.0 * 100), 15, 100);
         }
 
-        [HttpGet]
-        public IActionResult Logout()
-        {
-            HttpContext.Session.Clear();
-            TempData["Success"] = "Logged out successfully.";
-            return RedirectToAction(nameof(Login));
-        }
-
         private async Task<string?> SaveStaffPhotoAsync(IFormFile? file, string? role)
         {
-            if (file == null || file.Length == 0 || file.Length > 2 * 1024 * 1024) return null;
+            if (file == null || file.Length == 0 || file.Length > 2 * 1024 * 1024)
+                return null;
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-            if (!allowed.Contains(extension)) return null;
+
+            if (!allowed.Contains(extension))
+                return null;
 
             var folder = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
                 ? "admins"
@@ -563,16 +703,24 @@ namespace Frontend.Controllers
 
         private async Task<string?> SavePatientPhotoAsync(IFormFile file, int patientId)
         {
+            if (file == null || file.Length == 0 || file.Length > 2 * 1024 * 1024)
+                return null;
+
             var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!allowed.Contains(extension)) return null;
+
+            if (!allowed.Contains(extension))
+                return null;
 
             var uploadsRoot = Path.Combine(_environment.WebRootPath, "uploads", "patients");
             Directory.CreateDirectory(uploadsRoot);
+
             var fileName = $"patient_{patientId}_{Guid.NewGuid():N}{extension}";
             var path = Path.Combine(uploadsRoot, fileName);
+
             await using var stream = System.IO.File.Create(path);
             await file.CopyToAsync(stream);
+
             return $"/uploads/patients/{fileName}";
         }
     }
