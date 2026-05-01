@@ -1,8 +1,9 @@
-﻿namespace Hms.BillingApi.DTOs.Billing;
+namespace Hms.BillingApi.DTOs.Billing;
 
 public class AddInvoiceItemRequestDto
 {
-    public string ServiceName { get; set; } = default!;
-    public decimal Price { get; set; }
+    /// <summary>Must reference an active ServiceCatalog entry. Price is fetched from catalog — never from this request.</summary>
+    public int ServiceId { get; set; }
+
     public int Quantity { get; set; }
 }

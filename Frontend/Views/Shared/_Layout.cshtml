@@ -20,7 +20,7 @@
 }
 
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="default">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -36,6 +36,45 @@
 </head>
 
 <body>
+    <svg class="theme-svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+        <defs>
+            <clipPath id="tealLiquidClip" clipPathUnits="objectBoundingBox">
+                <path d="M0.04,0.23 C0.15,0.05,0.38,-0.02,0.57,0.06 C0.75,0.13,0.96,0.18,0.99,0.39 C1.02,0.60,0.85,0.73,0.75,0.87 C0.63,1.04,0.38,0.98,0.22,0.91 C0.06,0.84,-0.02,0.66,0.00,0.49 C0.01,0.39,-0.01,0.32,0.04,0.23Z"></path>
+            </clipPath>
+            <clipPath id="bloodSplatterClip" clipPathUnits="objectBoundingBox">
+                <path d="M0.49,0 C0.58,0.10,0.67,0.16,0.78,0.21 C0.91,0.27,1.04,0.40,0.96,0.54 C0.88,0.68,0.71,0.66,0.65,0.80 C0.58,0.96,0.44,1.05,0.33,0.91 C0.23,0.77,0.10,0.83,0.03,0.69 C-0.04,0.55,0.10,0.45,0.15,0.34 C0.20,0.21,0.33,0.12,0.49,0Z"></path>
+            </clipPath>
+            <symbol id="themeBat" viewBox="0 0 132 74">
+                <path d="M66 31c6-15 17-23 33-26-3 8 2 14 11 18 7 3 14 4 22 3-5 6-6 13-4 21 2 8 8 16 17 23-13-3-23-9-31-17-7-7-12-8-17-5-9 6-15 15-20 29-5-14-11-23-20-29-5-3-10-2-17 5-8 8-18 14-31 17 9-7 15-15 17-23 2-8 1-15-4-21 8 1 15 0 22-3 9-4 14-10 11-18 16 3 27 11 33 26Z"></path>
+            </symbol>
+            <symbol id="themeSpider" viewBox="0 0 64 64">
+                <path d="M9 15c6 2 12 5 16 11M55 15c-6 2-12 5-16 11M5 29c7-1 13 1 18 5M59 29c-7-1-13 1-18 5M11 47c6-2 11-6 14-12M53 47c-6-2-11-6-14-12" fill="none" stroke="currentColor" stroke-width="3.1" stroke-linecap="round"/>
+                <ellipse cx="32" cy="36" rx="11" ry="10" fill="currentColor"/>
+                <circle cx="32" cy="22" r="7" fill="currentColor"/>
+                <circle cx="29" cy="20" r="1.1" fill="#fff"/><circle cx="35" cy="20" r="1.1" fill="#fff"/>
+            </symbol>
+            <symbol id="themeWeb" viewBox="0 0 220 220">
+                <path d="M0 0H220M0 0V220M30 0C22 62 25 130 70 220M65 0C60 54 65 116 112 220M105 0C105 47 116 101 180 220M0 30C62 22 130 25 220 70M0 65C54 60 116 65 220 112M0 105C47 105 101 116 220 180M0 0L220 220M42 0L220 178M0 42L178 220" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".95"/>
+            </symbol>
+        </defs>
+    </svg>
+
+    <div class="theme-stage" aria-hidden="true">
+        <div class="teal-light light-one"></div>
+        <div class="teal-light light-two"></div>
+        <div class="teal-blob blob-one"></div>
+        <div class="teal-blob blob-two"></div>
+
+        <div class="powder-scene">
+            <div class="powder-glow powder-glow-one"></div>
+            <div class="powder-glow powder-glow-two"></div>
+            <div class="powder-orb powder-orb-one"></div>
+            <div class="powder-orb powder-orb-two"></div>
+            <div class="powder-ribbon powder-ribbon-one"></div>
+            <div class="powder-ribbon powder-ribbon-two"></div>
+        </div>
+
+    </div>
     <div class="ambient-orb orb-one"></div>
     <div class="ambient-orb orb-two"></div>
 
@@ -219,13 +258,39 @@
                 </div>
 
                 <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
-                    <button class="theme-toggle" type="button" data-theme-toggle title="Toggle theme">
-                        <i class="bi bi-moon-stars"></i>
-                        <span class="d-none d-sm-inline">Theme</span>
+                    <button class="theme-toggle" type="button" data-theme-toggle title="Switch between Default and Powder Pink theme">
+                        <i class="bi bi-heart-pulse-fill"></i>
+                        <span class="theme-toggle-copy d-none d-sm-inline">
+                            <strong data-theme-toggle-primary>Default</strong>
+                            <small data-theme-toggle-secondary>Teal Care</small>
+                        </span>
                     </button>
 
                     @if (isLoggedIn)
                     {
+                        <div class="notification-center" data-notifications>
+                            <button class="notification-bell" type="button" data-notification-toggle aria-label="Open notifications">
+                                <i class="bi bi-bell"></i>
+                                <span class="notification-count d-none" data-notification-count>0</span>
+                            </button>
+
+                            <div class="notification-menu" data-notification-menu>
+                                <div class="notification-menu-header">
+                                    <div>
+                                        <strong>Notifications</strong>
+                                        <small data-notification-subtitle>Latest portal updates</small>
+                                    </div>
+                                    <button type="button" class="notification-clear" data-notification-clear>Mark read</button>
+                                </div>
+                                <div class="notification-list" data-notification-list>
+                                    <div class="notification-empty">
+                                        <i class="bi bi-bell-slash"></i>
+                                        <span>No updates yet</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="user-chip">
                             @if (isPatient)
                             {

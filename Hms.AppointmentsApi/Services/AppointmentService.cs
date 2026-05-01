@@ -13,14 +13,17 @@ public class AppointmentService : IAppointmentService
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly IMapper _mapper;
     private readonly IDoctorsApiClient _doctorsApiClient;
+    private readonly IOutboxRepository _outboxRepository;
 
     public AppointmentService(
     IAppointmentRepository appointmentRepository,
     IDoctorsApiClient doctorsApiClient,
+    IOutboxRepository outboxRepository,
     IMapper mapper)
     {
         _appointmentRepository = appointmentRepository;
         _doctorsApiClient = doctorsApiClient;
+        _outboxRepository = outboxRepository;
         _mapper = mapper;
     }
 
@@ -186,12 +189,30 @@ public class AppointmentService : IAppointmentService
         if (appointment.Status == AppointmentStatus.Cancelled)
             throw new InvalidOperationException("Cancelled appointment cannot be completed.");
 
-        appointment.Status = AppointmentStatus.Completed;
-        appointment.CompletionNotes = NormalizeNullable(request.Notes);
-        appointment.UpdatedAtUtc = DateTime.UtcNow;
+        // Idempotent: if already completed, skip DB update but still return the appointment.
+        // BillingApi is also idempotent so no duplicate invoice will be created.
+        if (appointment.Status != AppointmentStatus.Completed)
+        {
+            appointment.Status = AppointmentStatus.Completed;
+            appointment.CompletionNotes = NormalizeNullable(request.Notes);
+            appointment.UpdatedAtUtc = DateTime.UtcNow;
 
-        await _appointmentRepository.UpdateAsync(appointment);
-        await _appointmentRepository.SaveChangesAsync();
+            await _appointmentRepository.UpdateAsync(appointment);
+            await _appointmentRepository.SaveChangesAsync();
+        }
+
+        // ── Write outbox record (guaranteed delivery via background processor) ─
+        // This is transactional with the appointment update — both are in the
+        // same SaveChanges call, so the outbox record is never lost.
+        await _outboxRepository.AddAsync(new AppointmentBillingOutbox
+        {
+            AppointmentId = appointment.Id,
+            PatientId = appointment.PatientId,
+            DoctorId = appointment.DoctorId,
+            UHID = appointment.UHID,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _outboxRepository.SaveChangesAsync();
 
         return _mapper.Map<AppointmentResponseDto>(appointment);
     }

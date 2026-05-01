@@ -256,7 +256,21 @@ return (true, data, message);
                 return null;
             }
         }
+        public async Task<(bool Success, AuthResponseDto? Data, string Message)> PatientLoginAsync(PatientLoginViewModel model)
+        {
+            var request = new PatientLoginRequestDto
+            {
+                PatientId = model.PatientId,
+                MobileNumber = model.MobileNumber,
+                OtpCode = model.OtpCode
+            };
 
+            return await LoginAsync(request);
+        }
+        public async Task<(bool Success, string Message)> SendPatientLoginOtpAsync(int patientId, string mobileNumber)
+        {
+            return await SendLoginOtpAsync(patientId, mobileNumber);
+        }
         private void NormalizePhotoUrl(AuthResponseDto? user)
         {
             if (user == null || string.IsNullOrWhiteSpace(user.PhotoUrl)) return;

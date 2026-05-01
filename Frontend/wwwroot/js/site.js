@@ -1,15 +1,34 @@
 (function () {
   const root = document.documentElement;
-  const storedTheme = localStorage.getItem('hms-theme');
-  if (storedTheme) root.setAttribute('data-theme', storedTheme);
+
+  const setThemeButtonState = (theme) => {
+    document.querySelectorAll('[data-theme-toggle]').forEach(button => {
+      const icon = button.querySelector('i');
+      const primary = button.querySelector('[data-theme-toggle-primary]');
+      const secondary = button.querySelector('[data-theme-toggle-secondary]');
+
+      if (icon) icon.className = theme === 'powder' ? 'bi bi-flower1' : 'bi bi-heart-pulse-fill';
+      if (primary) primary.textContent = theme === 'powder' ? 'Powder' : 'Default';
+      if (secondary) secondary.textContent = theme === 'powder' ? 'Pink Care' : 'Teal Care';
+      button.setAttribute('aria-label', theme === 'powder' ? 'Switch to default teal theme' : 'Switch to powder pink theme');
+    });
+  };
+
+  const normalizeTheme = (theme) => theme === 'powder' ? 'powder' : 'default';
+
+  const applyTheme = (theme) => {
+    const nextTheme = normalizeTheme(theme);
+    root.setAttribute('data-theme', nextTheme);
+    localStorage.setItem('hms-theme', nextTheme);
+    setThemeButtonState(nextTheme);
+  };
+
+  applyTheme(localStorage.getItem('hms-theme') || 'default');
 
   document.querySelectorAll('[data-theme-toggle]').forEach(button => {
     button.addEventListener('click', () => {
-      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
-      localStorage.setItem('hms-theme', next);
-      const icon = button.querySelector('i');
-      if (icon) icon.className = next === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
+      const next = root.getAttribute('data-theme') === 'powder' ? 'default' : 'powder';
+      applyTheme(next);
     });
   });
 
@@ -23,6 +42,18 @@
     const toggle = event.target.closest('[data-sidebar-toggle]');
     if (sidebar && !sidebar.contains(event.target) && !toggle) document.body.classList.remove('sidebar-open');
   });
+
+  const reactiveNodes = document.querySelectorAll('.theme-stage .teal-blob, .theme-stage .teal-light, .theme-stage .powder-glow, .theme-stage .powder-orb, .theme-stage .powder-ribbon');
+  if (reactiveNodes.length) {
+    window.addEventListener('mousemove', (event) => {
+      const x = (event.clientX / window.innerWidth) - 0.5;
+      const y = (event.clientY / window.innerHeight) - 0.5;
+      reactiveNodes.forEach((node, index) => {
+        const depth = (index % 4 + 1) * 5;
+        node.style.transform = `translate3d(${x * depth}px, ${y * depth}px, 0)`;
+      });
+    }, { passive: true });
+  }
 })();
 
 // Photo URL preview (paste a URL)
@@ -89,4 +120,167 @@
       if (icon) icon.className = isText ? 'bi bi-eye' : 'bi bi-eye-slash';
     });
   });
+})();
+
+// Role-aware notifications using existing MVC/API services.
+(function () {
+  const center = document.querySelector('[data-notifications]');
+  if (!center) return;
+
+  const toggle = center.querySelector('[data-notification-toggle]');
+  const menu = center.querySelector('[data-notification-menu]');
+  const countNode = center.querySelector('[data-notification-count]');
+  const listNode = center.querySelector('[data-notification-list]');
+  const clearButton = center.querySelector('[data-notification-clear]');
+  const subtitleNode = center.querySelector('[data-notification-subtitle]');
+  const storageKey = 'hms-notification-read-ids';
+  let latestItems = [];
+
+  const getReadIds = () => {
+    try { return new Set(JSON.parse(localStorage.getItem(storageKey) || '[]')); }
+    catch { return new Set(); }
+  };
+
+  const setReadIds = (ids) => {
+    localStorage.setItem(storageKey, JSON.stringify(Array.from(ids).slice(-250)));
+  };
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[ch]));
+
+  const relativeTime = (value) => {
+    if (!value) return 'Date unavailable';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Date unavailable';
+
+    const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    const absoluteDate = date.toLocaleString([], {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    // Future dates, old leave reviews, and older appointment records should not look like fresh alerts.
+    if (diffSeconds < 0) return absoluteDate;
+    if (diffSeconds < 60) return 'Just now';
+
+    const minutes = Math.floor(diffSeconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hr ago`;
+
+    return absoluteDate;
+  };
+
+  const ensureToastStack = () => {
+    let stack = document.querySelector('.notification-toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'notification-toast-stack';
+      document.body.appendChild(stack);
+    }
+    return stack;
+  };
+
+  const showToast = (item) => {
+    const stack = ensureToastStack();
+    const toast = document.createElement('a');
+    toast.className = 'notification-toast';
+    toast.href = item.url || item.Url || '#';
+    toast.innerHTML = `
+      <span class="notification-icon"><i class="bi ${escapeHtml(item.icon || item.Icon || 'bi-bell')}"></i></span>
+      <span>
+        <strong>${escapeHtml(item.title || item.Title)}</strong>
+        <p>${escapeHtml(item.message || item.Message)}</p>
+      </span>`;
+    stack.appendChild(toast);
+    setTimeout(() => toast.remove(), 5200);
+  };
+
+  const render = (items) => {
+    const readIds = getReadIds();
+    const unread = items.filter(item => !readIds.has(item.id || item.Id));
+
+    if (countNode) {
+      countNode.textContent = unread.length > 99 ? '99+' : String(unread.length);
+      countNode.classList.toggle('d-none', unread.length === 0);
+    }
+
+    if (subtitleNode) {
+      subtitleNode.textContent = unread.length ? `${unread.length} unread update${unread.length === 1 ? '' : 's'}` : 'All caught up';
+    }
+
+    if (!listNode) return;
+
+    if (!items.length) {
+      listNode.innerHTML = '<div class="notification-empty"><i class="bi bi-bell-slash"></i><span>No updates yet</span></div>';
+      return;
+    }
+
+    listNode.innerHTML = items.map(item => `
+      <a class="notification-item" href="${escapeHtml(item.url || item.Url || '#')}" data-notification-id="${escapeHtml(item.id || item.Id)}">
+        <span class="notification-icon"><i class="bi ${escapeHtml(item.icon || item.Icon || 'bi-bell')}"></i></span>
+        <span class="notification-body">
+          <strong>${escapeHtml(item.title || item.Title)}</strong>
+          <p>${escapeHtml(item.message || item.Message)}</p>
+          <small>${escapeHtml(item.type || item.Type || 'Update')} • ${relativeTime(item.createdAtUtc || item.CreatedAtUtc)}</small>
+        </span>
+      </a>`).join('');
+  };
+
+  const fetchNotifications = async (announceNew = false) => {
+    try {
+      const response = await fetch('/Notifications/Summary', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        cache: 'no-store'
+      });
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      const readIds = getReadIds();
+
+      if (announceNew) {
+        items
+          .filter(item => !readIds.has(item.id || item.Id) && !latestItems.some(old => (old.id || old.Id) === (item.id || item.Id)))
+          .slice(0, 3)
+          .forEach(showToast);
+      }
+
+      latestItems = items;
+      render(items);
+    } catch {
+      // Polling should be silent if the network/API is temporarily unavailable.
+    }
+  };
+
+  toggle?.addEventListener('click', () => {
+    center.classList.toggle('open');
+    if (center.classList.contains('open')) fetchNotifications(false);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!menu || !center.classList.contains('open')) return;
+    if (!center.contains(event.target)) center.classList.remove('open');
+  });
+
+  listNode?.addEventListener('click', (event) => {
+    const item = event.target.closest('[data-notification-id]');
+    if (!item) return;
+    const readIds = getReadIds();
+    readIds.add(item.getAttribute('data-notification-id'));
+    setReadIds(readIds);
+    render(latestItems);
+  });
+
+  clearButton?.addEventListener('click', () => {
+    const readIds = getReadIds();
+    latestItems.forEach(item => readIds.add(item.id || item.Id));
+    setReadIds(readIds);
+    render(latestItems);
+  });
+
+  fetchNotifications(false);
+  setInterval(() => fetchNotifications(true), 30000);
 })();

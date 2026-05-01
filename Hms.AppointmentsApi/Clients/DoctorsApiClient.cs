@@ -18,7 +18,6 @@ public class DoctorsApiClient : IDoctorsApiClient
         DateOnly date,
         bool? isTeleConsultation)
     {
-
         var url = $"api/doctors/{doctorId}/available-slots?date={date:yyyy-MM-dd}";
 
         if (isTeleConsultation.HasValue)
@@ -26,8 +25,15 @@ public class DoctorsApiClient : IDoctorsApiClient
 
         var response = await _httpClient.GetAsync(url);
 
+        // ❌ OLD (bad)
+        // if (!response.IsSuccessStatusCode) return null;
+
+        // ✅ FIXED (proper error visibility)
         if (!response.IsSuccessStatusCode)
-            return null;
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"DoctorsApi failed: {response.StatusCode} - {error}");
+        }
 
         var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<DoctorAvailabilityResponseDto>>();
 

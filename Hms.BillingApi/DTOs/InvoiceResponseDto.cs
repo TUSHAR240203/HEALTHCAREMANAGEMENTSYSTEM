@@ -3,14 +3,16 @@ namespace Hms.BillingApi.DTOs.Billing;
 public class InvoiceResponseDto
 {
     public int Id { get; set; }
+    public string InvoiceNumber { get; set; } = default!;
     public int PatientId { get; set; }
     public string UHID { get; set; } = default!;
-    public int AppointmentId { get; set; }
+    public int? AppointmentId { get; set; }
 
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal BalanceAmount { get; set; }
     public string Status { get; set; } = default!;
+    public bool IsClosed { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
 

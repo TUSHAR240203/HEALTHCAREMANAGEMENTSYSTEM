@@ -18,7 +18,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
@@ -233,7 +233,4 @@ public class AuthController : ControllerBase
     }
 }
 
-public class UpdateProfilePhotoUrlRequestDto
-{
-    public string PhotoUrl { get; set; } = string.Empty;
-}
+

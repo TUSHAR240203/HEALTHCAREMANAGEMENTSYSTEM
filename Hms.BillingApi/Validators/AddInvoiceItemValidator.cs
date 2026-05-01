@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using Hms.BillingApi.DTOs;
+using FluentValidation;
 using Hms.BillingApi.DTOs.Billing;
 
 namespace Hms.BillingApi.Validators
@@ -8,9 +7,8 @@ namespace Hms.BillingApi.Validators
     {
         public AddInvoiceItemValidator()
         {
-            RuleFor(x => x.ServiceName).NotEmpty();
-            RuleFor(x => x.Price).GreaterThan(0);
-            RuleFor(x => x.Quantity).GreaterThan(0);
+            RuleFor(x => x.ServiceId).GreaterThan(0).WithMessage("ServiceId must reference a valid catalog entry.");
+            RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be at least 1.");
         }
     }
 }
