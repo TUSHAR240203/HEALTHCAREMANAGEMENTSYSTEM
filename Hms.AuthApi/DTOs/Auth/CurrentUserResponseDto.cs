@@ -6,6 +6,7 @@ public class CurrentUserResponseDto
 
     public int? PatientId { get; set; }
 
+
     public string? UHID { get; set; }
 
     public string? FullName { get; set; }
