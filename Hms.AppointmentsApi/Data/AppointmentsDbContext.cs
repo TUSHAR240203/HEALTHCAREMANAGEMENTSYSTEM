@@ -11,6 +11,7 @@ public class AppointmentsDbContext : DbContext
     }
 
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<AppointmentBillingOutbox> BillingOutbox => Set<AppointmentBillingOutbox>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,21 @@ public class AppointmentsDbContext : DbContext
             });
 
             entity.HasQueryFilter(x => !x.IsDeleted);
+        });
+
+        modelBuilder.Entity<AppointmentBillingOutbox>(entity =>
+        {
+            entity.ToTable("AppointmentBillingOutbox");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.UHID).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.LastError).HasMaxLength(500);
+            entity.Property(x => x.IsProcessed).HasDefaultValue(false);
+            entity.Property(x => x.RetryCount).HasDefaultValue(0);
+            entity.Property(x => x.CreatedAt).IsRequired();
+
+            // Fast polling index: background service only reads unprocessed rows
+            entity.HasIndex(x => x.IsProcessed);
         });
     }
 }

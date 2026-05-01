@@ -15,8 +15,8 @@ public class PatientsController : ControllerBase
     {
         _patientService = patientService;
     }
-    [AllowAnonymous]
 
+    [AllowAnonymous]
     [HttpPost]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -25,6 +25,7 @@ public class PatientsController : ControllerBase
         var result = await _patientService.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
+
     [AllowAnonymous]
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status200OK)]
@@ -88,10 +89,11 @@ public class PatientsController : ControllerBase
         if (!deleted) return NotFound();
         return NoContent();
     }
+
     [HttpPut("{id:int}/complete-profile")]
     public async Task<IActionResult> CompleteProfile(
-    int id,
-    [FromBody] CompletePatientProfileRequestDto request)
+        int id,
+        [FromBody] CompletePatientProfileRequestDto request)
     {
         var result = await _patientService.CompleteProfileAsync(id, request);
         if (result == null) return NotFound();
