@@ -1,3 +1,4 @@
+using Hms.DoctorsApi.Security;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hms.DoctorsApi.Clients;
@@ -41,9 +42,8 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
-builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.DoctorsApi"));
+builder.Services.AddAutoMapper(cfg => { }, Assembly.GetExecutingAssembly()); builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddDbContext<DoctorsDbContext>(options =>
@@ -66,6 +66,8 @@ builder.Services.AddHttpClient<IReceptionApiClient, ReceptionApiClient>(client =
 builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 
+builder.Services.AddHmsJwtSecurity(builder.Configuration);
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
@@ -78,16 +80,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-// Keep Doctors database schema in sync with the entity model.
-// This fixes runtime errors such as: Invalid column name AuthUserId.
-if (!string.Equals(app.Configuration["ApplyMigrationsOnStartup"], "false", StringComparison.OrdinalIgnoreCase))
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<DoctorsDbContext>();
-    db.Database.Migrate();
-}
 
 app.Run();
