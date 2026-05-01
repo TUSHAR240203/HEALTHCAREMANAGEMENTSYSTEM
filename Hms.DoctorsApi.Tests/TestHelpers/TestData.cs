@@ -2,7 +2,7 @@ using AutoMapper;
 using Hms.DoctorsApi.DTOs.Doctors;
 using Hms.DoctorsApi.Entities;
 using Hms.DoctorsApi.Mapping;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Hms.DoctorsApi.Tests.TestHelpers;
 
@@ -10,15 +10,16 @@ public static class TestData
 {
     public static IMapper CreateMapper()
     {
+        using var loggerFactory = LoggerFactory.Create(builder => { });
+
         var config = new MapperConfiguration(
             cfg => cfg.AddProfile<DoctorMappingProfile>(),
-            NullLoggerFactory.Instance
-        );
+            loggerFactory);
 
         config.AssertConfigurationIsValid();
+
         return config.CreateMapper();
     }
-
     public static CreateDoctorRequestDto CreateDoctorRequest() => new()
     {
         FullName = "Dr John Smith",
