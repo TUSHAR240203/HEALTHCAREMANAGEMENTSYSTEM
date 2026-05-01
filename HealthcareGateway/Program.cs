@@ -1,3 +1,4 @@
+using HealthcareGateway.Middleware;
 using Yarp.ReverseProxy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +22,14 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-App-Version"] = "1.0";
+    await next();
+});
 
 app.UseCors("AllowMvc");
 

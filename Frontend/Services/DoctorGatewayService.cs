@@ -81,7 +81,41 @@ namespace Frontend.Services
                 return (false, ex.Message, null);
             }
         }
+        public async Task<(bool Success, string Message, DoctorResponseDto? Data)> UpdateAsync(UpdateDoctorViewModel model)
+        {
+            var dto = new
+            {
+                authUserId = model.AuthUserId,
+                fullName = model.FullName,
+                email = model.Email,
+                phone = model.Phone,
+                gender = model.Gender,
+                qualification = model.Qualification,
+                specialization = model.Specialization,
+                departmentId = model.DepartmentId,
+                departmentName = model.DepartmentName,
+                consultationFee = model.ConsultationFee,
+                experienceYears = model.ExperienceYears,
+                licenseNumber = model.LicenseNumber,
+                roomNumber = model.RoomNumber,
+                supportsTeleConsultation = model.SupportsTeleConsultation,
+                photoUrl = model.PhotoUrl,
+                isActive = model.IsActive
+            };
 
+            try
+            {
+                var data = await PutAsync<object, DoctorResponseDto>(
+                    $"gateway/doctors/{model.Id}",
+                    dto);
+
+                return (true, "Doctor profile updated successfully.", data);
+            }
+            catch (ApiException ex)
+            {
+                return (false, ex.Message, null);
+            }
+        }
         public async Task<DoctorAvailabilityResponseDto?> GetAvailabilityAsync(
             int doctorId,
             DateOnly date,

@@ -1,5 +1,6 @@
 using Frontend.Infrastructure;
 using Frontend.Models.Api;
+using Frontend.Models.Doctors;
 using Frontend.Models.ViewModels;
 using Frontend.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -29,10 +30,28 @@ public class AppointmentsController : Controller
         if (UserIsPatient())
         {
             var patientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
-            if (patientId > 0) return RedirectToAction(nameof(ByPatient), new { patientId });
+            if (patientId > 0)
+                return RedirectToAction(nameof(ByPatient), new { patientId });
         }
 
+        if (UserIsDoctor())
+        {
+            var doctor = await GetLoggedInDoctorAsync();
+
+            if (doctor == null)
+            {
+                TempData["Error"] = "Your login is not linked to a doctor profile yet. Please ask admin to link your doctor profile.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            return RedirectToAction(nameof(ByDoctor), new { doctorId = doctor.Id });
+        }
+
+        search.PageNumber = search.PageNumber <= 0 ? 1 : search.PageNumber;
+        search.PageSize = 5;
+
         var model = new AppointmentListViewModel { Search = search };
+
         try
         {
             model.Result = await _appointmentApiService.SearchAsync(search);
@@ -43,6 +62,7 @@ public class AppointmentsController : Controller
         {
             model.ErrorMessage = ex.Message;
         }
+
         return View(model);
     }
 
@@ -100,10 +120,7 @@ public class AppointmentsController : Controller
                 DoctorName = doctor.FullName,
                 DepartmentId = doctor.DepartmentId,
                 DepartmentName = doctor.DepartmentName,
-
-                // IMPORTANT: this uses the selected calendar date
                 AppointmentDate = model.AppointmentDate,
-
                 SlotStartTime = start,
                 SlotEndTime = end,
                 VisitType = model.VisitType,
@@ -163,20 +180,37 @@ public class AppointmentsController : Controller
         }
 
         if (!TryParseSlot(model.SelectedSlot, out var start, out var end))
+        {
             ModelState.AddModelError(nameof(model.SelectedSlot), "Please select a valid time slot.");
+        }
 
         var hydrated = await BuildPatientBookingModelAsync(model.DoctorId, model.AppointmentDate, model.SelectedSlot);
         model.Doctors = hydrated.Doctors;
         model.Slots = hydrated.Slots;
 
         var doctor = model.Doctors.FirstOrDefault(d => d.Id == model.DoctorId);
-        if (doctor == null) ModelState.AddModelError(nameof(model.DoctorId), "Please select a valid doctor.");
-        if (string.IsNullOrWhiteSpace(model.UHID)) ModelState.AddModelError(string.Empty, "UHID is missing. Please contact reception.");
+
+        if (doctor == null)
+        {
+            ModelState.AddModelError(nameof(model.DoctorId), "Please select a valid doctor.");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.UHID))
+        {
+            ModelState.AddModelError(string.Empty, "UHID is missing. Please contact reception.");
+        }
 
         var chosenSlot = model.Slots.FirstOrDefault(s => s.Value == model.SelectedSlot);
-        if (chosenSlot?.IsBooked == true) ModelState.AddModelError(nameof(model.SelectedSlot), "This slot was just booked. Please choose another slot.");
 
-        if (!ModelState.IsValid) return View(model);
+        if (chosenSlot?.IsBooked == true)
+        {
+            ModelState.AddModelError(nameof(model.SelectedSlot), "This slot was just booked. Please choose another slot.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
 
         try
         {
@@ -198,6 +232,7 @@ public class AppointmentsController : Controller
 
             var created = await _appointmentApiService.CreateAsync(request);
             TempData["Success"] = $"Appointment #{created.Id} booked successfully.";
+
             return RedirectToAction(nameof(ByPatient), new { patientId = model.PatientId });
         }
         catch (ApiException ex)
@@ -213,10 +248,33 @@ public class AppointmentsController : Controller
         try
         {
             var appointment = await _appointmentApiService.GetByIdAsync(id);
+
             if (appointment == null)
             {
                 TempData["ErrorMessage"] = "Appointment not found.";
                 return RedirectToAction(nameof(Index));
+            }
+
+            if (UserIsDoctor())
+            {
+                var loggedInDoctor = await GetLoggedInDoctorAsync();
+
+                if (loggedInDoctor == null || appointment.DoctorId != loggedInDoctor.Id)
+                {
+                    TempData["Error"] = "You can only view your own appointments.";
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+
+            if (UserIsPatient())
+            {
+                var sessionPatientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
+
+                if (sessionPatientId > 0 && appointment.PatientId != sessionPatientId)
+                {
+                    TempData["Error"] = "You can only view your own appointments.";
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
             var chosenRescheduleDate = rescheduleDate ?? DateOnly.FromDateTime(DateTime.Today);
@@ -224,6 +282,7 @@ public class AppointmentsController : Controller
             var selectedRescheduleDoctorId = rescheduleDoctorId.GetValueOrDefault(appointment.DoctorId);
             var doctor = await _doctorGatewayService.GetByIdAsync(appointment.DoctorId);
             var patient = await _patientGatewayService.GetByIdAsync(appointment.PatientId);
+
             var model = new AppointmentDetailsViewModel
             {
                 Appointment = appointment,
@@ -239,7 +298,10 @@ public class AppointmentsController : Controller
                     NewSlotStartTime = appointment.SlotStartTime,
                     NewSlotEndTime = appointment.SlotEndTime
                 },
-                FreeSlots = await BuildSlotsAsync(selectedRescheduleDoctorId, chosenRescheduleDate, selectedRescheduleDoctorId == appointment.DoctorId ? appointment.Id : null)
+                FreeSlots = await BuildSlotsAsync(
+                    selectedRescheduleDoctorId,
+                    chosenRescheduleDate,
+                    selectedRescheduleDoctorId == appointment.DoctorId ? appointment.Id : null)
             };
 
             return View(model);
@@ -273,6 +335,7 @@ public class AppointmentsController : Controller
         {
             TempData["ErrorMessage"] = ex.Message;
         }
+
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -289,6 +352,7 @@ public class AppointmentsController : Controller
         {
             TempData["ErrorMessage"] = ex.Message;
         }
+
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -306,6 +370,7 @@ public class AppointmentsController : Controller
         {
             TempData["ErrorMessage"] = ex.Message;
         }
+
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -315,7 +380,11 @@ public class AppointmentsController : Controller
         if (UserIsPatient())
         {
             var sessionPatientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
-            if (sessionPatientId > 0) patientId = sessionPatientId;
+
+            if (sessionPatientId > 0)
+            {
+                patientId = sessionPatientId;
+            }
         }
 
         try
@@ -334,9 +403,23 @@ public class AppointmentsController : Controller
     [HttpGet]
     public async Task<IActionResult> ByDoctor(int doctorId)
     {
+        if (UserIsDoctor())
+        {
+            var doctor = await GetLoggedInDoctorAsync();
+
+            if (doctor == null)
+            {
+                TempData["Error"] = "Your login is not linked to a doctor profile yet. Please ask admin to link your doctor profile.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            doctorId = doctor.Id;
+        }
+
         try
         {
             var appointments = await _appointmentApiService.GetByDoctorIdAsync(doctorId);
+            ViewBag.DoctorId = doctorId;
             return View(appointments);
         }
         catch (ApiException ex)
@@ -347,15 +430,12 @@ public class AppointmentsController : Controller
     }
 
     private async Task<AdminAppointmentBookingViewModel> BuildAdminBookingModelAsync(
-     int? doctorId,
-     DateOnly? appointmentDate,
-     string? selectedSlot)
+        int? doctorId,
+        DateOnly? appointmentDate,
+        string? selectedSlot)
     {
         var doctors = await _doctorGatewayService.GetAllAsync(true);
-
-        // IMPORTANT: only default to today when no date was selected
         var date = appointmentDate ?? DateOnly.FromDateTime(DateTime.Today);
-
         var selectedDoctorId = doctorId.GetValueOrDefault();
 
         if (selectedDoctorId <= 0 && doctors.Count > 0)
@@ -375,14 +455,21 @@ public class AppointmentsController : Controller
         };
     }
 
-    private async Task<PatientAppointmentBookingViewModel> BuildPatientBookingModelAsync(int? doctorId, DateOnly? appointmentDate, string? selectedSlot)
+    private async Task<PatientAppointmentBookingViewModel> BuildPatientBookingModelAsync(
+        int? doctorId,
+        DateOnly? appointmentDate,
+        string? selectedSlot)
     {
         var patientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
         var uhid = HttpContext.Session.GetString("UHID") ?? string.Empty;
-        var doctors = (await _doctorGatewayService.GetAllAsync(true));
+        var doctors = await _doctorGatewayService.GetAllAsync(true);
         var date = appointmentDate ?? DateOnly.FromDateTime(DateTime.Today);
         var selectedDoctorId = doctorId.GetValueOrDefault();
-        if (selectedDoctorId <= 0 && doctors.Count > 0) selectedDoctorId = doctors[0].Id;
+
+        if (selectedDoctorId <= 0 && doctors.Count > 0)
+        {
+            selectedDoctorId = doctors[0].Id;
+        }
 
         if (patientId > 0 && string.IsNullOrWhiteSpace(uhid))
         {
@@ -398,14 +485,16 @@ public class AppointmentsController : Controller
             AppointmentDate = date,
             SelectedSlot = selectedSlot ?? string.Empty,
             Doctors = doctors,
-            Slots = selectedDoctorId > 0 ? await BuildSlotsAsync(selectedDoctorId, date) : new List<PatientSlotOption>()
+            Slots = selectedDoctorId > 0
+                ? await BuildSlotsAsync(selectedDoctorId, date)
+                : new List<PatientSlotOption>()
         };
     }
 
     private async Task<List<PatientSlotOption>> BuildSlotsAsync(
-    int doctorId,
-    DateOnly appointmentDate,
-    int? ignoreAppointmentId = null)
+        int doctorId,
+        DateOnly appointmentDate,
+        int? ignoreAppointmentId = null)
     {
         try
         {
@@ -452,10 +541,46 @@ public class AppointmentsController : Controller
     {
         start = default;
         end = default;
-        if (string.IsNullOrWhiteSpace(selectedSlot)) return false;
-        var parts = selectedSlot.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return parts.Length == 2 && TimeOnly.TryParse(parts[0], out start) && TimeOnly.TryParse(parts[1], out end);
+
+        if (string.IsNullOrWhiteSpace(selectedSlot))
+        {
+            return false;
+        }
+
+        var parts = selectedSlot.Split(
+            '|',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return parts.Length == 2
+            && TimeOnly.TryParse(parts[0], out start)
+            && TimeOnly.TryParse(parts[1], out end);
     }
 
-    private bool UserIsPatient() => string.Equals(HttpContext.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase);
+    private bool UserIsPatient()
+    {
+        return string.Equals(
+            HttpContext.Session.GetString("Role"),
+            "Patient",
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool UserIsDoctor()
+    {
+        return string.Equals(
+            HttpContext.Session.GetString("Role"),
+            "Doctor",
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<DoctorResponseDto?> GetLoggedInDoctorAsync()
+    {
+        var authUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+
+        if (authUserId <= 0)
+        {
+            return null;
+        }
+
+        return await _doctorGatewayService.GetByAuthUserIdAsync(authUserId);
+    }
 }

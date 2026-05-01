@@ -89,10 +89,59 @@ namespace Frontend.Models.Doctors
         public IFormFile? PhotoFile { get; set; }
     }
 
-    public class UpdateDoctorViewModel : CreateDoctorViewModel
+    public class UpdateDoctorViewModel
     {
         public int Id { get; set; }
-        public bool IsActive { get; set; }
+
+        public int? AuthUserId { get; set; }
+
+        [Required, Display(Name = "Full Name")]
+        public string FullName { get; set; } = string.Empty;
+
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [Required]
+        public string Phone { get; set; } = string.Empty;
+
+        [Required]
+        public string Gender { get; set; } = "Male";
+
+        [Required]
+        public string Qualification { get; set; } = string.Empty;
+
+        [Required]
+        public string Specialization { get; set; } = string.Empty;
+
+        [Display(Name = "Department ID")]
+        public int DepartmentId { get; set; } = 1;
+
+        [Required, Display(Name = "Department Name")]
+        public string DepartmentName { get; set; } = string.Empty;
+
+        [Display(Name = "Consultation Fee")]
+        public decimal ConsultationFee { get; set; }
+
+        [Display(Name = "Experience Years")]
+        public int ExperienceYears { get; set; }
+
+        [Required, Display(Name = "License Number")]
+        public string LicenseNumber { get; set; } = string.Empty;
+
+        [Display(Name = "Room Number")]
+        public string? RoomNumber { get; set; }
+
+        [Display(Name = "Tele-consultation")]
+        public bool SupportsTeleConsultation { get; set; } = true;
+
+        [Display(Name = "Active")]
+        public bool IsActive { get; set; } = true;
+
+        [Display(Name = "Photo URL")]
+        public string? PhotoUrl { get; set; }
+
+        [Display(Name = "Upload Photo")]
+        public IFormFile? PhotoFile { get; set; }
     }
 }
 

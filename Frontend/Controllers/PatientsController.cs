@@ -16,8 +16,11 @@ namespace Frontend.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string? query, string? uhid, string? mobileNumber)
+        public async Task<IActionResult> Index(string? query, string? uhid, string? mobileNumber, int page = 1)
         {
+            const int pageSize = 5;
+            page = Math.Max(1, page);
+
             var model = new PatientSearchViewModel
             {
                 Query = query,
@@ -35,19 +38,35 @@ namespace Frontend.Controllers
                     MobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? null : mobileNumber.Trim()
                 };
 
-                var patients = await _patientGatewayService.SearchAsync(request);
+                var patients = await _patientGatewayService.SearchAsync(request)
+                    ?? new List<PatientResponseDto>();
 
-                model.Results = patients ?? new List<PatientResponseDto>();
-
-                foreach (var patient in model.Results)
+                foreach (var patient in patients)
                 {
                     NormalizePatientId(patient);
                 }
+
+                var totalItems = patients.Count;
+                var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
+
+                if (page > totalPages)
+                {
+                    page = totalPages;
+                }
+
+                model.Results = patients
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
 
                 ViewBag.HasSearched =
                     !string.IsNullOrWhiteSpace(query) ||
                     !string.IsNullOrWhiteSpace(uhid) ||
                     !string.IsNullOrWhiteSpace(mobileNumber);
+                ViewBag.CurrentPage = page;
+                ViewBag.PageSize = pageSize;
+                ViewBag.TotalPages = totalPages;
+                ViewBag.TotalItems = totalItems;
 
                 return View(model);
             }
@@ -56,6 +75,10 @@ namespace Frontend.Controllers
                 TempData["Error"] = ex.Message;
                 model.Results = new List<PatientResponseDto>();
                 ViewBag.HasSearched = false;
+                ViewBag.CurrentPage = 1;
+                ViewBag.PageSize = pageSize;
+                ViewBag.TotalPages = 1;
+                ViewBag.TotalItems = 0;
 
                 return View(model);
             }
@@ -69,10 +92,10 @@ namespace Frontend.Controllers
             {
                 query = model.Query,
                 uhid = model.UHID,
-                mobileNumber = model.MobileNumber
+                mobileNumber = model.MobileNumber,
+                page = 1
             });
         }
-
         [HttpGet]
         public IActionResult Create()
         {
