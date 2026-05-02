@@ -1,8 +1,8 @@
 using Hms.ReceptionApi.DTOs;
 using Hms.ReceptionApi.DTOs.Common;
-//using Hms.ReceptionApi.DTOs.Appointments;
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Interfaces.Clients;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -11,24 +11,34 @@ namespace Hms.ReceptionApi.Clients;
 public class AppointmentsApiClient : IAppointmentsApiClient
 {
     private readonly HttpClient _httpClient;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public AppointmentsApiClient(HttpClient httpClient)
+    public AppointmentsApiClient(
+        HttpClient httpClient,
+        IHttpContextAccessor httpContextAccessor)
     {
         _httpClient = httpClient;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<BookAppointmentResponseDto> BookAppointmentAsync(
         AppointmentCreateRequestDto request)
     {
-        var response = await _httpClient.PostAsJsonAsync(
-            "/api/appointments",
-            request);
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "api/appointments"
+        );
+
+        AddBearerToken(httpRequest);
+        httpRequest.Content = JsonContent.Create(request);
+
+        using var response = await _httpClient.SendAsync(httpRequest);
 
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
             throw new InvalidOperationException(
-                $"Failed to book appointment. Details: {error}");
+                $"Failed to book appointment. Status: {(int)response.StatusCode}. Details: {error}");
         }
 
         var wrapper =
@@ -47,15 +57,21 @@ public class AppointmentsApiClient : IAppointmentsApiClient
         int appointmentId,
         RescheduleAppointmentRequestDto request)
     {
-        var response = await _httpClient.PutAsJsonAsync(
-            $"/api/appointments/{appointmentId}/reschedule",
-            request);
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"api/appointments/{appointmentId}/reschedule"
+        );
+
+        AddBearerToken(httpRequest);
+        httpRequest.Content = JsonContent.Create(request);
+
+        using var response = await _httpClient.SendAsync(httpRequest);
 
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
             throw new InvalidOperationException(
-                $"Failed to reschedule appointment. Details: {error}");
+                $"Failed to reschedule appointment. Status: {(int)response.StatusCode}. Details: {error}");
         }
 
         var wrapper =
@@ -74,15 +90,21 @@ public class AppointmentsApiClient : IAppointmentsApiClient
         int appointmentId,
         CancelAppointmentRequestDto request)
     {
-        var response = await _httpClient.PutAsJsonAsync(
-            $"/api/appointments/{appointmentId}/cancel",
-            request);
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"api/appointments/{appointmentId}/cancel"
+        );
+
+        AddBearerToken(httpRequest);
+        httpRequest.Content = JsonContent.Create(request);
+
+        using var response = await _httpClient.SendAsync(httpRequest);
 
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
             throw new InvalidOperationException(
-                $"Failed to cancel appointment. Details: {error}");
+                $"Failed to cancel appointment. Status: {(int)response.StatusCode}. Details: {error}");
         }
 
         var wrapper =
@@ -97,11 +119,18 @@ public class AppointmentsApiClient : IAppointmentsApiClient
         return wrapper.Data;
     }
 
-    public async Task<AppointmentSearchResponseDto> SearchAsync(AppointmentSearchRequestDto request)
+    public async Task<AppointmentSearchResponseDto> SearchAsync(
+        AppointmentSearchRequestDto request)
     {
-        var response = await _httpClient.PostAsJsonAsync(
-            "api/appointments/search",
-            request);
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "api/appointments/search"
+        );
+
+        AddBearerToken(httpRequest);
+        httpRequest.Content = JsonContent.Create(request);
+
+        using var response = await _httpClient.SendAsync(httpRequest);
 
         var body = await response.Content.ReadAsStringAsync();
 
@@ -116,26 +145,44 @@ public class AppointmentsApiClient : IAppointmentsApiClient
             return new AppointmentSearchResponseDto();
         }
 
-        var options = new System.Text.Json.JsonSerializerOptions
+        var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         };
 
-        using var document = System.Text.Json.JsonDocument.Parse(body);
+        using var document = JsonDocument.Parse(body);
         var root = document.RootElement;
 
-        // Case 1: { success, message, data: { appointments: [...] } }
         if (root.TryGetProperty("data", out var data))
         {
-            if (data.ValueKind == System.Text.Json.JsonValueKind.Null)
+            if (data.ValueKind == JsonValueKind.Null)
                 return new AppointmentSearchResponseDto();
 
             return data.Deserialize<AppointmentSearchResponseDto>(options)
                    ?? new AppointmentSearchResponseDto();
         }
 
-        // Case 2: { appointments: [...] }
         return root.Deserialize<AppointmentSearchResponseDto>(options)
                ?? new AppointmentSearchResponseDto();
+    }
+
+    private void AddBearerToken(HttpRequestMessage request)
+    {
+        var authHeader =
+            _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+
+        if (string.IsNullOrWhiteSpace(authHeader))
+            return;
+
+        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            var token = authHeader["Bearer ".Length..].Trim();
+
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
     }
 }

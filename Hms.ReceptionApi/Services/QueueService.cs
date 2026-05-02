@@ -124,10 +124,23 @@ public class QueueService : IQueueService
                 UPDATE a
                 SET 
                     a.Status = 4,
-                    a.CompletionNotes = COALESCE(a.CompletionNotes, 'Completed from queue sync')
+                    a.CompletionNotes = COALESCE(a.CompletionNotes, 'Completed from queue sync'),
+                    a.UpdatedAtUtc = SYSUTCDATETIME()
                 FROM [Appointments-Healthcare].dbo.Appointments a
                 WHERE a.Id = {token.AppointmentId}
-                  AND a.Status <> 4
+                  AND a.Status <> 4;
+
+                INSERT INTO [Appointments-Healthcare].dbo.AppointmentBillingOutbox
+                    (AppointmentId, PatientId, DoctorId, UHID, IsProcessed, RetryCount, CreatedAt)
+                SELECT
+                    a.Id, a.PatientId, a.DoctorId, a.UHID, 0, 0, SYSUTCDATETIME()
+                FROM [Appointments-Healthcare].dbo.Appointments a
+                WHERE a.Id = {token.AppointmentId}
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM [Appointments-Healthcare].dbo.AppointmentBillingOutbox o
+                      WHERE o.AppointmentId = a.Id
+                  );
             ");
         }
 

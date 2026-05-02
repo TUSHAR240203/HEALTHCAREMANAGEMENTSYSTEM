@@ -14,16 +14,19 @@ public class AppointmentService : IAppointmentService
     private readonly IMapper _mapper;
     private readonly IDoctorsApiClient _doctorsApiClient;
     private readonly IOutboxRepository _outboxRepository;
+    private readonly IBillingApiClient _billingApiClient;
 
     public AppointmentService(
     IAppointmentRepository appointmentRepository,
     IDoctorsApiClient doctorsApiClient,
     IOutboxRepository outboxRepository,
+    IBillingApiClient billingApiClient,
     IMapper mapper)
     {
         _appointmentRepository = appointmentRepository;
         _doctorsApiClient = doctorsApiClient;
         _outboxRepository = outboxRepository;
+        _billingApiClient = billingApiClient;
         _mapper = mapper;
     }
 
@@ -189,9 +192,11 @@ public class AppointmentService : IAppointmentService
         if (appointment.Status == AppointmentStatus.Cancelled)
             throw new InvalidOperationException("Cancelled appointment cannot be completed.");
 
-        // Idempotent: if already completed, skip DB update but still return the appointment.
-        // BillingApi is also idempotent so no duplicate invoice will be created.
-        if (appointment.Status != AppointmentStatus.Completed)
+        // Idempotent: only the first transition to Completed creates a billing-outbox record.
+        // BillingApi is also idempotent by AppointmentId, so retries cannot create duplicate invoices.
+        var wasAlreadyCompleted = appointment.Status == AppointmentStatus.Completed;
+
+        if (!wasAlreadyCompleted)
         {
             appointment.Status = AppointmentStatus.Completed;
             appointment.CompletionNotes = NormalizeNullable(request.Notes);
@@ -199,20 +204,38 @@ public class AppointmentService : IAppointmentService
 
             await _appointmentRepository.UpdateAsync(appointment);
             await _appointmentRepository.SaveChangesAsync();
-        }
 
-        // ── Write outbox record (guaranteed delivery via background processor) ─
-        // This is transactional with the appointment update — both are in the
-        // same SaveChanges call, so the outbox record is never lost.
-        await _outboxRepository.AddAsync(new AppointmentBillingOutbox
-        {
-            AppointmentId = appointment.Id,
-            PatientId = appointment.PatientId,
-            DoctorId = appointment.DoctorId,
-            UHID = appointment.UHID,
-            CreatedAt = DateTime.UtcNow
-        });
-        await _outboxRepository.SaveChangesAsync();
+            var billingOutbox = new AppointmentBillingOutbox
+            {
+                AppointmentId = appointment.Id,
+                PatientId = appointment.PatientId,
+                DoctorId = appointment.DoctorId,
+                UHID = appointment.UHID,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _outboxRepository.AddAsync(billingOutbox);
+            await _outboxRepository.SaveChangesAsync();
+
+            // Try to create the bill immediately so the frontend can show it right after completion.
+            // If BillingApi/DoctorsApi is temporarily unavailable, the outbox record stays pending
+            // and OutboxProcessorService will retry in the background.
+            try
+            {
+                await _billingApiClient.NotifyAppointmentCompletedAsync(
+                    appointment.Id,
+                    appointment.PatientId,
+                    appointment.UHID,
+                    appointment.DoctorId);
+
+                await _outboxRepository.MarkProcessedAsync(billingOutbox.Id);
+                await _outboxRepository.SaveChangesAsync();
+            }
+            catch
+            {
+                // Keep appointment completion successful. The pending outbox record will retry.
+            }
+        }
 
         return _mapper.Map<AppointmentResponseDto>(appointment);
     }

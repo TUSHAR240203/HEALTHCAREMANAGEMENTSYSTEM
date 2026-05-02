@@ -23,7 +23,7 @@
     <div>
         <h1>Invoice Details</h1>
         <p class="page-subtitle">
-            Review invoice totals, line items, and payment history for invoice #@Model.Id.
+            Review invoice totals, line items, and payment history for @(string.IsNullOrWhiteSpace(Model.InvoiceNumber) ? $"invoice #{Model.Id}" : Model.InvoiceNumber).
         </p>
     </div>
     @if (canManageBilling)
@@ -60,6 +60,11 @@
             <div class="info-card">
                 <span class="info-label">Invoice Id</span>
                 <span class="info-value">@Model.Id</span>
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">Invoice Number</span>
+                <span class="info-value">@(string.IsNullOrWhiteSpace(Model.InvoiceNumber) ? "N/A" : Model.InvoiceNumber)</span>
             </div>
 
             <div class="info-card">

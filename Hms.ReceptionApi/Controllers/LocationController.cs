@@ -1,10 +1,12 @@
 ﻿using Hms.ReceptionApi.Interfaces.Clients;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hms.ReceptionApi.Controllers;
 
 [ApiController]
 [Route("api/reception/locations")]
+[AllowAnonymous]
 public class LocationController : ControllerBase
 {
     private readonly ILocationApiClient _locationApiClient;
@@ -22,7 +24,9 @@ public class LocationController : ControllerBase
     }
 
     [HttpGet("cities")]
-    public async Task<IActionResult> GetCities([FromQuery] string country = "India", [FromQuery] string state = "")
+    public async Task<IActionResult> GetCities(
+        [FromQuery] string country = "India",
+        [FromQuery] string state = "")
     {
         if (string.IsNullOrWhiteSpace(state))
             return BadRequest(new { message = "State is required." });

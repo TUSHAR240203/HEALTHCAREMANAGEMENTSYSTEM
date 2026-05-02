@@ -9,6 +9,7 @@ namespace Hms.DoctorsApi.Controllers;
 
 [ApiController]
 [Route("api/doctors")]
+[Authorize]
 public class DoctorsController : ControllerBase
 {
     private readonly IDoctorService _doctorService;
@@ -19,6 +20,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateDoctorRequestDto request)
     {
         var result = await _doctorService.CreateAsync(request);
@@ -26,6 +28,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Receptionist,Doctor,Patient")]
     public async Task<IActionResult> GetAll([FromQuery] bool? isActive)
     {
         var result = await _doctorService.SearchAsync(new DoctorSearchRequestDto { IsActive = isActive });
@@ -33,6 +36,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("by-auth-user/{authUserId:int}")]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> GetByAuthUserId(int authUserId)
     {
         var result = await _doctorService.GetByAuthUserIdAsync(authUserId);
@@ -41,8 +45,9 @@ public class DoctorsController : ControllerBase
             ? NotFound(Fail("Doctor profile is not linked to this login account."))
             : Ok(Wrap(result, "Doctor profile fetched successfully."));
     }
-    [AllowAnonymous]
+
     [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor,Patient")]
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _doctorService.GetByIdAsync(id);
@@ -50,10 +55,11 @@ public class DoctorsController : ControllerBase
         if (result == null)
             return NotFound(Fail("Doctor not found."));
 
-        return Ok(result); // ✅ IMPORTANT FIX
+        return Ok(result);
     }
 
     [HttpPost("search")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor,Patient")]
     public async Task<IActionResult> Search([FromBody] DoctorSearchRequestDto request)
     {
         var result = await _doctorService.SearchAsync(request);
@@ -61,6 +67,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateDoctorRequestDto request)
     {
         var result = await _doctorService.UpdateAsync(id, request);
@@ -68,6 +75,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var deleted = await _doctorService.SoftDeleteAsync(id);
@@ -75,6 +83,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{doctorId:int}/schedules")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor,Patient")]
     public async Task<IActionResult> GetSchedules(int doctorId)
     {
         var result = await _doctorService.GetSchedulesAsync(doctorId);
@@ -82,6 +91,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPost("{doctorId:int}/schedules")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AddSchedule(int doctorId, [FromBody] CreateDoctorScheduleRequestDto request)
     {
         var result = await _doctorService.AddScheduleAsync(doctorId, request);
@@ -89,6 +99,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpDelete("{doctorId:int}/schedules/{scheduleId:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteSchedule(int doctorId, int scheduleId)
     {
         var deleted = await _doctorService.DeleteScheduleAsync(doctorId, scheduleId);
@@ -96,6 +107,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("leaves")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> GetAllLeaves([FromQuery] string? status)
     {
         var result = await _doctorService.GetLeavesAsync(status);
@@ -103,6 +115,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPut("leaves/{leaveId:int}/approve")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ApproveLeave(int leaveId, [FromQuery] string? reviewedBy)
     {
         var result = await _doctorService.ApproveLeaveAsync(leaveId, reviewedBy);
@@ -110,6 +123,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPut("leaves/{leaveId:int}/reject")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> RejectLeave(int leaveId, [FromQuery] string? reviewedBy)
     {
         var result = await _doctorService.RejectLeaveAsync(leaveId, reviewedBy);
@@ -117,6 +131,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{doctorId:int}/leaves")]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> GetLeaves(int doctorId)
     {
         var result = await _doctorService.GetLeavesAsync(doctorId);
@@ -124,6 +139,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPost("{doctorId:int}/leaves")]
+    [Authorize(Roles = "Doctor")]
     public async Task<IActionResult> AddLeave(int doctorId, [FromBody] CreateDoctorLeaveRequestDto request)
     {
         var result = await _doctorService.AddLeaveAsync(doctorId, request);
@@ -131,18 +147,19 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpDelete("{doctorId:int}/leaves/{leaveId:int}")]
+    [Authorize(Roles = "Admin,Doctor")]
     public async Task<IActionResult> DeleteLeave(int doctorId, int leaveId)
     {
         var deleted = await _doctorService.DeleteLeaveAsync(doctorId, leaveId);
         return deleted ? Ok(Wrap<object?>(null, "Doctor leave deleted successfully.")) : NotFound(Fail("Doctor leave not found."));
     }
 
-    [AllowAnonymous]
     [HttpGet("{doctorId:int}/available-slots")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAvailableSlots(
-    int doctorId,
-    [FromQuery] DateOnly date,
-    [FromQuery] bool? isTeleConsultation)
+        int doctorId,
+        [FromQuery] DateOnly date,
+        [FromQuery] bool? isTeleConsultation)
     {
         var result = await _doctorService.GetAvailableSlotsAsync(doctorId, date, isTeleConsultation);
 
@@ -150,6 +167,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{doctorId:int}/appointments/today")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     public async Task<IActionResult> GetTodayAppointments(int doctorId)
     {
         var result = await _doctorService.GetTodayAppointmentsAsync(doctorId);
@@ -157,6 +175,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{doctorId:int}/appointments/upcoming")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     public async Task<IActionResult> GetUpcomingAppointments(int doctorId)
     {
         var result = await _doctorService.GetUpcomingAppointmentsAsync(doctorId);
@@ -164,6 +183,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{doctorId:int}/queue/current")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     public async Task<IActionResult> GetCurrentQueue(int doctorId, [FromQuery] DateOnly date)
     {
         var result = await _doctorService.GetCurrentQueueAsync(doctorId, date);
@@ -171,6 +191,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPut("{doctorId:int}/appointments/{appointmentId:int}/start")]
+    [Authorize(Roles = "Doctor")]
     public async Task<IActionResult> StartAppointment(int doctorId, int appointmentId)
     {
         var result = await _doctorService.StartAppointmentAsync(doctorId, appointmentId);
@@ -178,6 +199,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPut("{doctorId:int}/appointments/{appointmentId:int}/complete")]
+    [Authorize(Roles = "Doctor")]
     public async Task<IActionResult> CompleteAppointment(int doctorId, int appointmentId, [FromBody] CompleteAppointmentRequestDto request)
     {
         var result = await _doctorService.CompleteAppointmentAsync(doctorId, appointmentId, request);
@@ -185,6 +207,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPut("{doctorId:int}/appointments/{appointmentId:int}/notes")]
+    [Authorize(Roles = "Doctor")]
     public async Task<IActionResult> AddAppointmentNotes(int doctorId, int appointmentId, [FromBody] UpdateAppointmentNotesRequestDto request)
     {
         var result = await _doctorService.AddAppointmentNotesAsync(doctorId, appointmentId, request);

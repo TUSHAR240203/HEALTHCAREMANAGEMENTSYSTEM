@@ -1,36 +1,10 @@
 (function () {
   const root = document.documentElement;
 
-  const setThemeButtonState = (theme) => {
-    document.querySelectorAll('[data-theme-toggle]').forEach(button => {
-      const icon = button.querySelector('i');
-      const primary = button.querySelector('[data-theme-toggle-primary]');
-      const secondary = button.querySelector('[data-theme-toggle-secondary]');
-
-      if (icon) icon.className = theme === 'powder' ? 'bi bi-flower1' : 'bi bi-heart-pulse-fill';
-      if (primary) primary.textContent = theme === 'powder' ? 'Powder' : 'Default';
-      if (secondary) secondary.textContent = theme === 'powder' ? 'Pink Care' : 'Teal Care';
-      button.setAttribute('aria-label', theme === 'powder' ? 'Switch to default teal theme' : 'Switch to powder pink theme');
-    });
-  };
-
-  const normalizeTheme = (theme) => theme === 'powder' ? 'powder' : 'default';
-
-  const applyTheme = (theme) => {
-    const nextTheme = normalizeTheme(theme);
-    root.setAttribute('data-theme', nextTheme);
-    localStorage.setItem('hms-theme', nextTheme);
-    setThemeButtonState(nextTheme);
-  };
-
-  applyTheme(localStorage.getItem('hms-theme') || 'default');
-
-  document.querySelectorAll('[data-theme-toggle]').forEach(button => {
-    button.addEventListener('click', () => {
-      const next = root.getAttribute('data-theme') === 'powder' ? 'default' : 'powder';
-      applyTheme(next);
-    });
-  });
+  // Teal is the only supported theme. Clear any older saved powder/vampire/dark value
+  // so existing browsers always return to the normal teal UI.
+  root.setAttribute('data-theme', 'default');
+  try { localStorage.setItem('hms-theme', 'default'); } catch (_) { }
 
   document.querySelectorAll('[data-sidebar-toggle]').forEach(button => {
     button.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
@@ -43,7 +17,7 @@
     if (sidebar && !sidebar.contains(event.target) && !toggle) document.body.classList.remove('sidebar-open');
   });
 
-  const reactiveNodes = document.querySelectorAll('.theme-stage .teal-blob, .theme-stage .teal-light, .theme-stage .powder-glow, .theme-stage .powder-orb, .theme-stage .powder-ribbon');
+  const reactiveNodes = document.querySelectorAll('.theme-stage .teal-blob, .theme-stage .teal-light');
   if (reactiveNodes.length) {
     window.addEventListener('mousemove', (event) => {
       const x = (event.clientX / window.innerWidth) - 0.5;
