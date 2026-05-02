@@ -77,6 +77,7 @@ builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 
 // Background service
 builder.Services.AddHostedService<OutboxProcessorService>();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddHmsJwtSecurity(builder.Configuration);
 

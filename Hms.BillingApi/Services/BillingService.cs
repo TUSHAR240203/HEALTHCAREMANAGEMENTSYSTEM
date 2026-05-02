@@ -34,76 +34,105 @@ public class BillingService : IBillingService
 
     public async Task<InvoiceResponseDto> CreateFromAppointmentAsync(CreateFromAppointmentRequestDto dto)
     {
-        // ── Idempotency: same appointment → same invoice ──────────────────────
+        if (dto.AppointmentId <= 0)
+            throw new ArgumentException("Invalid appointment id.");
+
+        if (dto.PatientId <= 0)
+            throw new ArgumentException("Invalid patient id.");
+
+        if (string.IsNullOrWhiteSpace(dto.UHID))
+            throw new ArgumentException("UHID is required.");
+
+        var consultationFee = await ResolveConsultationFeeAsync(dto.DoctorId);
+
         var existing = await _repo.GetByAppointmentIdAsync(dto.AppointmentId);
+
         if (existing != null)
         {
-            _logger.LogInformation("Invoice already exists for AppointmentId={AppointmentId} → returning InvoiceId={InvoiceId}",
-                dto.AppointmentId, existing.Id);
+            var hasConsultationItem = existing.Items != null &&
+                                      existing.Items.Any(x =>
+                                          string.Equals(x.Type, "Consultation", StringComparison.OrdinalIgnoreCase) ||
+                                          string.Equals(x.ServiceName, "Consultation Fee", StringComparison.OrdinalIgnoreCase));
+
+            if (!hasConsultationItem)
+            {
+                var item = new InvoiceItem
+                {
+                    InvoiceId = existing.Id,
+                    ServiceId = null,
+                    ServiceName = "Consultation Fee",
+                    Type = "Consultation",
+                    Price = consultationFee,
+                    Quantity = 1,
+                    Amount = consultationFee,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var updated = await _repo.AddInvoiceItemAsync(existing.Id, item);
+
+                updated.TotalAmount = updated.Items.Sum(x => x.Amount);
+                updated.BalanceAmount = updated.TotalAmount - updated.PaidAmount;
+                updated.Status = DeriveStatus(updated.PaidAmount, updated.TotalAmount);
+                updated.UpdatedAtUtc = DateTime.UtcNow;
+
+                await _repo.UpdateInvoiceAsync(updated);
+
+                return _mapper.Map<InvoiceResponseDto>(updated);
+            }
+
             return _mapper.Map<InvoiceResponseDto>(existing);
         }
-
-        // ── Task 1: THROW if DoctorsApi unavailable or fee invalid ────────────
-        var consultationFee = await _doctorsApiClient.GetConsultationFeeAsync(dto.DoctorId);
-        if (consultationFee == null || consultationFee <= 0)
-        {
-            _logger.LogError(
-                "Invoice creation aborted: could not fetch valid consultation fee for DoctorId={DoctorId}. Returned: {Fee}",
-                dto.DoctorId, consultationFee);
-            throw new InvalidOperationException(
-                $"Cannot create invoice: consultation fee unavailable for DoctorId={dto.DoctorId}. " +
-                "Ensure DoctorsApi is reachable and the doctor has a valid ConsultationFee configured.");
-        }
-
-        var consultationItem = new InvoiceItem
-        {
-            ServiceId = null,                    // Consultation items are not catalog-based
-            ServiceName = "Consultation Fee",
-            Type = "Consultation",
-            Price = consultationFee.Value,
-            Quantity = 1,
-            Amount = consultationFee.Value,
-            CreatedAt = DateTime.UtcNow
-        };
 
         var invoice = new Invoice
         {
             PatientId = dto.PatientId,
-            UHID = dto.UHID,
+            UHID = dto.UHID.Trim(),
             AppointmentId = dto.AppointmentId,
-            IsClosed = false,
-            Status = "Pending",
+            InvoiceNumber = string.Empty,
+            TotalAmount = consultationFee,
             PaidAmount = 0,
-            Items = new List<InvoiceItem> { consultationItem }
+            BalanceAmount = consultationFee,
+            Status = "Pending",
+            IsClosed = false,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+            IsDeleted = false,
+            Items = new List<InvoiceItem>
+        {
+            new InvoiceItem
+            {
+                ServiceId = null,
+                ServiceName = "Consultation Fee",
+                Type = "Consultation",
+                Price = consultationFee,
+                Quantity = 1,
+                Amount = consultationFee,
+                CreatedAt = DateTime.UtcNow
+            }
+        }
         };
 
-        invoice.TotalAmount = invoice.Items.Sum(x => x.Amount);
-        invoice.BalanceAmount = invoice.TotalAmount;
-
-        // ── Task 3: handle unique constraint race condition at DB level ────────
         try
         {
             var result = await _repo.CreateInvoiceAsync(invoice);
 
-            // ── Task 4: generate InvoiceNumber after save (uses DB Id) ─────────
             result.InvoiceNumber = $"INV-{DateTime.UtcNow.Year}-{result.Id:D4}";
-            await _repo.UpdateInvoiceAsync(result);
+            result.UpdatedAtUtc = DateTime.UtcNow;
 
-            _logger.LogInformation("Invoice {InvoiceNumber} created for AppointmentId={AppointmentId}, Fee={Fee}",
-                result.InvoiceNumber, dto.AppointmentId, consultationFee);
+            await _repo.UpdateInvoiceAsync(result);
 
             return _mapper.Map<InvoiceResponseDto>(result);
         }
         catch (DbUpdateException ex) when (IsDuplicateKeyException(ex))
         {
-            // Another concurrent request already created an invoice for this appointment.
-            _logger.LogWarning("Duplicate invoice race condition caught for AppointmentId={AppointmentId}. Returning existing.",
-                dto.AppointmentId);
             var race = await _repo.GetByAppointmentIdAsync(dto.AppointmentId);
-            return _mapper.Map<InvoiceResponseDto>(race!);
+
+            if (race == null)
+                throw;
+
+            return _mapper.Map<InvoiceResponseDto>(race);
         }
     }
-
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE INVOICE (manual / legacy path)
     // ─────────────────────────────────────────────────────────────────────────
@@ -141,6 +170,18 @@ public class BillingService : IBillingService
     public async Task<InvoiceResponseDto?> GetInvoiceByIdAsync(int invoiceId)
     {
         var invoice = await _repo.GetInvoiceByIdAsync(invoiceId);
+        return invoice == null ? null : _mapper.Map<InvoiceResponseDto>(invoice);
+    }
+
+
+    /// <summary>
+    /// GET BY APPOINTMENT ID
+    /// Used by the MVC frontend after an appointment is completed, because users usually have the appointment id first.
+    /// </summary>
+
+    public async Task<InvoiceResponseDto?> GetInvoiceByAppointmentIdAsync(int appointmentId)
+    {
+        var invoice = await _repo.GetByAppointmentIdAsync(appointmentId);
         return invoice == null ? null : _mapper.Map<InvoiceResponseDto>(invoice);
     }
 
@@ -268,5 +309,37 @@ public class BillingService : IBillingService
             || msg.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
             || msg.Contains("2601", StringComparison.OrdinalIgnoreCase)   // SQL Server error code
             || msg.Contains("2627", StringComparison.OrdinalIgnoreCase);  // SQL Server error code
+    }
+    private const decimal DefaultConsultationFee = 500m;
+
+    private async Task<decimal> ResolveConsultationFeeAsync(int doctorId)
+    {
+        if (doctorId <= 0)
+            return DefaultConsultationFee;
+
+        try
+        {
+            var fee = await _doctorsApiClient.GetConsultationFeeAsync(doctorId);
+
+            if (fee.HasValue && fee.Value > 0)
+                return fee.Value;
+
+            _logger.LogWarning(
+                "DoctorsApi returned no valid consultation fee for DoctorId={DoctorId}. Using default fee {DefaultFee}.",
+                doctorId,
+                DefaultConsultationFee);
+
+            return DefaultConsultationFee;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "DoctorsApi fee lookup failed for DoctorId={DoctorId}. Using default fee {DefaultFee}.",
+                doctorId,
+                DefaultConsultationFee);
+
+            return DefaultConsultationFee;
+        }
     }
 }

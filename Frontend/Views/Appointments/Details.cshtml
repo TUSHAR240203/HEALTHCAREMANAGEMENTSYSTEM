@@ -26,10 +26,23 @@
             </p>
         </div>
 
-        <a asp-action="Index" class="btn btn-outline-primary ripple-target">
-            <i class="bi bi-arrow-left me-1"></i>
-            Back to Appointments
-        </a>
+        <div class="d-flex flex-wrap gap-2 position-relative" style="z-index:1;">
+            @if (string.Equals(Model.Appointment.DisplayStatus, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                <a asp-controller="Billing"
+                   asp-action="DetailsByAppointment"
+                   asp-route-appointmentId="@Model.Appointment.Id"
+                   class="btn btn-light text-primary ripple-target fw-bold">
+                    <i class="bi bi-receipt me-1"></i>
+                    View Bill
+                </a>
+            }
+
+            <a asp-action="Index" class="btn btn-outline-primary ripple-target">
+                <i class="bi bi-arrow-left me-1"></i>
+                Back to Appointments
+            </a>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.Message))

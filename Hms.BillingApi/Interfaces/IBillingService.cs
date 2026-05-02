@@ -15,6 +15,9 @@ public interface IBillingService
 
     Task<InvoiceResponseDto?> GetInvoiceByIdAsync(int invoiceId);
 
+    /// <summary>Returns the invoice generated for the completed appointment, or null if billing has not created it yet.</summary>
+    Task<InvoiceResponseDto?> GetInvoiceByAppointmentIdAsync(int appointmentId);
+
     Task<List<InvoiceResponseDto>> GetInvoicesByPatientIdAsync(int patientId);
 
     Task<InvoiceResponseDto> AddInvoiceItemAsync(int invoiceId, AddInvoiceItemRequestDto dto);
@@ -29,4 +32,4 @@ public interface IBillingService
 
     /// <summary>Returns all active services from the catalog. Used by receptionist UI to pick a service.</summary>
     Task<List<ServiceCatalogResponseDto>> GetServiceCatalogAsync();
-}
+}

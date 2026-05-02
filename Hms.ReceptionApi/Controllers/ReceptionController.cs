@@ -1,12 +1,14 @@
 using Hms.ReceptionApi.DTOs.Common;
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hms.ReceptionApi.Controllers;
 
 [ApiController]
 [Route("api/reception")]
+[Authorize]
 public class ReceptionController : ControllerBase
 {
     private readonly IReceptionService _receptionService;
@@ -17,6 +19,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("patients/search")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     public async Task<IActionResult> SearchPatients([FromBody] ReceptionPatientSearchRequestDto request)
     {
         var result = await _receptionService.SearchPatientsAsync(request);
@@ -26,6 +29,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("patients/register")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> RegisterPatient([FromBody] RegisterPatientByReceptionRequestDto request)
     {
         var result = await _receptionService.RegisterPatientAsync(request);
@@ -35,6 +39,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpGet("patients/{patientId:int}/summary")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     public async Task<IActionResult> GetPatientSummary(int patientId)
     {
         var result = await _receptionService.GetPatientSummaryAsync(patientId);
@@ -48,6 +53,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("patients/{patientId:int}/verify")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> VerifyPatient(
         int patientId,
         [FromBody] VerifyPatientRequestDto request)
@@ -59,6 +65,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("patients/{patientId:int}/portal-activation/resend")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> ResendPortalActivation(
         int patientId,
         [FromBody] ResendPortalActivationRequestDto request)
@@ -70,6 +77,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("appointments/book")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> BookAppointment([FromBody] BookAppointmentRequestDto request)
     {
         var result = await _receptionService.BookAppointmentAsync(request);
@@ -79,6 +87,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPut("appointments/{appointmentId:int}/reschedule")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> RescheduleAppointment(
         int appointmentId,
         [FromBody] RescheduleAppointmentRequestDto request)
@@ -90,6 +99,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPut("appointments/{appointmentId:int}/cancel")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> CancelAppointment(
         int appointmentId,
         [FromBody] CancelAppointmentRequestDto request)
@@ -101,6 +111,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("checkin")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> CheckIn([FromBody] CheckInRequestDto request)
     {
         try
@@ -118,6 +129,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpGet("checkin/{checkInId:int}")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     public async Task<IActionResult> GetCheckInById(int checkInId)
     {
         var result = await _receptionService.GetCheckInByIdAsync(checkInId);
@@ -131,6 +143,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("billing/invoice")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> CreateInvoice([FromBody] CreateInvoiceRequestDto request)
     {
         var result = await _receptionService.CreateInvoiceAsync(request);
@@ -140,6 +153,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpGet("billing/invoice/{invoiceId:int}")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> GetInvoiceById(int invoiceId)
     {
         var result = await _receptionService.GetInvoiceByIdAsync(invoiceId);
@@ -153,6 +167,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpGet("billing/patient/{patientId:int}/invoices")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> GetInvoicesByPatientId(int patientId)
     {
         var result = await _receptionService.GetInvoicesByPatientIdAsync(patientId);
@@ -162,6 +177,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("billing/invoice/{invoiceId:int}/items")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> AddInvoiceItem(
         int invoiceId,
         [FromBody] AddInvoiceItemRequestDto request)
@@ -173,6 +189,7 @@ public class ReceptionController : ControllerBase
     }
 
     [HttpPost("billing/invoice/{invoiceId:int}/pay")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> AddPayment(
         int invoiceId,
         [FromBody] PaymentRequestDto request)
@@ -182,7 +199,9 @@ public class ReceptionController : ControllerBase
         return Ok(
             ApiResponse<object>.Ok(result, "Payment added successfully."));
     }
+
     [HttpGet("appointments/today")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     public async Task<IActionResult> GetTodayAppointmentsForCheckIn([FromQuery] DateOnly date)
     {
         try
@@ -205,5 +224,4 @@ public class ReceptionController : ControllerBase
                     }));
         }
     }
-
 }

@@ -7,6 +7,7 @@ namespace Hms.PatientsApi.Controllers;
 
 [ApiController]
 [Route("api/patients")]
+[Authorize]
 public class PatientsController : ControllerBase
 {
     private readonly IPatientService _patientService;
@@ -26,8 +27,8 @@ public class PatientsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    [AllowAnonymous]
     [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor,Patient")]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
@@ -38,6 +39,7 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("by-uhid/{uhid}")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor,Patient")]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByUhid(string uhid)
@@ -48,6 +50,7 @@ public class PatientsController : ControllerBase
     }
 
     [HttpPost("search")]
+    [Authorize(Roles = "Admin,Receptionist,Doctor")]
     [ProducesResponseType(typeof(PatientSearchResponseDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search([FromBody] PatientSearchRequestDto request)
     {
@@ -56,24 +59,33 @@ public class PatientsController : ControllerBase
     }
 
     [HttpPost("{id:int}/mobile-number/send-otp")]
-    public async Task<IActionResult> SendMobileNumberChangeOtp(int id, [FromBody] RequestMobileNumberChangeOtpDto request)
+    [Authorize(Roles = "Admin,Receptionist,Patient")]
+    public async Task<IActionResult> SendMobileNumberChangeOtp(
+        int id,
+        [FromBody] RequestMobileNumberChangeOtpDto request)
     {
         var result = await _patientService.SendMobileNumberChangeOtpAsync(id, request);
         return Ok(result);
     }
 
     [HttpPost("{id:int}/mobile-number/verify-otp")]
-    public async Task<IActionResult> VerifyMobileNumberChangeOtp(int id, [FromBody] VerifyMobileNumberChangeOtpDto request)
+    [Authorize(Roles = "Admin,Receptionist,Patient")]
+    public async Task<IActionResult> VerifyMobileNumberChangeOtp(
+        int id,
+        [FromBody] VerifyMobileNumberChangeOtpDto request)
     {
         var result = await _patientService.VerifyMobileNumberChangeOtpAsync(id, request);
         return Ok(result);
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin,Receptionist,Patient")]
     [ProducesResponseType(typeof(PatientResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdatePatientRequestDto request)
+    public async Task<IActionResult> Update(
+        int id,
+        [FromBody] UpdatePatientRequestDto request)
     {
         var result = await _patientService.UpdateAsync(id, request);
         if (result == null) return NotFound();
@@ -81,6 +93,7 @@ public class PatientsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
@@ -91,6 +104,7 @@ public class PatientsController : ControllerBase
     }
 
     [HttpPut("{id:int}/complete-profile")]
+    [Authorize(Roles = "Patient")]
     public async Task<IActionResult> CompleteProfile(
         int id,
         [FromBody] CompletePatientProfileRequestDto request)

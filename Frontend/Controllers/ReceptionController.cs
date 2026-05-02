@@ -73,7 +73,10 @@ namespace Frontend.Controllers
             try
             {
                 var result = await _receptionApiService.GetPatientSummaryAsync(patientId);
-                if (result == null) return NotFound();
+
+                if (result == null)
+                    return NotFound();
+
                 return View(result);
             }
             catch (ApiException ex)
@@ -108,6 +111,7 @@ namespace Frontend.Controllers
                 return View(request);
             }
         }
+
         [HttpGet]
         public async Task<IActionResult> CheckIn(DateOnly? date = null)
         {
@@ -133,9 +137,15 @@ namespace Frontend.Controllers
             {
                 model.ErrorMessage = ex.Message;
             }
+            catch (HttpRequestException ex)
+            {
+                model.ErrorMessage =
+                    $"Could not load today's appointments. API connection failed: {ex.Message}";
+            }
             catch (Exception ex)
             {
-                model.ErrorMessage = $"Could not load today's appointments. {ex.Message}";
+                model.ErrorMessage =
+                    $"Could not load today's appointments. Details: {ex.Message}";
             }
 
             return View(model);
@@ -153,27 +163,7 @@ namespace Frontend.Controllers
 
             if (!ModelState.IsValid)
             {
-                var invalidModel = new CheckInPageViewModel
-                {
-                    Date = request.QueueDate,
-                    CheckIn = request,
-                    Appointments = new List<TodayAppointmentForCheckInDto>()
-                };
-
-                try
-                {
-                    invalidModel.Appointments =
-                        await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate);
-                }
-                catch (ApiException ex)
-                {
-                    invalidModel.ErrorMessage = ex.Message;
-                }
-                catch (Exception ex)
-                {
-                    invalidModel.ErrorMessage = $"Could not load today's appointments. {ex.Message}";
-                }
-
+                var invalidModel = await BuildCheckInModelAsync(request);
                 return View(invalidModel);
             }
 
@@ -185,34 +175,65 @@ namespace Frontend.Controllers
 
                 return RedirectToAction(
                     nameof(Queue),
-                    new { departmentId = request.DepartmentId, date = request.QueueDate });
+                    new
+                    {
+                        departmentId = request.DepartmentId,
+                        date = request.QueueDate.ToString("yyyy-MM-dd")
+                    });
             }
             catch (ApiException ex)
             {
-                ModelState.AddModelError(string.Empty, ex.Message);
-
-                var errorModel = new CheckInPageViewModel
-                {
-                    Date = request.QueueDate,
-                    CheckIn = request,
-                    Appointments = new List<TodayAppointmentForCheckInDto>(),
-                    ErrorMessage = ex.Message
-                };
-
-                try
-                {
-                    errorModel.Appointments =
-                        await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate);
-                }
-                catch
-                {
-                    // Keep original check-in error. Do not crash page again while reloading appointments.
-                }
-
+                var errorModel = await BuildCheckInModelAsync(request);
+                errorModel.ErrorMessage = ex.Message;
+                return View(errorModel);
+            }
+            catch (HttpRequestException ex)
+            {
+                var errorModel = await BuildCheckInModelAsync(request);
+                errorModel.ErrorMessage =
+                    $"Could not complete check-in. API connection failed: {ex.Message}";
+                return View(errorModel);
+            }
+            catch (Exception ex)
+            {
+                var errorModel = await BuildCheckInModelAsync(request);
+                errorModel.ErrorMessage =
+                    $"Could not complete check-in. Details: {ex.Message}";
                 return View(errorModel);
             }
         }
 
+        private async Task<CheckInPageViewModel> BuildCheckInModelAsync(CheckInRequestDto request)
+        {
+            var model = new CheckInPageViewModel
+            {
+                Date = request.QueueDate,
+                CheckIn = request,
+                Appointments = new List<TodayAppointmentForCheckInDto>()
+            };
+
+            try
+            {
+                model.Appointments =
+                    await _receptionApiService.GetTodayScheduledAppointmentsForCheckInAsync(request.QueueDate);
+            }
+            catch (ApiException ex)
+            {
+                model.ErrorMessage = ex.Message;
+            }
+            catch (HttpRequestException ex)
+            {
+                model.ErrorMessage =
+                    $"Could not reload appointments. API connection failed: {ex.Message}";
+            }
+            catch (Exception ex)
+            {
+                model.ErrorMessage =
+                    $"Could not reload appointments. Details: {ex.Message}";
+            }
+
+            return model;
+        }
 
         [HttpGet]
         public async Task<IActionResult> Queue(int departmentId = 1, DateOnly? date = null)
@@ -220,11 +241,20 @@ namespace Frontend.Controllers
             try
             {
                 var queueDate = date ?? DateOnly.FromDateTime(DateTime.Today);
+
                 var result = await _receptionApiService.GetQueueAsync(departmentId, queueDate);
-                ViewBag.CurrentQueue = await _receptionApiService.GetCurrentQueueAsync(departmentId, queueDate);
+
+                ViewBag.CurrentQueue =
+                    await _receptionApiService.GetCurrentQueueAsync(departmentId, queueDate);
+
                 return View(result);
             }
             catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction(nameof(SearchPatients));
+            }
+            catch (Exception ex)
             {
                 TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(SearchPatients));
@@ -235,54 +265,116 @@ namespace Frontend.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CallNext(int departmentId, DateOnly date)
         {
-            try { await _receptionApiService.CallNextAsync<object>(departmentId, date); TempData["Success"] = "Next patient called."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.CallNextAsync<object>(departmentId, date);
+                TempData["Success"] = "Next patient called.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new { departmentId, date = date.ToString("yyyy-MM-dd") });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> StartToken(int queueTokenId, int departmentId, DateOnly date)
         {
-            try { await _receptionApiService.StartTokenAsync<object>(queueTokenId); TempData["Success"] = "Consultation started."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.StartTokenAsync<object>(queueTokenId);
+                TempData["Success"] = "Consultation started.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new { departmentId, date = date.ToString("yyyy-MM-dd") });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CompleteToken(int queueTokenId, int departmentId, DateOnly date, string? notes)
+        public async Task<IActionResult> CompleteToken(
+            int queueTokenId,
+            int departmentId,
+            DateOnly date,
+            string? notes)
         {
-            try { await _receptionApiService.CompleteTokenAsync<object>(queueTokenId, new CompleteQueueTokenRequestDto { Notes = notes }); TempData["Success"] = "Patient completed."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.CompleteTokenAsync<object>(
+                    queueTokenId,
+                    new CompleteQueueTokenRequestDto { Notes = notes });
+
+                TempData["Success"] = "Patient completed.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new { departmentId, date = date.ToString("yyyy-MM-dd") });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SkipToken(int queueTokenId, int departmentId, DateOnly date)
         {
-            try { await _receptionApiService.SkipTokenAsync<object>(queueTokenId); TempData["Success"] = "Patient skipped."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.SkipTokenAsync<object>(queueTokenId);
+                TempData["Success"] = "Patient skipped.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new { departmentId, date = date.ToString("yyyy-MM-dd") });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RecallToken(int queueTokenId, int departmentId, DateOnly date)
         {
-            try { await _receptionApiService.RecallTokenAsync<object>(queueTokenId); TempData["Success"] = "Patient recalled."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.RecallTokenAsync<object>(queueTokenId);
+                TempData["Success"] = "Patient recalled.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new { departmentId, date = date.ToString("yyyy-MM-dd") });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CancelToken(int queueTokenId, int departmentId, DateOnly date, string? notes)
+        public async Task<IActionResult> CancelToken(
+            int queueTokenId,
+            int departmentId,
+            DateOnly date,
+            string? notes)
         {
-            try { await _receptionApiService.CancelTokenAsync<object>(queueTokenId, new CancelQueueTokenRequestDto { Notes = notes }); TempData["Success"] = "Token cancelled."; }
-            catch (ApiException ex) { TempData["Error"] = ex.Message; }
-            return RedirectToAction(nameof(Queue), new { departmentId, date });
+            try
+            {
+                await _receptionApiService.CancelTokenAsync<object>(
+                    queueTokenId,
+                    new CancelQueueTokenRequestDto { Notes = notes });
+
+                TempData["Success"] = "Token cancelled.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Queue), new { departmentId, date = date.ToString("yyyy-MM-dd") });
         }
     }
 }

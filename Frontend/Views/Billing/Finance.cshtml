@@ -1,0 +1,139 @@
+@model Frontend.Models.Billing.FinanceDashboardViewModel
+@{
+    ViewData["Title"] = "Finance";
+    var invoices = Model.Invoices?.Items ?? new List<Frontend.Models.Billing.InvoiceResponseDto>();
+}
+
+<div class="page-header">
+    <div>
+        <h1>Finance</h1>
+        <p class="page-subtitle">Revenue, paid collection, outstanding balance, and recent billing records.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="ByPatient" class="btn btn-outline-light">Billing List</a>
+        <a asp-action="CreateInvoice" class="btn btn-light text-primary">Create Invoice</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        @Model.ErrorMessage
+        <div class="small mt-2">Check that the API Gateway and Billing service are running.</div>
+    </div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="info-card h-100">
+            <span class="info-label">Gross Revenue</span>
+            <span class="info-value">₹@Model.Summary.GrossRevenue</span>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="info-card h-100">
+            <span class="info-label">Paid Revenue</span>
+            <span class="info-value text-success">₹@Model.Summary.PaidRevenue</span>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="info-card h-100">
+            <span class="info-label">Outstanding</span>
+            <span class="info-value text-danger">₹@Model.Summary.OutstandingBalance</span>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="info-card h-100">
+            <span class="info-label">Collection Rate</span>
+            <span class="info-value">@Model.Summary.CollectionRatePercent%</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <span class="text-muted small">Total Invoices</span>
+                <h3 class="mb-0">@Model.Summary.InvoiceCount</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <span class="text-muted small">Paid Invoices</span>
+                <h3 class="mb-0">@Model.Summary.PaidInvoiceCount</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <span class="text-muted small">Pending / Partial</span>
+                <h3 class="mb-0">@Model.Summary.PendingInvoiceCount</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0">
+    <div class="card-header">
+        <h2 class="h5 mb-1">Recent Invoices</h2>
+        <p class="section-subtitle mb-0">Review the latest billing records and payment status.</p>
+    </div>
+
+    <div class="card-body p-0">
+        @if (invoices.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Patient</th>
+                            <th>UHID</th>
+                            <th>Appointment</th>
+                            <th>Total</th>
+                            <th>Paid</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var invoice in invoices)
+                        {
+                            <tr>
+                                <td>#@invoice.Id</td>
+                                <td>@invoice.PatientId</td>
+                                <td>@invoice.UHID</td>
+                                <td>@invoice.AppointmentId</td>
+                                <td>₹@invoice.TotalAmount</td>
+                                <td>₹@invoice.PaidAmount</td>
+                                <td>₹@invoice.BalanceAmount</td>
+                                <td>
+                                    <span class="badge bg-light text-dark">@invoice.Status</span>
+                                </td>
+                                <td>
+                                    <a asp-action="Details"
+                                           asp-route-invoiceId="@invoice.Id"
+                                           class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="h5">No finance invoices found</h3>
+                <p class="text-muted">Complete or create an invoice, then refresh this page.</p>
+            </div>
+        }
+    </div>
+</div>
