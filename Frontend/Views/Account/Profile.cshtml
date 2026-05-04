@@ -1,90 +1,736 @@
 @model Frontend.Models.Auth.CurrentUserResponseDto
 @{
     ViewData["Title"] = "My Profile";
-    var isPatient = string.Equals(Model.Role, "Patient", StringComparison.OrdinalIgnoreCase);
+
+    var role = Model.Role ?? string.Empty;
+    var isPatient = string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
+    var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+    var isReception = string.Equals(role, "Receptionist", StringComparison.OrdinalIgnoreCase);
+    var isDoctor = string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase);
+
     var photo = Model.PhotoUrl;
-    var initials = string.IsNullOrWhiteSpace(Model.FullName) ? Model.Role[..1].ToUpperInvariant() : Model.FullName.Trim()[0].ToString().ToUpperInvariant();
+    var displayName = string.IsNullOrWhiteSpace(Model.FullName)
+        ? $"{Model.Role} Account"
+        : Model.FullName;
+
+    var initials = string.IsNullOrWhiteSpace(displayName)
+        ? "U"
+        : displayName.Trim()[0].ToString().ToUpperInvariant();
+
+    var roleLabel = isAdmin ? "Administrator"
+        : isReception ? "Receptionist"
+        : isDoctor ? "Doctor"
+        : isPatient ? "Patient"
+        : role;
+
+    var roleIcon = isAdmin ? "bi-shield-check"
+        : isReception ? "bi-headset"
+        : isDoctor ? "bi-heart-pulse"
+        : isPatient ? "bi-person-heart"
+        : "bi-person-circle";
+
+    var doctorIdProp = Model.GetType().GetProperty("DoctorId");
+    var doctorIdRaw = doctorIdProp?.GetValue(Model);
+    var doctorIdText = doctorIdRaw == null || string.IsNullOrWhiteSpace(doctorIdRaw.ToString())
+        ? "N/A"
+        : doctorIdRaw.ToString();
+
+    var profileCompletionText = Model.IsProfileCompleted ? "Completed" : "Pending";
+    var photoStatusText = string.IsNullOrWhiteSpace(Model.PhotoUrl) ? "Not added" : "Added";
 }
-<div class="hero-panel mb-4">
-    <div class="row align-items-center g-4 position-relative">
-        <div class="col-lg-8 d-flex align-items-center gap-3">
-            <span class="profile-preview-photo placeholder-avatar">
-                @if (!string.IsNullOrWhiteSpace(photo))
-                {
-                    <img src="@photo" alt="Profile photo" class="w-100 h-100 rounded-circle object-fit-cover" />
-                }
-                else
-                {
-                    @initials
-                }
-            </span>
-            <div>
-                <span class="badge-soft mb-3"><i class="bi bi-person-circle"></i> Secure profile</span>
-                <h1 class="h2 fw-bold mb-2">@(string.IsNullOrWhiteSpace(Model.FullName) ? Model.Role + " Account" : Model.FullName)</h1>
-                <p class="mb-0">Role-based session profile returned from Auth API /me.</p>
+
+<div class="profile-page">
+    <section class="profile-hero">
+        <div class="profile-hero-left">
+            <div class="profile-avatar-wrap">
+                <span class="profile-preview-photo profile-avatar">
+                    @if (!string.IsNullOrWhiteSpace(photo))
+                    {
+                        <img src="@photo" alt="Profile photo" />
+                    }
+                    else
+                    {
+                        @initials
+                    }
+                </span>
+
+                <span class="role-floating-badge">
+                    <i class="bi @roleIcon"></i>
+                </span>
+            </div>
+
+            <div class="profile-title-block">
+                <span class="profile-kicker">
+                    <i class="bi bi-person-circle"></i>
+                    Secure Profile
+                </span>
+
+                <h1>@displayName</h1>
+
+                <p>
+                    @(isPatient
+                        ? "Manage your patient identity, UHID, profile status, and photo."
+                        : isDoctor
+                            ? "View your doctor account identity and staff profile details."
+                            : "View your staff account identity and authentication profile.")
+                </p>
+
+                <div class="profile-role-chip">
+                    <i class="bi @roleIcon"></i>
+                    @roleLabel Portal
+                </div>
             </div>
         </div>
-        <div class="col-lg-4 text-lg-end">
+
+        <div class="profile-hero-actions">
             @if (isPatient)
             {
-                <a asp-action="CompleteProfile" class="btn btn-light text-primary"><i class="bi bi-camera me-2"></i>Edit Photo & Profile</a>
+                <a asp-action="CompleteProfile" class="profile-main-btn">
+                    <i class="bi bi-pencil-square"></i>
+                    Edit Profile
+                </a>
             }
             else
             {
-                <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
-                    <label class="btn btn-light text-primary mb-0" for="staffPhotoUpload"><i class="bi bi-camera me-2"></i>Upload Photo</label>
-                    <a asp-action="AuthPreference" class="btn btn-outline-light"><i class="bi bi-shield-lock me-2"></i>Auth Settings</a>
-                </div>
+                <label class="profile-main-btn mb-0" for="staffPhotoUpload">
+                    <i class="bi bi-camera"></i>
+                    Upload Photo
+                </label>
+
+                <a asp-action="AuthPreference" class="profile-outline-btn">
+                    <i class="bi bi-shield-lock"></i>
+                    Auth Settings
+                </a>
             }
         </div>
-    </div>
-</div>
-@if (!isPatient)
-{
-    <div class="content-card mb-4">
-        <div class="card-body p-4">
-            <form asp-action="UploadStaffPhoto" method="post" enctype="multipart/form-data" id="staffPhotoForm" class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    </section>
+
+    @if (!isPatient)
+    {
+        <section class="profile-upload-card">
+            <form asp-action="UploadStaffPhoto"
+                  method="post"
+                  enctype="multipart/form-data"
+                  id="staffPhotoForm"
+                  class="profile-upload-form">
+
                 @Html.AntiForgeryToken()
+
                 <div>
-                    <h2 class="h5 fw-bold mb-1">Staff Profile Photo</h2>
-                    <p class="text-muted mb-0">Upload a JPG, PNG, or WEBP photo. It will appear here and in the top-right profile avatar for Admin, Receptionist, and other staff accounts.</p>
+                    <span class="section-label">Staff Photo</span>
+                    <h2>Update profile photo</h2>
+                    <p>
+                        Upload a JPG, PNG, or WEBP photo. It will appear in your profile and top-right avatar.
+                    </p>
                 </div>
-                <div class="d-flex flex-wrap align-items-center gap-2">
+
+                <div class="upload-actions">
                     <input type="file" id="staffPhotoUpload" name="photo" accept="image/*" class="d-none" />
-                    <label class="btn btn-outline-primary mb-0" for="staffPhotoUpload"><i class="bi bi-image me-2"></i>Choose Photo</label>
-                    <button type="submit" class="btn btn-primary" id="staffPhotoSubmit" disabled><i class="bi bi-cloud-arrow-up me-2"></i>Save Photo</button>
-                    <span class="text-muted small">Max 2 MB</span>
+
+                    <label class="profile-secondary-btn mb-0" for="staffPhotoUpload">
+                        <i class="bi bi-image"></i>
+                        Choose Photo
+                    </label>
+
+                    <button type="submit" class="profile-main-btn" id="staffPhotoSubmit" disabled>
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        Save Photo
+                    </button>
+
+                    <span class="upload-note">Max 2 MB</span>
                 </div>
             </form>
+        </section>
+    }
+
+    <section class="profile-info-card">
+        <div class="profile-section-header">
+            <div>
+                <span class="section-label">Profile Details</span>
+                <h2>
+                    @(isPatient ? "Patient Information"
+                        : isDoctor ? "Doctor Information"
+                        : "Staff Information")
+                </h2>
+            </div>
+
+            <span class="profile-status-pill @(Model.IsProfileCompleted ? "completed" : "pending")">
+                <i class="bi @(Model.IsProfileCompleted ? "bi-check-circle" : "bi-clock")"></i>
+                @(isPatient ? profileCompletionText : "Active Account")
+            </span>
         </div>
-    </div>
-}
-<div class="content-card">
-    <div class="card-body p-4">
-        <div class="row g-3">
-            <div class="col-md-6 col-xl-3"><div class="profile-stat"><div class="label">User ID</div><div class="value">@Model.UserId</div></div></div>
-            <div class="col-md-6 col-xl-3"><div class="profile-stat"><div class="label">Patient ID</div><div class="value">@(Model.PatientId.HasValue && Model.PatientId.Value > 0 ? Model.PatientId.Value.ToString() : "N/A")</div></div></div>
-            <div class="col-md-6 col-xl-3"><div class="profile-stat"><div class="label">UHID</div><div class="value">@(string.IsNullOrWhiteSpace(Model.UHID) ? "N/A" : Model.UHID)</div></div></div>
-            <div class="col-md-6 col-xl-3"><div class="profile-stat"><div class="label">Role</div><div class="value">@Model.Role</div></div></div>
-            <div class="col-md-6"><div class="profile-stat"><div class="label">Mobile Number</div><div class="value">@Model.MobileNumber</div></div></div>
-            <div class="col-md-6"><div class="profile-stat"><div class="label">Full Name</div><div class="value">@(string.IsNullOrWhiteSpace(Model.FullName) ? "Staff profile name not stored in Auth" : Model.FullName)</div></div></div>
+
+        <div class="profile-stat-grid">
             @if (isPatient)
             {
-                <div class="col-md-6"><div class="profile-stat"><div class="label">Profile Status</div><div class="value">@(Model.IsProfileCompleted ? "Completed" : "Pending")</div></div></div>
-                <div class="col-md-6"><div class="profile-stat"><div class="label">Photo</div><div class="value">@(string.IsNullOrWhiteSpace(Model.PhotoUrl) ? "Not added" : "Added")</div></div></div>
+                <div class="profile-stat important">
+                    <i class="bi bi-person-vcard"></i>
+                    <div>
+                        <span>Patient ID</span>
+                        <strong>@(Model.PatientId.HasValue && Model.PatientId.Value > 0 ? Model.PatientId.Value.ToString() : "N/A")</strong>
+                    </div>
+                </div>
+
+                <div class="profile-stat important">
+                    <i class="bi bi-credit-card-2-front"></i>
+                    <div>
+                        <span>UHID</span>
+                        <strong>@(string.IsNullOrWhiteSpace(Model.UHID) ? "N/A" : Model.UHID)</strong>
+                    </div>
+                </div>
+            }
+
+            @if (isDoctor)
+            {
+                <div class="profile-stat important">
+                    <i class="bi bi-heart-pulse"></i>
+                    <div>
+                        <span>Doctor ID</span>
+                        <strong>@doctorIdText</strong>
+                    </div>
+                </div>
+            }
+
+            <div class="profile-stat">
+                <i class="bi @roleIcon"></i>
+                <div>
+                    <span>Role</span>
+                    <strong>@roleLabel</strong>
+                </div>
+            </div>
+
+            <div class="profile-stat">
+                <i class="bi bi-phone"></i>
+                <div>
+                    <span>Mobile Number</span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.MobileNumber) ? "N/A" : Model.MobileNumber)</strong>
+                </div>
+            </div>
+
+            <div class="profile-stat">
+                <i class="bi bi-person-badge"></i>
+                <div>
+                    <span>Full Name</span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.FullName) ? $"{roleLabel} name not available" : Model.FullName)</strong>
+                </div>
+            </div>
+
+            @if (isPatient)
+            {
+                <div class="profile-stat">
+                    <i class="bi bi-clipboard-check"></i>
+                    <div>
+                        <span>Profile Status</span>
+                        <strong>@profileCompletionText</strong>
+                    </div>
+                </div>
+
+                <div class="profile-stat">
+                    <i class="bi bi-image"></i>
+                    <div>
+                        <span>Photo</span>
+                        <strong>@photoStatusText</strong>
+                    </div>
+                </div>
+            }
+
+            @if (!isPatient)
+            {
+                <div class="profile-stat">
+                    <i class="bi bi-fingerprint"></i>
+                    <div>
+                        <span>Account ID</span>
+                        <strong>@Model.UserId</strong>
+                    </div>
+                </div>
             }
         </div>
-    </div>
+    </section>
 </div>
+
+<style>
+    .profile-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1.35rem;
+        padding-bottom: 2rem;
+        animation: profilePageIn .35s ease both;
+    }
+
+    .profile-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 1.5rem;
+        align-items: center;
+        padding: 1.6rem;
+        border-radius: 26px;
+        background: linear-gradient(135deg, #ffffff 0%, #ecfeff 52%, #f0fdfa 100%);
+        border: 1px solid #ccfbf1;
+        box-shadow: 0 14px 35px rgba(20, 184, 166, .08);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .profile-hero::after {
+            content: "";
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            right: -105px;
+            top: -130px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, .10);
+            animation: softFloat 5s ease-in-out infinite;
+        }
+
+    .profile-hero-left,
+    .profile-hero-actions {
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-hero-left {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        min-width: 0;
+    }
+
+    .profile-avatar-wrap {
+        position: relative;
+        flex: 0 0 auto;
+    }
+
+    .profile-avatar {
+        width: 118px;
+        height: 118px;
+        border-radius: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        color: #ffffff;
+        font-size: 2.8rem;
+        font-weight: 900;
+        box-shadow: 0 16px 32px rgba(20, 184, 166, .18);
+        position: relative;
+        isolation: isolate;
+    }
+
+        .profile-avatar::before {
+            content: "";
+            position: absolute;
+            inset: -3px;
+            border-radius: 35px;
+            background: linear-gradient(135deg, #0ea5e9, #14b8a6, #0ea5e9);
+            background-size: 220% 220%;
+            z-index: -1;
+            animation: avatarRingMove 4s ease infinite;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform .3s ease;
+        }
+
+        .profile-avatar:hover img {
+            transform: scale(1.05);
+        }
+
+    .role-floating-badge {
+        position: absolute;
+        right: -8px;
+        bottom: -8px;
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: #ffffff;
+        color: #0f766e;
+        border: 1px solid #ccfbf1;
+        box-shadow: 0 10px 20px rgba(15, 23, 42, .12);
+        font-size: 1.25rem;
+    }
+
+    .profile-kicker,
+    .section-label {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        color: #0f766e;
+        font-size: .76rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin-bottom: .45rem;
+    }
+
+    .profile-title-block {
+        min-width: 0;
+    }
+
+        .profile-title-block h1 {
+            margin: 0 0 .55rem;
+            color: #0f172a;
+            font-size: clamp(1.8rem, 3vw, 2.8rem);
+            font-weight: 900;
+            letter-spacing: -.03em;
+            word-break: break-word;
+        }
+
+        .profile-title-block p {
+            margin: 0;
+            max-width: 760px;
+            color: #64748b;
+            font-weight: 600;
+            line-height: 1.65;
+        }
+
+    .profile-role-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        margin-top: .85rem;
+        padding: .5rem .8rem;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #0f766e;
+        border: 1px solid #ccfbf1;
+        font-size: .85rem;
+        font-weight: 900;
+    }
+
+    .profile-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .65rem;
+    }
+
+    .profile-main-btn,
+    .profile-outline-btn,
+    .profile-secondary-btn {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        padding: .7rem 1rem;
+        border-radius: 15px;
+        font-weight: 900;
+        text-decoration: none;
+        transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+        cursor: pointer;
+        border: 0;
+        white-space: nowrap;
+    }
+
+    .profile-main-btn {
+        background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        color: #ffffff;
+        box-shadow: 0 12px 24px rgba(20, 184, 166, .18);
+    }
+
+        .profile-main-btn:hover {
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 16px 30px rgba(20, 184, 166, .24);
+        }
+
+        .profile-main-btn:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+    .profile-outline-btn,
+    .profile-secondary-btn {
+        background: #ffffff;
+        color: #0f766e;
+        border: 1px solid #ccfbf1;
+    }
+
+        .profile-outline-btn:hover,
+        .profile-secondary-btn:hover {
+            background: #ecfeff;
+            color: #0f766e;
+            transform: translateY(-1px);
+        }
+
+    .profile-upload-card,
+    .profile-info-card {
+        padding: 1.25rem;
+        border-radius: 24px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 14px 35px rgba(15, 23, 42, .06);
+    }
+
+    .profile-upload-form {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+        .profile-upload-form h2,
+        .profile-section-header h2 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 1.3rem;
+            font-weight: 900;
+        }
+
+        .profile-upload-form p {
+            margin: .4rem 0 0;
+            color: #64748b;
+            font-weight: 600;
+            line-height: 1.55;
+        }
+
+    .upload-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .65rem;
+    }
+
+    .upload-note {
+        color: #64748b;
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .profile-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .profile-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .48rem .75rem;
+        border-radius: 999px;
+        font-size: .82rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+        .profile-status-pill.completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .profile-status-pill.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+    .profile-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: .85rem;
+    }
+
+    .profile-stat {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        align-items: center;
+        gap: .75rem;
+        padding: .9rem;
+        border-radius: 18px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .profile-stat::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 55%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent);
+            transform: skewX(-18deg);
+            transition: left .55s ease;
+        }
+
+        .profile-stat:hover {
+            transform: translateY(-3px);
+            border-color: #99f6e4;
+            box-shadow: 0 12px 24px rgba(20, 184, 166, .10);
+        }
+
+            .profile-stat:hover::after {
+                left: 130%;
+            }
+
+        .profile-stat.important {
+            background: linear-gradient(135deg, #ffffff 0%, #ecfeff 100%);
+            border-color: #ccfbf1;
+        }
+
+        .profile-stat i {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            background: #ecfeff;
+            color: #0ea5e9;
+            font-size: 1.2rem;
+        }
+
+        .profile-stat span {
+            display: block;
+            color: #64748b;
+            font-size: .74rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            margin-bottom: .2rem;
+        }
+
+        .profile-stat strong {
+            display: block;
+            color: #0f172a;
+            font-size: .98rem;
+            font-weight: 900;
+            word-break: break-word;
+        }
+
+    @@keyframes profilePageIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes softFloat {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(16px);
+        }
+    }
+
+    @@keyframes avatarRingMove {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    @@media (max-width: 992px) {
+        .profile-hero,
+        .profile-upload-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .profile-hero-actions,
+        .upload-actions {
+            justify-content: flex-start;
+        }
+
+        .profile-stat-grid {
+            grid-template-columns: repeat(2, minmax(180px, 1fr));
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .profile-hero,
+        .profile-upload-card,
+        .profile-info-card {
+            border-radius: 18px;
+            padding: 1rem;
+        }
+
+        .profile-hero-left {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .profile-avatar {
+            width: 104px;
+            height: 104px;
+            border-radius: 28px;
+        }
+
+        .profile-section-header {
+            flex-direction: column;
+        }
+
+        .profile-stat-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-main-btn,
+        .profile-outline-btn,
+        .profile-secondary-btn {
+            width: 100%;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .profile-page,
+        .profile-hero::after,
+        .profile-avatar::before {
+            animation: none !important;
+        }
+
+        .profile-main-btn:hover,
+        .profile-outline-btn:hover,
+        .profile-secondary-btn:hover,
+        .profile-stat:hover {
+            transform: none !important;
+        }
+    }
+</style>
 
 @section Scripts {
     <script>
         (() => {
             const input = document.getElementById('staffPhotoUpload');
             const submit = document.getElementById('staffPhotoSubmit');
+
             input?.addEventListener('change', () => {
                 const file = input.files?.[0];
-                if (!file) return;
+
+                if (!file) {
+                    submit?.setAttribute('disabled', 'disabled');
+                    return;
+                }
 
                 if (file.size > 2 * 1024 * 1024) {
                     alert('Photo must be 2 MB or smaller.');
@@ -94,12 +740,15 @@
                 }
 
                 submit?.removeAttribute('disabled');
+
                 const reader = new FileReader();
+
                 reader.onload = e => {
                     document.querySelectorAll('.profile-preview-photo, .avatar-clickable').forEach(holder => {
-                        holder.innerHTML = `<img src="${e.target.result}" alt="Profile photo" class="w-100 h-100 rounded-circle object-fit-cover" />`;
+                        holder.innerHTML = `<img src="${e.target.result}" alt="Profile photo" />`;
                     });
                 };
+
                 reader.readAsDataURL(file);
             });
         })();

@@ -20,7 +20,7 @@
 }
 
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="default">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -36,6 +36,22 @@
 </head>
 
 <body>
+    <svg class="theme-svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+        <defs>
+            <clipPath id="tealLiquidClip" clipPathUnits="objectBoundingBox">
+                <path d="M0.04,0.23 C0.15,0.05,0.38,-0.02,0.57,0.06 C0.75,0.13,0.96,0.18,0.99,0.39 C1.02,0.60,0.85,0.73,0.75,0.87 C0.63,1.04,0.38,0.98,0.22,0.91 C0.06,0.84,-0.02,0.66,0.00,0.49 C0.01,0.39,-0.01,0.32,0.04,0.23Z"></path>
+            </clipPath>
+        </defs>
+    </svg>
+
+    <div class="theme-stage" aria-hidden="true">
+        <div class="teal-light light-one"></div>
+        <div class="teal-light light-two"></div>
+        <div class="teal-blob blob-one"></div>
+        <div class="teal-blob blob-two"></div>
+
+
+    </div>
     <div class="ambient-orb orb-one"></div>
     <div class="ambient-orb orb-two"></div>
 
@@ -174,6 +190,23 @@
                         <i class="bi bi-receipt"></i>
                         <span>@(isPatient ? "My Bills" : "Billing")</span>
                     </a>
+
+                    @if (isAdmin || isReception)
+                    {
+                        <a class="side-link side-link-sub @(currentPath.StartsWith("/Billing/CreateInvoice") ? "active" : "")"
+                               asp-controller="Billing"
+                               asp-action="CreateInvoice">
+                            <i class="bi bi-receipt-cutoff"></i>
+                            <span>Create Invoice</span>
+                        </a>
+
+                        <a class="side-link side-link-sub @(currentPath.StartsWith("/Billing/Finance") ? "active" : "")"
+                               asp-controller="Billing"
+                               asp-action="Finance">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Finance</span>
+                        </a>
+                    }
                 }
 
                 @if (isLoggedIn)
@@ -219,13 +252,32 @@
                 </div>
 
                 <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
-                    <button class="theme-toggle" type="button" data-theme-toggle title="Toggle theme">
-                        <i class="bi bi-moon-stars"></i>
-                        <span class="d-none d-sm-inline">Theme</span>
-                    </button>
 
                     @if (isLoggedIn)
                     {
+                        <div class="notification-center" data-notifications>
+                            <button class="notification-bell" type="button" data-notification-toggle aria-label="Open notifications">
+                                <i class="bi bi-bell"></i>
+                                <span class="notification-count d-none" data-notification-count>0</span>
+                            </button>
+
+                            <div class="notification-menu" data-notification-menu>
+                                <div class="notification-menu-header">
+                                    <div>
+                                        <strong>Notifications</strong>
+                                        <small data-notification-subtitle>Latest portal updates</small>
+                                    </div>
+                                    <button type="button" class="notification-clear" data-notification-clear>Mark read</button>
+                                </div>
+                                <div class="notification-list" data-notification-list>
+                                    <div class="notification-empty">
+                                        <i class="bi bi-bell-slash"></i>
+                                        <span>No updates yet</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="user-chip">
                             @if (isPatient)
                             {

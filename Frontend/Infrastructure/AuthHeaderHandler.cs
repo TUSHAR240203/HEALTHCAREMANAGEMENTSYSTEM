@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 
 namespace Frontend.Infrastructure
 {
-    public sealed class AuthHeaderHandler : DelegatingHandler
+    public class AuthHeaderHandler : DelegatingHandler
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -11,14 +11,31 @@ namespace Frontend.Infrastructure
             _httpContextAccessor = httpContextAccessor;
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
         {
-            var token = _httpContextAccessor.HttpContext?.Session.GetString("AccessToken");
-            if (!string.IsNullOrWhiteSpace(token) && request.Headers.Authorization == null)
+            var session = _httpContextAccessor.HttpContext?.Session;
+
+            var token =
+                session?.GetString("JwtToken") ??
+                session?.GetString("AccessToken") ??
+                session?.GetString("Token") ??
+                session?.GetString("AuthToken") ??
+                session?.GetString("BearerToken");
+
+            if (!string.IsNullOrWhiteSpace(token))
             {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    token = token["Bearer ".Length..];
+                }
+
+                request.Headers.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
             }
-            return base.SendAsync(request, cancellationToken);
+
+            return await base.SendAsync(request, cancellationToken);
         }
     }
 }

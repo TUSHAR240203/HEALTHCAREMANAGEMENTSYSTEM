@@ -1,11 +1,11 @@
-﻿@model Frontend.Models.Doctors.UpdateDoctorViewModel
+@model Frontend.Models.Doctors.UpdateDoctorViewModel
 
 @{
+    var isEdit = string.Equals(Context.Request.Query["mode"], "edit", StringComparison.OrdinalIgnoreCase);
+
     ViewData["Title"] = "My Doctor Profile";
 
-    var photo = !string.IsNullOrWhiteSpace(Model.PhotoUrl)
-        ? Model.PhotoUrl
-        : null;
+    var photo = !string.IsNullOrWhiteSpace(Model.PhotoUrl) ? Model.PhotoUrl : null;
 
     var initial = string.IsNullOrWhiteSpace(Model.FullName)
         ? "D"
@@ -13,270 +13,132 @@
 }
 
 <div class="doctor-profile-page">
-    <div class="doctor-profile-hero mb-4">
+
+    <!-- HERO -->
+    <section class="doctor-profile-hero">
         <div class="doctor-hero-left">
+
             <div class="doctor-profile-avatar" id="doctorHeroPhotoPreview">
                 @if (!string.IsNullOrWhiteSpace(photo))
                 {
-                    <img src="@photo" alt="@Model.FullName" id="doctorHeroPhotoPreviewImg" />
-                    <span id="doctorHeroPhotoPreviewInitial" style="display:none;">@initial</span>
+                    <img src="@photo" />
+                    <span style="display:none;">@initial</span>
                 }
                 else
                 {
-                    <img src="" alt="@Model.FullName" id="doctorHeroPhotoPreviewImg" style="display:none;" />
-                    <span id="doctorHeroPhotoPreviewInitial">@initial</span>
+                    <img style="display:none;" />
+                    <span>@initial</span>
                 }
             </div>
 
-            <div>
-                <span class="badge-soft mb-3">
-                    <i class="bi bi-person-badge"></i>
-                    Doctor Profile
-                </span>
-
-                <h1 class="h2 fw-bold mb-1">@Model.FullName</h1>
-                <p class="mb-2 text-muted">@Model.Qualification • @Model.Specialization</p>
-
-                <div class="d-flex flex-wrap gap-2">
-                    <span class="mini-chip">
-                        <i class="bi bi-hospital"></i>
-                        @Model.DepartmentName
-                    </span>
-                    <span class="mini-chip">
-                        <i class="bi bi-door-open"></i>
-                        Room @(Model.RoomNumber ?? "N/A")
-                    </span>
-                    <span class="mini-chip">
-                        <i class="bi bi-currency-rupee"></i>
-                        @Model.ConsultationFee
-                    </span>
-                    <span class="mini-chip">
-                        <i class="bi bi-camera-video"></i>
-                        @(Model.SupportsTeleConsultation ? "Teleconsultation Available" : "No Teleconsultation")
-                    </span>
-                </div>
+            <div class="doctor-hero-text">
+                <h1>@(string.IsNullOrWhiteSpace(Model.FullName) ? "Doctor Profile" : Model.FullName)</h1>
+                <p>@Model.Qualification • @Model.Specialization</p>
             </div>
-        </div>
-    </div>
 
+        </div>
+    </section>
+
+    <!-- CARD -->
     <div class="content-card doctor-profile-card">
-        <div class="card-body p-4 p-lg-5">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="fw-bold mb-1">Update Profile</h4>
-                    <p class="text-muted mb-0">Update your doctor details and profile photo.</p>
-                </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">Doctor Profile</h4>
+                <p class="text-muted mb-0">
+                    @(isEdit ? "Update your doctor details." : "View your profile.")
+                </p>
             </div>
 
-            <form asp-action="MyProfile"
-                  asp-controller="Doctors"
-                  method="post"
-                  enctype="multipart/form-data">
-                @Html.AntiForgeryToken()
-
-                <input asp-for="Id" type="hidden" />
-                <input asp-for="AuthUserId" type="hidden" />
-                <input asp-for="PhotoUrl" type="hidden" />
-                <input asp-for="IsActive" type="hidden" />
-
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-
-                <div class="row g-4">
-                    <div class="col-lg-4">
-                        <div class="profile-upload-card">
-                            <div class="profile-upload-preview" id="doctorPhotoPreview">
-                                @if (!string.IsNullOrWhiteSpace(photo))
-                                {
-                                    <img src="@photo" alt="Doctor photo" id="doctorPhotoPreviewImg" />
-                                    <span id="doctorPhotoPreviewInitial" style="display:none;">@initial</span>
-                                }
-                                else
-                                {
-                                    <img src="" alt="Doctor photo" id="doctorPhotoPreviewImg" style="display:none;" />
-                                    <span id="doctorPhotoPreviewInitial">@initial</span>
-                                }
-                            </div>
-
-                            <label asp-for="PhotoFile" class="form-label fw-semibold mt-3">
-                                Profile Photo
-                            </label>
-
-                            <input asp-for="PhotoFile"
-                                   class="form-control"
-                                   type="file"
-                                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                   id="PhotoFile" />
-
-                            <span asp-validation-for="PhotoFile" class="text-danger small"></span>
-
-                            <small class="text-muted d-block mt-2">
-                                Upload JPG, PNG, or WEBP image. Maximum recommended size: 2 MB.
-                            </small>
-
-                            <div class="photo-upload-help mt-3">
-                                <i class="bi bi-info-circle"></i>
-                                Select an image to preview it instantly, then click Save Profile.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-8">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label asp-for="FullName" class="form-label"></label>
-                                <input asp-for="FullName" class="form-control" />
-                                <span asp-validation-for="FullName" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Email" class="form-label"></label>
-                                <input asp-for="Email" class="form-control" />
-                                <span asp-validation-for="Email" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Phone" class="form-label"></label>
-                                <input asp-for="Phone" class="form-control" />
-                                <span asp-validation-for="Phone" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Gender" class="form-label"></label>
-                                <select asp-for="Gender" class="form-select">
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                <span asp-validation-for="Gender" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Qualification" class="form-label"></label>
-                                <input asp-for="Qualification" class="form-control" />
-                                <span asp-validation-for="Qualification" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="Specialization" class="form-label"></label>
-                                <input asp-for="Specialization" class="form-control" />
-                                <span asp-validation-for="Specialization" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="DepartmentId" class="form-label"></label>
-                                <input asp-for="DepartmentId" class="form-control" />
-                                <span asp-validation-for="DepartmentId" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="DepartmentName" class="form-label"></label>
-                                <input asp-for="DepartmentName" class="form-control" />
-                                <span asp-validation-for="DepartmentName" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="ConsultationFee" class="form-label"></label>
-                                <input asp-for="ConsultationFee" class="form-control" />
-                                <span asp-validation-for="ConsultationFee" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="ExperienceYears" class="form-label"></label>
-                                <input asp-for="ExperienceYears" class="form-control" />
-                                <span asp-validation-for="ExperienceYears" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="LicenseNumber" class="form-label"></label>
-                                <input asp-for="LicenseNumber" class="form-control" />
-                                <span asp-validation-for="LicenseNumber" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label asp-for="RoomNumber" class="form-label"></label>
-                                <input asp-for="RoomNumber" class="form-control" />
-                                <span asp-validation-for="RoomNumber" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-12">
-                                <div class="form-check form-switch doctor-switch">
-                                    <input asp-for="SupportsTeleConsultation" class="form-check-input" />
-                                    <label asp-for="SupportsTeleConsultation" class="form-check-label"></label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
-                                Cancel
-                            </a>
-
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save me-1"></i>
-                                Save Profile
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
+            @if (!isEdit)
+            {
+                <a asp-action="MyProfile" asp-route-mode="edit" class="btn btn-primary">
+                    Edit Profile
+                </a>
+            }
         </div>
-    </div>
-</div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+        <form asp-action="MyProfile" method="post" enctype="multipart/form-data">
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const input = document.getElementById("PhotoFile");
+            @Html.AntiForgeryToken()
 
-            const cardImg = document.getElementById("doctorPhotoPreviewImg");
-            const cardInitial = document.getElementById("doctorPhotoPreviewInitial");
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="AuthUserId" type="hidden" />
+            <input asp-for="PhotoUrl" type="hidden" />
 
-            const heroImg = document.getElementById("doctorHeroPhotoPreviewImg");
-            const heroInitial = document.getElementById("doctorHeroPhotoPreviewInitial");
-
-            if (!input || !cardImg || !cardInitial || !heroImg || !heroInitial) {
-                return;
+            @if (!isEdit)
+            {
+                <input type="hidden" asp-for="Gender" />
+                <input type="hidden" asp-for="SupportsTeleConsultation" />
             }
 
-            input.addEventListener("change", function () {
-                const file = input.files && input.files[0];
+            <div class="row g-4">
 
-                if (!file) {
-                    return;
-                }
+                <!-- PHOTO -->
+                <div class="col-lg-4">
+                    <div class="profile-upload-card">
 
-                if (!file.type.startsWith("image/")) {
-                    alert("Please select a valid image file.");
-                    input.value = "";
-                    return;
-                }
+                        <div class="profile-upload-preview" id="doctorPhotoPreview">
+                            @if (!string.IsNullOrWhiteSpace(photo))
+                            {
+                                <img src="@photo" />
+                                <span style="display:none;">@initial</span>
+                            }
+                            else
+                            {
+                                <img style="display:none;" />
+                                <span>@initial</span>
+                            }
+                        </div>
 
-                const maxSizeInBytes = 2 * 1024 * 1024;
+                        <input asp-for="PhotoFile"
+                               class="form-control mt-3"
+                               type="file"
+                               disabled="@(!isEdit)" />
+                    </div>
+                </div>
 
-                if (file.size > maxSizeInBytes) {
-                    alert("Photo size must be 2 MB or smaller.");
-                    input.value = "";
-                    return;
-                }
+                <!-- FORM -->
+                <div class="col-lg-8">
+                    <div class="row g-3">
 
-                const reader = new FileReader();
+                        <input asp-for="FullName" class="form-control" readonly="@(!isEdit)" />
+                        <input asp-for="Email" class="form-control" readonly="@(!isEdit)" />
+                        <input asp-for="Phone" class="form-control" readonly="@(!isEdit)" />
 
-                reader.onload = function (event) {
-                    const imageUrl = event.target.result;
+                        <select asp-for="Gender" class="form-select" disabled="@(!isEdit)">
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
 
-                    cardImg.src = imageUrl;
-                    cardImg.style.display = "block";
-                    cardInitial.style.display = "none";
+                        <input asp-for="Qualification" class="form-control" readonly="@(!isEdit)" />
+                        <input asp-for="Specialization" class="form-control" readonly="@(!isEdit)" />
+                        <input asp-for="ConsultationFee" class="form-control" readonly="@(!isEdit)" />
 
-                    heroImg.src = imageUrl;
-                    heroImg.style.display = "block";
-                    heroInitial.style.display = "none";
-                };
+                        <div class="form-check form-switch">
+                            <input asp-for="SupportsTeleConsultation"
+                                   class="form-check-input"
+                                   disabled="@(!isEdit)" />
+                            <label class="form-check-label">Teleconsultation</label>
+                        </div>
 
-                reader.readAsDataURL(file);
-            });
-        });
-    </script>
-}
+                    </div>
+
+                    <!-- ACTIONS -->
+                    <div class="mt-4 text-end">
+                        @if (isEdit)
+                        {
+                            <a asp-action="MyProfile" class="btn btn-outline-secondary">Cancel</a>
+
+                            <button type="submit" class="btn btn-primary">
+                                Save Profile
+                            </button>
+                        }
+                    </div>
+
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

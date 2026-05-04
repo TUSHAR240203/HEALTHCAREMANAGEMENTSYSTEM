@@ -13,7 +13,7 @@
 }
 
 <div class="appointment-details-page">
-    <div class="page-header appointment-detail-header">
+    <div class="page-header appointment-detail-header live-card">
         <div>
             <span class="badge-soft text-white">
                 <i class="bi bi-calendar2-check"></i> Appointment #@Model.Appointment.Id
@@ -22,29 +22,49 @@
             <h1 class="mt-3">Appointment Details</h1>
 
             <p class="page-subtitle">
-                Clear appointment summary, patient and doctor profile, and reschedule actions.
+                Clear appointment summary, patient and doctor profile, and appointment actions.
             </p>
         </div>
 
-        <a asp-action="Index" class="btn btn-outline-primary">
-            Back to Appointments
-        </a>
+        <div class="d-flex flex-wrap gap-2 position-relative" style="z-index:1;">
+            @if (string.Equals(Model.Appointment.DisplayStatus, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                <a asp-controller="Billing"
+                   asp-action="DetailsByAppointment"
+                   asp-route-appointmentId="@Model.Appointment.Id"
+                   class="btn btn-light text-primary ripple-target fw-bold">
+                    <i class="bi bi-receipt me-1"></i>
+                    View Bill
+                </a>
+            }
+
+            <a asp-action="Index" class="btn btn-outline-primary ripple-target">
+                <i class="bi bi-arrow-left me-1"></i>
+                Back to Appointments
+            </a>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.Message))
     {
-        <div class="alert alert-success">@Model.Message</div>
+        <div class="alert alert-success live-alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @Model.Message
+        </div>
     }
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="alert alert-danger">@Model.ErrorMessage</div>
+        <div class="alert alert-danger live-alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @Model.ErrorMessage
+        </div>
     }
 
-    <div class="content-card appointment-overview-card mb-4">
+    <div class="content-card appointment-overview-card mb-4 live-card">
         <div class="row g-0 align-items-stretch">
             <div class="col-xl-4 appointment-profile-panel">
-                <div class="appointment-profile-photo">
+                <div class="appointment-profile-photo live-photo">
                     @if (!string.IsNullOrWhiteSpace(Model.Patient?.PhotoUrl))
                     {
                         <img src="@Model.Patient.PhotoUrl" alt="@patientName" />
@@ -59,12 +79,12 @@
 
                 <small>Patient</small>
                 <h2>@patientName</h2>
-                <p class="mb-1">UHID: @Model.Appointment.UHID</p>
+                <p class="mb-1">UHID: @(string.IsNullOrWhiteSpace(Model.Appointment.UHID) ? "N/A" : Model.Appointment.UHID)</p>
                 <p class="mb-0">Mobile: @(Model.Patient?.MobileNumber ?? "N/A")</p>
             </div>
 
             <div class="col-xl-4 appointment-profile-panel doctor-panel">
-                <div class="appointment-profile-photo">
+                <div class="appointment-profile-photo live-photo">
                     @if (!string.IsNullOrWhiteSpace(Model.Doctor?.PhotoUrl))
                     {
                         <img src="@Model.Doctor.PhotoUrl" alt="@doctorName" />
@@ -80,21 +100,22 @@
                 <small>Doctor</small>
                 <h2>@doctorName</h2>
                 <p class="mb-1">@(Model.Doctor?.Specialization ?? "Specialization N/A")</p>
-                <p class="mb-0">@Model.Appointment.DepartmentName</p>
+                <p class="mb-0">@(string.IsNullOrWhiteSpace(Model.Appointment.DepartmentName) ? "Department N/A" : Model.Appointment.DepartmentName)</p>
             </div>
 
             <div class="col-xl-4 appointment-summary-panel">
                 <div class="status-chip status-@appointmentStatusClass">
+                    <span class="status-dot"></span>
                     @appointmentStatus
                 </div>
 
                 <div class="summary-grid">
-                    <div>
+                    <div class="shine-box">
                         <span>Date</span>
                         <strong>@Model.Appointment.AppointmentDate.ToString("dd MMM yyyy")</strong>
                     </div>
 
-                    <div>
+                    <div class="shine-box">
                         <span>Time</span>
                         <strong>
                             @Model.Appointment.SlotStartTime.ToString("hh:mm tt")
@@ -103,23 +124,23 @@
                         </strong>
                     </div>
 
-                    <div>
+                    <div class="shine-box">
                         <span>Visit</span>
                         <strong>@Model.Appointment.VisitType</strong>
                     </div>
 
-                    <div>
+                    <div class="shine-box">
                         <span>Mode</span>
                         <strong>@(Model.Appointment.IsTeleConsultation ? "Tele-consultation" : "In-clinic")</strong>
                     </div>
                 </div>
 
-                <div class="reason-box mt-3">
+                <div class="reason-box shine-box mt-3">
                     <span>Reason for visit</span>
                     <p>
                         @(string.IsNullOrWhiteSpace(Model.Appointment.ReasonForVisit)
-                                                ? "N/A"
-                                                : Model.Appointment.ReasonForVisit)
+                            ? "N/A"
+                            : Model.Appointment.ReasonForVisit)
                     </p>
                 </div>
             </div>
@@ -128,7 +149,7 @@
 
     <div class="row g-4 appointment-actions-row">
         <div class="@(isPatient ? "col-lg-8" : "col-xl-6")">
-            <div class="card border-0 h-100 professional-action-card">
+            <div class="card border-0 h-100 professional-action-card live-card">
                 <div class="card-header">
                     <h2 class="h5 mb-1">
                         <i class="bi bi-calendar2-week me-2 text-primary"></i>
@@ -145,7 +166,7 @@
                         <input type="hidden" name="id" value="@Model.Appointment.Id" />
 
                         <div class="col-md-7">
-                            <div class="selected-doctor-mini h-100">
+                            <div class="selected-doctor-mini shine-box h-100">
                                 @if (!string.IsNullOrWhiteSpace(rescheduleDoctor?.PhotoUrl))
                                 {
                                     <img src="@rescheduleDoctor.PhotoUrl" alt="@doctorName" />
@@ -193,7 +214,7 @@
                                        value="@slot.Value"
                                        disabled="@slot.IsBooked" />
 
-                                <label class="slot-pill @(slot.IsBooked ? "booked" : "available")" for="@sid">
+                                <label class="slot-pill ripple-target @(slot.IsBooked ? "booked" : "available")" for="@sid">
                                     <i class="bi @(slot.IsBooked ? "bi-lock-fill" : "bi-check-circle")"></i>
                                     <span>@slot.Label</span>
                                     <small>@(slot.IsBooked ? "Booked" : "Available")</small>
@@ -207,7 +228,8 @@
                                   rows="3"
                                   placeholder="Reason for reschedule"></textarea>
 
-                        <button type="submit" class="btn btn-primary w-100">
+                        <button type="submit" class="btn btn-primary w-100 ripple-target">
+                            <i class="bi bi-shuffle me-1"></i>
                             Confirm New Slot
                         </button>
                     </form>
@@ -216,7 +238,7 @@
         </div>
 
         <div class="@(isPatient ? "col-lg-4" : "col-xl-3")">
-            <div class="card border-0 h-100 professional-action-card">
+            <div class="card border-0 h-100 professional-action-card live-card">
                 <div class="card-header">
                     <h2 class="h5 mb-0">
                         <i class="bi bi-x-circle me-2 text-danger"></i>
@@ -237,7 +259,8 @@
                                   rows="5"
                                   placeholder="Reason for cancellation"></textarea>
 
-                        <button class="btn btn-danger w-100">
+                        <button class="btn btn-danger w-100 ripple-target">
+                            <i class="bi bi-x-lg me-1"></i>
                             Cancel Appointment
                         </button>
                     </form>
@@ -248,7 +271,7 @@
         @if (!isPatient)
         {
             <div class="col-xl-3">
-                <div class="card border-0 h-100 professional-action-card">
+                <div class="card border-0 h-100 professional-action-card live-card">
                     <div class="card-header">
                         <h2 class="h5 mb-0">
                             <i class="bi bi-check2-circle me-2 text-success"></i>
@@ -265,7 +288,8 @@
                                       rows="5"
                                       placeholder="Consultation notes"></textarea>
 
-                            <button class="btn btn-success w-100">
+                            <button class="btn btn-success w-100 ripple-target">
+                                <i class="bi bi-check2 me-1"></i>
                                 Mark Completed
                             </button>
                         </form>
@@ -277,9 +301,56 @@
 </div>
 
 <style>
-    .appointment-details-page img {
-        max-width: 100%;
+    .appointment-details-page {
+        animation: pageFadeIn .45s ease both;
     }
+
+        .appointment-details-page img {
+            max-width: 100%;
+        }
+
+    .appointment-detail-header {
+        background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        color: #ffffff;
+        border-radius: 24px;
+        padding: 1.75rem;
+        box-shadow: 0 14px 34px rgba(14, 165, 233, 0.18);
+        overflow: hidden;
+        position: relative;
+    }
+
+        .appointment-detail-header::after {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            right: -110px;
+            top: -130px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .14);
+            animation: softFloat 5s ease-in-out infinite;
+        }
+
+        .appointment-detail-header h1,
+        .appointment-detail-header .page-subtitle {
+            color: #ffffff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .appointment-detail-header .btn-outline-primary {
+            position: relative;
+            z-index: 1;
+            background: #ffffff;
+            border-color: #ffffff;
+            color: #0f766e;
+            font-weight: 800;
+        }
+
+            .appointment-detail-header .btn-outline-primary:hover {
+                background: #ecfeff;
+                color: #0f766e;
+            }
 
     .appointment-overview-card {
         overflow: hidden;
@@ -314,7 +385,21 @@
         align-items: center;
         justify-content: center;
         box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+        position: relative;
+        isolation: isolate;
     }
+
+        .appointment-profile-photo::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #0ea5e9, #14b8a6, #0ea5e9);
+            background-size: 220% 220%;
+            z-index: -1;
+            opacity: .6;
+            animation: profileRingMove 4s ease infinite;
+        }
 
         .appointment-profile-photo img {
             width: 100%;
@@ -323,6 +408,11 @@
             object-fit: cover;
             object-position: center;
             border-radius: 22px;
+            transition: transform .35s ease;
+        }
+
+        .appointment-profile-photo:hover img {
+            transform: scale(1.045);
         }
 
         .appointment-profile-photo span {
@@ -371,13 +461,23 @@
     .status-chip {
         display: inline-flex;
         align-items: center;
+        gap: .45rem;
         border-radius: 999px;
         padding: 0.45rem 0.85rem;
-        font-weight: 700;
+        font-weight: 800;
         font-size: 0.85rem;
         background: #e0f2fe;
         color: #0369a1;
         margin-bottom: 1rem;
+        animation: statusBreath 2.8s ease-in-out infinite;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 5px rgba(14, 165, 233, .12);
     }
 
     .status-booked {
@@ -401,23 +501,24 @@
         gap: 0.85rem;
     }
 
-        .summary-grid div {
+        .summary-grid div,
+        .reason-box {
             padding: 0.85rem;
             border-radius: 16px;
             background: #f8fafc;
             border: 1px solid rgba(148, 163, 184, 0.18);
         }
 
-        .summary-grid span,
-        .reason-box span {
-            display: block;
-            color: #64748b;
-            font-size: 0.82rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-bottom: 0.25rem;
-        }
+            .summary-grid span,
+            .reason-box span {
+                display: block;
+                color: #64748b;
+                font-size: 0.82rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                margin-bottom: 0.25rem;
+            }
 
         .summary-grid strong {
             display: block;
@@ -427,18 +528,11 @@
             word-break: break-word;
         }
 
-    .reason-box {
-        padding: 0.95rem;
-        border-radius: 16px;
-        background: #f8fafc;
-        border: 1px solid rgba(148, 163, 184, 0.18);
+    .reason-box p {
+        margin: 0;
+        color: #0f172a;
+        word-break: break-word;
     }
-
-        .reason-box p {
-            margin: 0;
-            color: #0f172a;
-            word-break: break-word;
-        }
 
     .selected-doctor-mini {
         display: flex;
@@ -509,19 +603,279 @@
             padding: 1rem 1.25rem;
         }
 
-        .professional-action-card img {
-            max-width: 100%;
-            height: auto;
+    .slot-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+        gap: .75rem;
+    }
+
+    .slot-radio {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .slot-pill {
+        position: relative;
+        min-height: 78px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: .15rem;
+        padding: .75rem;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: #ffffff;
+        cursor: pointer;
+        overflow: hidden;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+        .slot-pill i {
+            color: #0ea5e9;
         }
 
-        .professional-action-card .card-body > img,
-        .professional-action-card form img {
-            width: 64px !important;
-            height: 64px !important;
-            object-fit: cover !important;
-            object-position: center !important;
-            border-radius: 50% !important;
+        .slot-pill span {
+            color: #0f172a;
+            font-weight: 900;
         }
+
+        .slot-pill small {
+            color: #64748b;
+            font-weight: 800;
+            font-size: .75rem;
+        }
+
+        .slot-pill.available:hover {
+            transform: translateY(-3px) scale(1.015);
+            border-color: #0ea5e9;
+            box-shadow: 0 12px 24px rgba(14, 165, 233, .16);
+        }
+
+    .slot-radio:checked + .slot-pill.available {
+        background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        color: #ffffff;
+        border-color: transparent;
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(20, 184, 166, .24);
+    }
+
+        .slot-radio:checked + .slot-pill.available i,
+        .slot-radio:checked + .slot-pill.available span,
+        .slot-radio:checked + .slot-pill.available small {
+            color: #ffffff;
+        }
+
+        .slot-radio:checked + .slot-pill.available::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(255,255,255,.25), transparent 55%);
+            animation: selectedSlotPulse 1.8s ease-in-out infinite;
+        }
+
+    .slot-pill.booked {
+        cursor: not-allowed;
+        opacity: .7;
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        filter: grayscale(.1);
+    }
+
+        .slot-pill.booked i,
+        .slot-pill.booked span,
+        .slot-pill.booked small {
+            color: #94a3b8;
+        }
+
+    .live-card {
+        transition: transform .25s ease, box-shadow .25s ease;
+    }
+
+        .live-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+        }
+
+    .shine-box {
+        position: relative;
+        overflow: hidden;
+        transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+        .shine-box::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 55%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent);
+            transform: skewX(-18deg);
+            transition: left .55s ease;
+        }
+
+        .shine-box:hover {
+            transform: translateY(-2px);
+            border-color: rgba(14, 165, 233, .35);
+            box-shadow: 0 10px 24px rgba(14, 165, 233, .10);
+        }
+
+            .shine-box:hover::after {
+                left: 130%;
+            }
+
+    .btn-primary,
+    .btn-success,
+    .btn-danger,
+    .btn-outline-primary,
+    .ripple-target {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-primary,
+    .btn-success,
+    .btn-danger {
+        transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    }
+
+        .btn-primary:hover,
+        .btn-success:hover,
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            filter: brightness(.98);
+        }
+
+    .form-control {
+        transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+
+        .form-control:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 0 0 .18rem rgba(14, 165, 233, .12);
+        }
+
+    .appointment-actions-row > div {
+        animation: actionCardIn .45s ease both;
+    }
+
+        .appointment-actions-row > div:nth-child(1) {
+            animation-delay: .05s;
+        }
+
+        .appointment-actions-row > div:nth-child(2) {
+            animation-delay: .12s;
+        }
+
+        .appointment-actions-row > div:nth-child(3) {
+            animation-delay: .19s;
+        }
+
+    .live-alert {
+        animation: alertPop .35s ease both;
+    }
+
+    .ui-ripple {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,.48);
+        transform: scale(0);
+        animation: rippleEffect .65s ease-out;
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    @@keyframes pageFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes softFloat {
+        0%, 100% {
+            transform: translateY(0) scale(1);
+        }
+
+        50% {
+            transform: translateY(18px) scale(1.04);
+        }
+    }
+
+    @@keyframes profileRingMove {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    @@keyframes statusBreath {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 rgba(13, 110, 253, 0);
+        }
+
+        50% {
+            transform: scale(1.025);
+            box-shadow: 0 8px 18px rgba(13, 110, 253, 0.14);
+        }
+    }
+
+    @@keyframes selectedSlotPulse {
+        0%, 100% {
+            opacity: .25;
+            transform: scale(.95);
+        }
+
+        50% {
+            opacity: .65;
+            transform: scale(1.1);
+        }
+    }
+
+    @@keyframes actionCardIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes alertPop {
+        from {
+            opacity: 0;
+            transform: scale(.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @@keyframes rippleEffect {
+        to {
+            transform: scale(2.6);
+            opacity: 0;
+        }
+    }
 
     @@media (max-width: 1199.98px) {
         .appointment-profile-panel {
@@ -536,6 +890,7 @@
     }
 
     @@media (max-width: 576px) {
+        .appointment-detail-header,
         .appointment-profile-panel,
         .appointment-summary-panel {
             padding: 1rem;
@@ -551,4 +906,50 @@
             font-size: 1.35rem;
         }
     }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .appointment-details-page,
+        .appointment-actions-row > div,
+        .status-chip,
+        .appointment-profile-photo::before,
+        .slot-radio:checked + .slot-pill.available::before,
+        .appointment-detail-header::after,
+        .live-alert {
+            animation: none !important;
+        }
+
+        .live-card:hover,
+        .shine-box:hover,
+        .slot-pill.available:hover,
+        .btn-primary:hover,
+        .btn-success:hover,
+        .btn-danger:hover,
+        .form-control:focus {
+            transform: none !important;
+        }
+    }
 </style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".ripple-target, .btn, .slot-pill").forEach(function (el) {
+            el.addEventListener("click", function (e) {
+                const ripple = document.createElement("span");
+                ripple.className = "ui-ripple";
+
+                const rect = el.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+
+                ripple.style.width = ripple.style.height = size + "px";
+                ripple.style.left = (e.clientX - rect.left - size / 2) + "px";
+                ripple.style.top = (e.clientY - rect.top - size / 2) + "px";
+
+                el.appendChild(ripple);
+
+                setTimeout(function () {
+                    ripple.remove();
+                }, 650);
+            });
+        });
+    });
+</script>

@@ -15,39 +15,42 @@
             : status.Trim();
     }
 
-    var appointments = Model?.Appointments;
+    var appointments = Model?.Appointments ?? new List<Frontend.Models.Reception.TodayAppointmentForCheckInDto>();
 
-    var checkInAllowedStatuses = new[] { "Scheduled", "Booked", "Confirmed" };
+    var checkInAllowedStatuses = new[]
+    {
+        "Scheduled",
+        "Booked",
+        "Confirmed",
+        "Rescheduled"
+    };
 
-    var totalAppointments = appointments?.Count() ?? 0;
+    var totalAppointments = appointments.Count;
 
-    var readyCount = appointments?
-        .Count(x =>
-        {
-            string status = NormalizeStatus(x.Status);
-            return checkInAllowedStatuses.Any(s => string.Equals(status, s, StringComparison.OrdinalIgnoreCase));
-        }) ?? 0;
+    var readyCount = appointments.Count(x =>
+    {
+        string status = NormalizeStatus(x.Status);
+        return checkInAllowedStatuses.Any(s =>
+            string.Equals(status, s, StringComparison.OrdinalIgnoreCase));
+    });
 
-    var checkedInCount = appointments?
-        .Count(x =>
-        {
-            string status = NormalizeStatus(x.Status);
-            return IsStatus(status, "CheckedIn", "Checked In", "InQueue", "In Queue");
-        }) ?? 0;
+    var checkedInCount = appointments.Count(x =>
+    {
+        string status = NormalizeStatus(x.Status);
+        return IsStatus(status, "CheckedIn", "Checked In", "InQueue", "In Queue");
+    });
 
-    var completedCount = appointments?
-        .Count(x =>
-        {
-            string status = NormalizeStatus(x.Status);
-            return IsStatus(status, "Completed");
-        }) ?? 0;
+    var completedCount = appointments.Count(x =>
+    {
+        string status = NormalizeStatus(x.Status);
+        return IsStatus(status, "Completed");
+    });
 
-    var cancelledCount = appointments?
-        .Count(x =>
-        {
-            string status = NormalizeStatus(x.Status);
-            return IsStatus(status, "Cancelled", "Canceled", "NoShow", "No Show");
-        }) ?? 0;
+    var cancelledCount = appointments.Count(x =>
+    {
+        string status = NormalizeStatus(x.Status);
+        return IsStatus(status, "Cancelled", "Canceled", "NoShow", "No Show");
+    });
 }
 
 <style>
@@ -298,7 +301,7 @@
             </div>
             <h1>Patient Check-In</h1>
             <p>
-                See all appointments for the selected date, check in booked patients, and review completed visits with time and doctor details.
+                See all appointments for the selected date, check in booked, scheduled, confirmed, or rescheduled patients.
             </p>
         </div>
 
@@ -330,7 +333,12 @@
     </div>
 }
 
-<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+@if (!string.IsNullOrWhiteSpace(Model?.ErrorMessage))
+{
+    <div class="alert alert-danger border-0 shadow-sm rounded-4">
+        <i class="bi bi-exclamation-triangle me-2"></i>@Model.ErrorMessage
+    </div>
+}
 
 <div class="metric-grid-modern">
     <div class="metric-card-modern">
@@ -389,8 +397,7 @@
     <div class="appointment-toolbar">
         <div class="flow-note">
             <strong>Flow:</strong>
-            Booked/Scheduled patients can be checked in. After queue completion, the appointment should sync to
-            <strong>Completed</strong> and stay visible here for review.
+            Booked, scheduled, confirmed, or rescheduled patients can be checked in. After check-in, they appear in the queue.
         </div>
 
         <div class="row align-items-end g-3">
@@ -432,13 +439,15 @@
 
     <div class="card-body p-4">
         <div id="appointmentList">
-            @if (appointments != null && appointments.Any())
+            @if (appointments.Any())
             {
                 foreach (var item in appointments)
                 {
                     string rawStatus = NormalizeStatus(item.Status);
 
-                    var isReady = checkInAllowedStatuses.Any(s => string.Equals(rawStatus, s, StringComparison.OrdinalIgnoreCase));
+                    var isReady = checkInAllowedStatuses.Any(s =>
+                        string.Equals(rawStatus, s, StringComparison.OrdinalIgnoreCase));
+
                     var isCompleted = IsStatus(rawStatus, "Completed");
                     var isCancelled = IsStatus(rawStatus, "Cancelled", "Canceled", "NoShow", "No Show");
                     var isCheckedIn = IsStatus(rawStatus, "CheckedIn", "Checked In", "InQueue", "In Queue");

@@ -10,35 +10,8 @@ namespace Frontend
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllersWithViews();
+
             builder.Services.AddDistributedMemoryCache();
-            builder.Services.AddHttpContextAccessor();
-            builder.Services.AddTransient<AuthHeaderHandler>();
-
-            builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
-            var gatewayBaseUrl = builder.Configuration.GetSection("ApiSettings")["BaseUrl"] ?? "https://localhost:7000/";
-            if (!gatewayBaseUrl.EndsWith('/')) gatewayBaseUrl += "/";
-            var gatewayUri = new Uri(gatewayBaseUrl);
-
-            void ConfigureGatewayClient(HttpClient client) => client.BaseAddress = gatewayUri;
-
-            // Named client kept for older controllers that still use IHttpClientFactory directly.
-            builder.Services.AddHttpClient("AuthApi", ConfigureGatewayClient)
-                .AddHttpMessageHandler<AuthHeaderHandler>();
-
-            builder.Services.AddHttpClient<AuthGatewayService>(ConfigureGatewayClient)
-                .AddHttpMessageHandler<AuthHeaderHandler>();
-            builder.Services.AddHttpClient<PatientGatewayService>(ConfigureGatewayClient)
-                .AddHttpMessageHandler<AuthHeaderHandler>();
-            builder.Services.AddHttpClient<StaffUserGatewayService>(ConfigureGatewayClient)
-                .AddHttpMessageHandler<AuthHeaderHandler>();
-            builder.Services.AddHttpClient<DoctorGatewayService>(ConfigureGatewayClient)
-                .AddHttpMessageHandler<AuthHeaderHandler>();
-            builder.Services.AddHttpClient<IReceptionApiService, ReceptionApiService>(ConfigureGatewayClient)
-                .AddHttpMessageHandler<AuthHeaderHandler>();
-            builder.Services.AddHttpClient<IAppointmentApiService, AppointmentApiService>(ConfigureGatewayClient)
-                .AddHttpMessageHandler<AuthHeaderHandler>();
-            builder.Services.AddHttpClient<IBillingApiService, BillingApiService>(ConfigureGatewayClient)
-                .AddHttpMessageHandler<AuthHeaderHandler>();
 
             builder.Services.AddSession(options =>
             {
@@ -46,6 +19,50 @@ namespace Frontend
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
             });
+
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddTransient<AuthHeaderHandler>();
+
+            builder.Services.Configure<ApiSettings>(
+                builder.Configuration.GetSection("ApiSettings"));
+
+            var gatewayBaseUrl =
+                builder.Configuration.GetSection("ApiSettings")["BaseUrl"]
+                ?? "https://localhost:7000/";
+
+            if (!gatewayBaseUrl.EndsWith('/'))
+                gatewayBaseUrl += "/";
+
+            var gatewayUri = new Uri(gatewayBaseUrl);
+
+            void ConfigureGatewayClient(HttpClient client)
+            {
+                client.BaseAddress = gatewayUri;
+            }
+
+            builder.Services.AddHttpClient("AuthApi", ConfigureGatewayClient)
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+
+            builder.Services.AddHttpClient<AuthGatewayService>(ConfigureGatewayClient)
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+
+            builder.Services.AddHttpClient<PatientGatewayService>(ConfigureGatewayClient)
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+
+            builder.Services.AddHttpClient<StaffUserGatewayService>(ConfigureGatewayClient)
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+
+            builder.Services.AddHttpClient<DoctorGatewayService>(ConfigureGatewayClient)
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+
+            builder.Services.AddHttpClient<IReceptionApiService, ReceptionApiService>(ConfigureGatewayClient)
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+
+            builder.Services.AddHttpClient<IAppointmentApiService, AppointmentApiService>(ConfigureGatewayClient)
+                .AddHttpMessageHandler<AuthHeaderHandler>();
+
+            builder.Services.AddHttpClient<IBillingApiService, BillingApiService>(ConfigureGatewayClient)
+                .AddHttpMessageHandler<AuthHeaderHandler>();
 
             var app = builder.Build();
 
@@ -57,8 +74,11 @@ namespace Frontend
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+
             app.UseRouting();
+
             app.UseSession();
+
             app.UseAuthorization();
 
             app.MapControllerRoute(

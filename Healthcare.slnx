@@ -1,7 +1,6 @@
 <Solution>
-  <Project Path="Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
-  <Project Path="Hms.DoctorsApi/Hms.DoctorsApi.csproj" />
 
+  <!-- Tests -->
   <Folder Name="/Tests/">
     <Project Path="Hms.AuthApi.Tests/Hms.AuthApi.Tests.csproj">
       <Build Solution="Debug|*" Project="false" />
@@ -13,12 +12,12 @@
       <Build Solution="Debug|*" Project="false" />
     </Project>
   </Folder>
-
   <Project Path="Frontend/Frontend.csproj" />
   <Project Path="HealthcareGateway/HealthcareGateway.csproj" />
+  <Project Path="Hms.AppointmentsApi/Hms.AppointmentsApi.csproj" />
   <Project Path="Hms.AuthApi/Hms.AuthApi.csproj" />
   <Project Path="Hms.BillingApi/Hms.BillingApi.csproj" />
+  <Project Path="Hms.DoctorsApi/Hms.DoctorsApi.csproj" />
   <Project Path="Hms.PatientsApi/Hms.PatientsApi.csproj" />
   <Project Path="Hms.ReceptionApi/Hms.ReceptionApi.csproj" />
-  <Project Path="Hms.CloudIntegration.Functions/Hms.CloudIntegration.Functions.csproj" />
 </Solution>

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Hms.ReceptionApi.DTOs.Reception;
 using Hms.ReceptionApi.Interfaces.Clients;
@@ -8,13 +9,18 @@ namespace Hms.ReceptionApi.Clients;
 public class PatientsApiClient : IPatientsApiClient
 {
     private readonly HttpClient _httpClient;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public PatientsApiClient(HttpClient httpClient)
+    public PatientsApiClient(
+        HttpClient httpClient,
+        IHttpContextAccessor httpContextAccessor)
     {
         _httpClient = httpClient;
+        _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<ReceptionPatientSearchResponseDto> SearchPatientsAsync(ReceptionPatientSearchRequestDto request)
+    public async Task<ReceptionPatientSearchResponseDto> SearchPatientsAsync(
+        ReceptionPatientSearchRequestDto request)
     {
         var patientSearchRequest = new
         {
@@ -26,12 +32,21 @@ public class PatientsApiClient : IPatientsApiClient
             pageSize = request.PageSize
         };
 
-        var response = await _httpClient.PostAsJsonAsync("/api/patients/search", patientSearchRequest);
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/patients/search");
+
+        AddBearerToken(httpRequest);
+
+        httpRequest.Content = JsonContent.Create(patientSearchRequest);
+
+        using var response = await _httpClient.SendAsync(httpRequest);
 
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new InvalidOperationException($"Failed to search patients. Details: {error}");
+            throw new InvalidOperationException(
+                $"Failed to search patients. Status: {(int)response.StatusCode}. Details: {error}");
         }
 
         var result = await response.Content.ReadFromJsonAsync<PatientsSearchApiResponse>();
@@ -48,7 +63,13 @@ public class PatientsApiClient : IPatientsApiClient
 
     public async Task<ReceptionPatientSummaryDto?> GetPatientSummaryAsync(int patientId)
     {
-        var response = await _httpClient.GetAsync($"/api/patients/{patientId}");
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/patients/{patientId}");
+
+        AddBearerToken(httpRequest);
+
+        using var response = await _httpClient.SendAsync(httpRequest);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
             return null;
@@ -56,7 +77,8 @@ public class PatientsApiClient : IPatientsApiClient
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new InvalidOperationException($"Failed to fetch patient summary. Details: {error}");
+            throw new InvalidOperationException(
+                $"Failed to fetch patient summary. Status: {(int)response.StatusCode}. Details: {error}");
         }
 
         var result = await response.Content.ReadFromJsonAsync<PatientApiResponse>();
@@ -64,7 +86,8 @@ public class PatientsApiClient : IPatientsApiClient
         return result == null ? null : MapPatientSummary(result);
     }
 
-    public async Task<ReceptionPatientSummaryDto> RegisterPatientAsync(RegisterPatientByReceptionRequestDto request)
+    public async Task<ReceptionPatientSummaryDto> RegisterPatientAsync(
+        RegisterPatientByReceptionRequestDto request)
     {
         var patientCreateRequest = new
         {
@@ -87,12 +110,21 @@ public class PatientsApiClient : IPatientsApiClient
             portalAccessEnabled = request.PortalAccessEnabled
         };
 
-        var response = await _httpClient.PostAsJsonAsync("/api/patients", patientCreateRequest);
+        using var httpRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/patients");
+
+        AddBearerToken(httpRequest);
+
+        httpRequest.Content = JsonContent.Create(patientCreateRequest);
+
+        using var response = await _httpClient.SendAsync(httpRequest);
 
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new InvalidOperationException($"Failed to register patient. Details: {error}");
+            throw new InvalidOperationException(
+                $"Failed to register patient. Status: {(int)response.StatusCode}. Details: {error}");
         }
 
         var result = await response.Content.ReadFromJsonAsync<PatientApiResponse>();
@@ -100,6 +132,26 @@ public class PatientsApiClient : IPatientsApiClient
         return result == null
             ? throw new InvalidOperationException("Unable to parse patient registration response.")
             : MapPatientSummary(result);
+    }
+
+    private void AddBearerToken(HttpRequestMessage request)
+    {
+        var authHeader =
+            _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+
+        if (string.IsNullOrWhiteSpace(authHeader))
+            return;
+
+        if (!authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var token = authHeader["Bearer ".Length..].Trim();
+
+        if (string.IsNullOrWhiteSpace(token))
+            return;
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
     }
 
     private static ReceptionPatientSummaryDto MapPatientSummary(PatientApiResponse patient)

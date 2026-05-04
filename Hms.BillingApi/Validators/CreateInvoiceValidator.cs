@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using Hms.BillingApi.DTOs;
+using FluentValidation;
 using Hms.BillingApi.DTOs.Billing;
 
 namespace Hms.BillingApi.Validators
@@ -8,11 +7,8 @@ namespace Hms.BillingApi.Validators
     {
         public CreateInvoiceValidator()
         {
-            RuleFor(x => x.PatientId)
-                .NotEmpty();
-
-            RuleFor(x => x.Items)
-                .NotEmpty();
+            RuleFor(x => x.PatientId).GreaterThan(0).WithMessage("PatientId is required.");
+            RuleFor(x => x.UHID).NotEmpty().WithMessage("UHID is required.");
         }
     }
-}
+}

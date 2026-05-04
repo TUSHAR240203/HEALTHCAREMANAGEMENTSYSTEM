@@ -7,6 +7,9 @@ using Hms.BillingApi.Services;
 using Hms.BillingApi.Mappings;
 using Hms.BillingApi.Validators;
 using Hms.BillingApi.Finance;
+//using Hms.BillingApi.Clients;
+using Microsoft.Extensions.Http.Resilience;
+using Polly;
 
 using Microsoft.EntityFrameworkCore;
 using FluentValidation;
@@ -31,7 +34,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.BillingApi"));
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCaching();
-
+builder.Services.AddHttpContextAccessor();
 // 🔥 DB Context
 builder.Services.AddDbContext<BillingDbContext>(options =>
     options.UseSqlServer(
@@ -43,6 +46,37 @@ builder.Services.AddDbContext<BillingDbContext>(options =>
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IFinanceCalculator, FinanceCalculator>();
+builder.Services.AddScoped<IServiceCatalogRepository, ServiceCatalogRepository>();
+
+// 🔥 DoctorsApi HttpClient (for fetching ConsultationFee) + Polly retry
+builder.Services.AddHttpClient<IDoctorsApiClient, DoctorsApiClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:DoctorsApi"]!);
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddResilienceHandler("doctors-api-retry", (pipeline, ctx) =>
+{
+    pipeline.AddRetry(new HttpRetryStrategyOptions
+    {
+        MaxRetryAttempts = 3,
+        Delay = TimeSpan.FromSeconds(2),
+        BackoffType = DelayBackoffType.Exponential,   // 2s → 4s → 8s
+        UseJitter = true,
+        ShouldHandle = static args =>
+            ValueTask.FromResult(
+                args.Outcome.Exception is HttpRequestException ||
+                (args.Outcome.Result?.StatusCode >= System.Net.HttpStatusCode.InternalServerError)),
+        OnRetry = static args =>
+        {
+            Log.Warning(
+                "DoctorsApi retry attempt {Attempt} after {Delay}s. Reason: {Reason}",
+                args.AttemptNumber + 1,
+                args.RetryDelay.TotalSeconds,
+                args.Outcome.Exception?.Message ?? args.Outcome.Result?.StatusCode.ToString());
+            return ValueTask.CompletedTask;
+        }
+    });
+});
 
 // 🔥 AutoMapper
 builder.Services.AddAutoMapper(cfg => { }, typeof(BillingProfile).Assembly);

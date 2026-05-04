@@ -16,6 +16,40 @@ namespace Frontend.Controllers
         }
 
         [HttpGet]
+        public IActionResult Index()
+        {
+            return RedirectToAction(nameof(ByPatient));
+        }
+        [HttpGet]
+        [RequireRole("Admin", "Receptionist")]
+        public async Task<IActionResult> Finance(int pageNumber = 1, int pageSize = 50)
+        {
+            var model = new FinanceDashboardViewModel();
+
+            try
+            {
+                model.Summary = await _billingApiService.GetFinanceSummaryAsync() ?? new FinanceSummaryDto();
+                model.Invoices = await _billingApiService.GetFinanceInvoicesAsync(pageNumber, pageSize);
+            }
+            catch (ApiException ex)
+            {
+                model.ErrorMessage = ex.Message;
+            }
+            catch (HttpRequestException ex)
+            {
+                model.ErrorMessage =
+                    $"Could not connect to API Gateway. Check that the Gateway is running on the URL configured in ApiSettings:BaseUrl. Details: {ex.Message}";
+            }
+            catch (Exception ex)
+            {
+                model.ErrorMessage =
+                    $"Something went wrong while loading Finance data. Details: {ex.Message}";
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
         [RequireRole("Admin", "Receptionist")]
         public IActionResult CreateInvoice()
         {
@@ -45,11 +79,7 @@ namespace Frontend.Controllers
                 }
 
                 TempData["Success"] = "Invoice created successfully.";
-
-                return RedirectToAction(nameof(Details), new
-                {
-                    invoiceId = result.Id
-                });
+                return RedirectToAction(nameof(Details), new { invoiceId = result.Id });
             }
             catch (ApiException ex)
             {
@@ -58,9 +88,13 @@ namespace Frontend.Controllers
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Details(int invoiceId)
+        [HttpGet("/Billing/{invoiceId:int}")]
+        [HttpGet("/Billing/Details")]
+        [HttpGet("/Billing/Details/{id:int}")]
+        public async Task<IActionResult> Details(int invoiceId, int? id)
         {
+            invoiceId = invoiceId > 0 ? invoiceId : (id ?? 0);
+
             if (invoiceId <= 0)
             {
                 TempData["Error"] = "Invalid invoice.";
@@ -81,6 +115,7 @@ namespace Frontend.Controllers
                 if (string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase))
                 {
                     var sessionPatientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
+
                     if (sessionPatientId <= 0 || result.PatientId != sessionPatientId)
                     {
                         TempData["Error"] = "You can view only your own billing details.";
@@ -97,30 +132,73 @@ namespace Frontend.Controllers
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> ByPatient(int? patientId)
+        [HttpGet("/Billing/Appointment/{appointmentId:int}")]
+        [HttpGet("/Billing/DetailsByAppointment/{appointmentId:int}")]
+        public async Task<IActionResult> DetailsByAppointment(int appointmentId)
         {
-            var role = HttpContext.Session.GetString("Role");
-            var effectivePatientId = patientId ?? 0;
-
-            if (string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase))
+            if (appointmentId <= 0)
             {
-                effectivePatientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
-            }
-
-            if (effectivePatientId <= 0)
-            {
-                ViewBag.PatientId = null;
-                return View(new List<InvoiceResponseDto>());
+                TempData["Error"] = "Invalid appointment.";
+                return RedirectToAction(nameof(ByPatient));
             }
 
             try
             {
-                ViewBag.PatientId = effectivePatientId;
+                var result = await _billingApiService.GetInvoiceByAppointmentIdAsync(appointmentId);
 
-                var result = await _billingApiService.GetInvoicesByPatientIdAsync(effectivePatientId);
+                if (result == null)
+                {
+                    TempData["Error"] = "Bill is not available yet. If you just completed the appointment, wait a few seconds and refresh because billing is generated in the background.";
+                    return RedirectToAction(nameof(ByPatient));
+                }
 
-                return View(result ?? new List<InvoiceResponseDto>());
+                return RedirectToAction(nameof(Details), new { invoiceId = result.Id });
+            }
+            catch (ApiException ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction(nameof(ByPatient));
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ByPatient(int? patientId, bool showRecent = false)
+        {
+            var role = HttpContext.Session.GetString("Role");
+            var isPatient = string.Equals(role, "Patient", StringComparison.OrdinalIgnoreCase);
+
+            var hasPatientSearch = Request.Query.ContainsKey("patientId");
+            var effectivePatientId = 0;
+
+            if (isPatient)
+            {
+                effectivePatientId = HttpContext.Session.GetInt32("PatientId") ?? 0;
+                hasPatientSearch = true;
+            }
+            else if (hasPatientSearch && patientId.HasValue)
+            {
+                effectivePatientId = patientId.Value;
+            }
+
+            ViewBag.PatientId = effectivePatientId > 0 ? (int?)effectivePatientId : null;
+            ViewBag.ShowingRecentInvoices = false;
+
+            try
+            {
+                if (effectivePatientId > 0)
+                {
+                    var result = await _billingApiService.GetInvoicesByPatientIdAsync(effectivePatientId);
+                    return View(result ?? new List<InvoiceResponseDto>());
+                }
+
+                if (!isPatient && showRecent)
+                {
+                    var recent = await _billingApiService.GetFinanceInvoicesAsync(1, 50);
+                    ViewBag.ShowingRecentInvoices = true;
+                    return View(recent.Items ?? new List<InvoiceResponseDto>());
+                }
+
+                return View(new List<InvoiceResponseDto>());
             }
             catch (ApiException ex)
             {
@@ -170,11 +248,7 @@ namespace Frontend.Controllers
                 }
 
                 TempData["Success"] = "Invoice item added successfully.";
-
-                return RedirectToAction(nameof(Details), new
-                {
-                    invoiceId = result.Id
-                });
+                return RedirectToAction(nameof(Details), new { invoiceId = result.Id });
             }
             catch (ApiException ex)
             {
@@ -243,11 +317,7 @@ namespace Frontend.Controllers
                 }
 
                 TempData["Success"] = "Payment received successfully.";
-
-                return RedirectToAction(nameof(Details), new
-                {
-                    invoiceId = result.Id
-                });
+                return RedirectToAction(nameof(Details), new { invoiceId = result.Id });
             }
             catch (ApiException ex)
             {
@@ -275,11 +345,7 @@ namespace Frontend.Controllers
             if (amount <= 0)
             {
                 TempData["Error"] = "Payment amount must be greater than zero.";
-
-                return RedirectToAction(nameof(Details), new
-                {
-                    invoiceId
-                });
+                return RedirectToAction(nameof(Details), new { invoiceId });
             }
 
             try
@@ -302,20 +368,12 @@ namespace Frontend.Controllers
                 }
 
                 TempData["Success"] = "Payment received successfully.";
-
-                return RedirectToAction(nameof(Details), new
-                {
-                    invoiceId = result.Id
-                });
+                return RedirectToAction(nameof(Details), new { invoiceId = result.Id });
             }
             catch (ApiException ex)
             {
                 TempData["Error"] = ex.Message;
-
-                return RedirectToAction(nameof(Details), new
-                {
-                    invoiceId
-                });
+                return RedirectToAction(nameof(Details), new { invoiceId });
             }
         }
     }
