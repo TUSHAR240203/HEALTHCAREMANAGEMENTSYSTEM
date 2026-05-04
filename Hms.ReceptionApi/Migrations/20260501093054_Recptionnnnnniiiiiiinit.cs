@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Hms.ReceptionApi.Migrations
 {
     /// <inheritdoc />
-    public partial class recptionistinit : Migration
+    public partial class Recptionnnnnniiiiiiinit : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

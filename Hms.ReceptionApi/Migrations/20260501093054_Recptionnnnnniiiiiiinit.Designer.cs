@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hms.ReceptionApi.Migrations
 {
     [DbContext(typeof(ReceptionDbContext))]
-    [Migration("20260416200000_init")]
-    partial class init
+    [Migration("20260501093054_Recptionnnnnniiiiiiinit")]
+    partial class Recptionnnnnniiiiiiinit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,7 +40,9 @@ namespace Hms.ReceptionApi.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("DepartmentId")
                         .HasColumnType("int");
@@ -49,7 +51,9 @@ namespace Hms.ReceptionApi.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("PatientId")
                         .HasColumnType("int");
@@ -74,9 +78,16 @@ namespace Hms.ReceptionApi.Migrations
 
                     b.HasIndex("AppointmentId");
 
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DoctorId");
+
                     b.HasIndex("PatientId");
 
                     b.HasIndex("DepartmentId", "CheckInTimeUtc");
+
+                    b.HasIndex("PatientId", "AppointmentId")
+                        .IsUnique();
 
                     b.ToTable("PatientCheckIns", (string)null);
                 });
@@ -92,8 +103,19 @@ namespace Hms.ReceptionApi.Migrations
                     b.Property<int>("AppointmentId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAtUtc")
+                    b.Property<DateTime?>("CalledAtUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("DepartmentId")
                         .HasColumnType("int");
@@ -102,18 +124,30 @@ namespace Hms.ReceptionApi.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("PatientId")
                         .HasColumnType("int");
 
                     b.Property<string>("PatientName")
                         .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<DateOnly>("QueueDate")
                         .HasColumnType("date");
+
+                    b.Property<DateTime?>("SkippedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -132,6 +166,14 @@ namespace Hms.ReceptionApi.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("DepartmentId", "QueueDate", "Status");
 
                     b.HasIndex("DepartmentId", "QueueDate", "TokenNumber")
                         .IsUnique();
