@@ -373,10 +373,11 @@ public class ReceptionService : IReceptionService
             PageSize = 5
         });
 
-        var appointments = result.Appointments
+        var appointments = (result.Appointments ?? new List<AppointmentSummaryDto>())
             .Where(x =>
                 string.Equals(x.Status, "Scheduled", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(x.Status, "Booked", StringComparison.OrdinalIgnoreCase))
+                string.Equals(x.Status, "Booked", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.Status, "Rescheduled", StringComparison.OrdinalIgnoreCase))
             .OrderBy(x => x.SlotStartTime)
             .ToList();
 

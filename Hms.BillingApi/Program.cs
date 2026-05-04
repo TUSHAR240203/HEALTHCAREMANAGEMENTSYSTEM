@@ -7,7 +7,7 @@ using Hms.BillingApi.Services;
 using Hms.BillingApi.Mappings;
 using Hms.BillingApi.Validators;
 using Hms.BillingApi.Finance;
-using Hms.BillingApi.Clients;
+//using Hms.BillingApi.Clients;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
 
@@ -34,7 +34,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options => options.AddJwtSwaggerSecurity("Hms.BillingApi"));
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCaching();
-
+builder.Services.AddHttpContextAccessor();
 // 🔥 DB Context
 builder.Services.AddDbContext<BillingDbContext>(options =>
     options.UseSqlServer(

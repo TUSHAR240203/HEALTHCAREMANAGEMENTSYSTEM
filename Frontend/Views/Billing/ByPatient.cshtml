@@ -1,46 +1,138 @@
 @using Microsoft.AspNetCore.Http
 @model List<Frontend.Models.Billing.InvoiceResponseDto>
+
 @{
-    ViewData["Title"] = string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase) ? "My Bills" : "Invoices By Patient";
+    var isPatient = string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase);
+
+    ViewData["Title"] = isPatient ? "My Bills" : "Invoices By Patient";
 }
 
 <div class="page-header">
     <div>
         <h1>@ViewData["Title"]</h1>
         <p class="page-subtitle">
-            @(string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase)
+            @(isPatient
                 ? "Review your invoice totals, paid amount, balance, and payment status."
                 : "Search invoices and review payment status for a selected patient.")
         </p>
     </div>
-    @if (!string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase))
+
+    @if (!isPatient)
     {
         <a asp-action="CreateInvoice" class="btn btn-light text-primary">Create Invoice</a>
     }
 </div>
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div asp-validation-summary="All" class="alert alert-danger"></div>
+}
+
 <div class="card border-0">
     <div class="card-body p-4">
-        @if (!string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase))
+        @if (!isPatient)
         {
-            <form asp-action="ByPatient" method="get" class="row g-3 align-items-end">
-                <div class="col-md-6 col-lg-4">
-                    <label class="form-label">Patient Id</label>
-                    <input name="patientId" value="@ViewBag.PatientId" class="form-control" placeholder="Enter patient id" />
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <form asp-action="ByPatient" method="get" class="h-100">
+                        <label class="form-label">Find by Patient Id</label>
+                        <div class="input-group">
+                            <input type="number"
+                                   name="patientId"
+                                   value="@(ViewBag.PatientId ?? "")"
+                                   class="form-control"
+                                   placeholder="Ex. 1"
+                                   min="1" />
+
+                            <button type="submit" class="btn btn-primary">
+                                Search
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div class="col-md-auto">
-                    <button type="submit" class="btn btn-primary">Search</button>
+
+                <div class="col-lg-4">
+                    <form asp-action="Details" method="get" class="h-100">
+                        <label class="form-label">Find by Invoice Id</label>
+                        <div class="input-group">
+                            <input type="number"
+                                   name="invoiceId"
+                                   class="form-control"
+                                   placeholder="Ex. 1"
+                                   min="1" />
+
+                            <button type="submit" class="btn btn-primary">
+                                Open
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </form>
+
+                <div class="col-lg-4">
+                    <form asp-action="DetailsByAppointment" method="get" class="h-100">
+                        <label class="form-label">Find by Appointment Id</label>
+                        <div class="input-group">
+                            <input type="number"
+                                   name="appointmentId"
+                                   class="form-control"
+                                   placeholder="Ex. 2"
+                                   min="1" />
+
+                            <button type="submit" class="btn btn-primary">
+                                Open
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="col-12 d-flex flex-wrap gap-2">
+                    <a asp-action="Finance" class="btn btn-outline-primary">
+                        <i class="bi bi-graph-up-arrow me-1"></i>
+                        Finance Dashboard
+                    </a>
+
+                    <a asp-action="ByPatient"
+                           asp-route-showRecent="true"
+                           class="btn btn-outline-secondary">
+                        Show Recent Invoices
+                    </a>
+                </div>
+            </div>
         }
         else
         {
-            <div class="info-strip">Showing invoices linked with your patient profile.</div>
+            <div class="info-strip">
+                Showing invoices linked with your patient profile.
+            </div>
         }
     </div>
 </div>
 
 <div class="card border-0">
+    <div class="card-header bg-white">
+        <h2 class="h5 mb-1">
+            @(ViewBag.ShowingRecentInvoices == true ? "Recent Invoices" : "Billing Records")
+        </h2>
+
+        <p class="section-subtitle mb-0">
+            @(ViewBag.ShowingRecentInvoices == true
+                ? "Showing latest invoices from the Finance API, including newly auto-generated appointment bills."
+                : isPatient
+                    ? "Showing invoices linked with your patient profile."
+                    : "Search by patient id or click Show Recent Invoices to review billing records.")
+        </p>
+    </div>
+
     <div class="card-body p-0">
         @if (Model != null && Model.Any())
         {
@@ -58,20 +150,31 @@
                             <th>Action</th>
                         </tr>
                     </thead>
+
                     <tbody>
-                    @foreach (var invoice in Model)
-                    {
-                        <tr>
-                            <td>#@invoice.Id</td>
-                            <td>@invoice.UHID</td>
-                            <td>@invoice.AppointmentId</td>
-                            <td>₹@invoice.TotalAmount</td>
-                            <td>₹@invoice.PaidAmount</td>
-                            <td>₹@invoice.BalanceAmount</td>
-                            <td><span class="badge bg-light text-dark">@invoice.Status</span></td>
-                            <td><a asp-action="Details" asp-route-invoiceId="@invoice.Id" class="btn btn-sm btn-outline-primary">View</a></td>
-                        </tr>
-                    }
+                        @foreach (var invoice in Model)
+                        {
+                            <tr>
+                                <td>#@invoice.Id</td>
+                                <td>@invoice.UHID</td>
+                                <td>@invoice.AppointmentId</td>
+                                <td>₹@invoice.TotalAmount</td>
+                                <td>₹@invoice.PaidAmount</td>
+                                <td>₹@invoice.BalanceAmount</td>
+                                <td>
+                                    <span class="badge bg-light text-dark">
+                                        @invoice.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <a asp-action="Details"
+                                           asp-route-invoiceId="@invoice.Id"
+                                           class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -81,9 +184,9 @@
             <div class="empty-state">
                 <h3 class="h5">No invoices found</h3>
                 <p class="text-muted">
-                    @(string.Equals(Context.Session.GetString("Role"), "Patient", StringComparison.OrdinalIgnoreCase)
+                    @(isPatient
                         ? "No bills are linked to your patient profile yet."
-                        : "Search by patient id to review billing records.")
+                        : "Search by patient id or click Show Recent Invoices to review billing records.")
                 </p>
             </div>
         }
