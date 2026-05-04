@@ -89,10 +89,11 @@ public class PatientsController : ControllerBase
         if (!deleted) return NotFound();
         return NoContent();
     }
+
     [HttpPut("{id:int}/complete-profile")]
     public async Task<IActionResult> CompleteProfile(
-    int id,
-    [FromBody] CompletePatientProfileRequestDto request)
+        int id,
+        [FromBody] CompletePatientProfileRequestDto request)
     {
         var result = await _patientService.CompleteProfileAsync(id, request);
         if (result == null) return NotFound();
